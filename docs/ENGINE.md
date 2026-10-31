@@ -240,6 +240,7 @@ export default {
 | `setXform(o)` | **声明场景级变换**（见 §3.5）。不调用 = 这一帧不做变换 |
 | `util` | `util.js` 的全部导出（`clamp/lerp/ease/prog/keys/rng/hash2/...`）。**别只记得那几个**：`hsv(h,s,v)` 造**线性**色（除 `P.*` 外唯一的程序化配色入口）、`spring(elapsed,…)` 解析弹簧、`hit/pulse/pingPong/cycle` 周期脉冲、`pointAtLength/polylineLengths` 沿路径、`noise1/2/3`+`fbm1/2` 确定性噪声、`rngArray` 预算随机、`remap/invLerp/rot2/mixColor/scaleColor`、`pad/timecode/bar` |
 | `rng` | `util.rng` 的便捷引用 |
+| `renderShot(id, t2, o)` | **段间引用**（1-15）：把另一段在 `t2`（**整片时间**）的画面贴进当前帧。`o = { x, y, w, h, opacity }`（逻辑像素 rect，默认整幅）。实现 = `Engine.renderShotAt`（专用 RT、1 子帧、递归保护当场抛）；**每次调用是一次完整的单段渲染**，子帧路径下每个子帧各渲一遍。夹具 `tasks/_ref-lab` |
 | `clear(color)` | 便捷：`gl.clear(ctx.out, color)`，默认 `[0,0,0]` |
 
 注意：**`engine.text` / `engine.type` 是 HUD 专用的**，多段重叠（转场）时它们的画布会被互相擦掉，场景里一律用 `ctx.text` / `ctx.type`。每个时间线条目都有自己独立的 `Layer2D`（`item._layer`），内存按段数线性增长（1080p 一层约 8MB）。

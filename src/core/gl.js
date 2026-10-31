@@ -577,6 +577,7 @@ export class GL {
       full: 0, any: 0, lines: 0, text: 0,
       target, other: 0, layer: layer?.type ?? layer ?? null,
       blocks: [], markError: false,
+      orphanLines: 0,   // D-1：begin 之前画、被丢弃的线段数（flush 时从 LineBatch 汇进来）
     };
     this.paint = p;
     return p;
@@ -1307,10 +1308,25 @@ void main() {
   }
 
   /** 开始一批。之后连续调用 seg/polyline/circle…，最后 flush。 */
-  begin() { this.offset = 0; this.drawing = true; return this; }
+  begin() {
+    // D-1：上一次 flush 之后画的孤儿线还挂着的话，趁现在 paint 存在交出去 ——
+    // 挂在实例上等到下一次 flush 会跨帧（每帧 beginPaint 都换新 paint，计数就永远追不上）。
+    if (this.orphanCount && this.gl.paint) {
+      this.gl.paint.orphanLines = (this.gl.paint.orphanLines ?? 0) + this.orphanCount;
+      this.orphanCount = 0;
+    }
+    this.offset = 0; this.drawing = true; return this;
+  }
 
   _push(ax, ay, bx, by, width, color, u0 = 0, u1 = 1) {
     if (this.offset + 6 > this.capacity * 6) return this; // 满了就丢（宁可少画不要崩）
+    // D-1：begin() 之前（或 flush() 之后、下一次 begin() 之前）画线 = 数据写进缓冲也**永远不会被
+    // 上传**（要么被下一次 begin() 归零覆盖，要么被别的段 flush 时误带出去）。以前静默不生效，
+    // 画面错在哪都不知道；现在丢弃并计数，check 会点名（见 flush() 里的汇总）。
+    if (this.drawing !== true) {
+      this.orphanCount = (this.orphanCount ?? 0) + 1;
+      return this;
+    }
     const D = this.data;
     let o = this.offset * 13;
     const a = color[3] ?? 1;
@@ -1452,7 +1468,11 @@ void main() {
     if (target) target.bind(); else { g.bindFramebuffer(g.FRAMEBUFFER, null); g.viewport(0, 0, this.gl.pw, this.gl.ph); }
     g.drawArrays(g.TRIANGLES, 0, this.offset);
     g.bindVertexArray(null);
-    if (this.gl.paint) this.gl.paint.lines++;
+    if (this.gl.paint) {
+      this.gl.paint.lines++;
+      // D-1：begin 之前画的线在 flush 时把孤儿计数**交出去**（check 按帧打印），并清零重计
+      if (this.orphanCount) { this.gl.paint.orphanLines = (this.gl.paint.orphanLines ?? 0) + this.orphanCount; this.orphanCount = 0; }
+    }
     this.gl._notePaint(g, target, { blend: true });
     const n = this.offset / 6;
     this.offset = 0;

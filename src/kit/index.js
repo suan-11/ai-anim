@@ -1,3 +1,4 @@
+export { makeParticles, PARTICLE_PRESETS, MAX_PARTICLES } from './particles.js';
 // @ts-check
 /**
  * `src/kit/` —— 引擎自带的镜头工具。

@@ -292,6 +292,7 @@ export default makeShot('chart', {
 | **换成像方式**（半调 / 字符画 / 1-bit / 热成像 / CRT / 雕版 / **多方向排线**） | `instrumented(ctx, { mode, cell }, (target) => {…})`（`src/kit/views.js`）。⚠ 整帧（含文字）先画进离屏目标再换，且必须最后一步（`COOKBOOK` §16）。**要真「刻痕」用 `woodcut`**（按明暗加方向；`engrave` 只有一个方向）—— 它的 `cell` 有 **22px 下限**，低于会被夹住并写 warning（§16.4） |
 | **像素风**（调色板 / 块栅格 / 抖动 / 12fps 台阶） | `paletteOf` `pixelText` `drawSprite` `pixelGradient` `snapTime`（`src/kit/pixel.js`），整镜头用 `shot('pixel', {…})`。⚠ 三条写错不报错：抖动阈值按**块**坐标取；精灵 / 像素字落在整块上；台阶用 `f.t` 不用 `f.lt`（`COOKBOOK` §19） |
 | **手绘笔迹** | `strokePath` / `strokeArc` / `inkOn`（`src/kit/stroke.js`），整镜头用 `shot('handwrite', {…})`。⚠ 轮廓法在**曲率半径 < 半宽**处必然自交（偶奇规则填成针孔）—— `drawStroke` 的 auto 会自动退到胶囊链；笔迹**不许半透明**（要用 `inkOn(P.c, 0.9, paper)`，§20.1） |
+| **零状态 GPU 粒子** | `makeParticles(ctx, { count, preset: 'sparks'|'orbit'|'drift' })`（`src/kit/particles.js`，1-14）。位置 = f(index, t) 的纯函数，无 CPU 上传；加法混合（信号色发光那档）。⚠ 不参与引擎亚像素抖动；预设名写错当场抛 |
 | **整片换介质**（默认 off） | 风格包字段 `view: 'halftone'` 或 `{ mode, cell, passes, misreg }`（写错当场抛）；`passes: 2..4` = N 版套印，整片生效、字幕仍清晰（`COOKBOOK` §16.1–16.2） |
 | **像「胶片放出来的」** | `return { weave: 0.5, flicker: 0.25, scratch: 0.2 }`（默认全 0 = 逐像素不变，全由 `t` 驱动；`COOKBOOK` §16.3） |
 | **剪纸 / 纸艺层叠** | `paperShape({x,y,w,h,seed})` → `paperStack(lines, layers, { pan, parallax })`（`src/kit/paper.js`）。⚠ 三条**出图才看得见**的比例：撕边幅度 = **边长 × 1.5–3%**（12px 在 2000px 的纸上就是直线）；白芯只浅 **7%**（35% ⇒ 雪白高光带）；投影**不透明**（半透明会在扫描行之间出条纹）。撕边在 `setup` 里算一次（只吃 seed，不吃 t）。见 `docs/MOTION.md` §3.7 |
@@ -319,7 +320,7 @@ export default makeShot('chart', {
 | 一帧多段共存时共用 `engine.text` | 每段场景有自己的 `ctx.text`，别用引擎的 | 一律用 `ctx.text` / `ctx.type` |
 | 声明了 `handlesTransition` 却不铺整帧背景 | 那一段的底是**纯黑**（只有 grain 和暗角），而且不报错 —— fidus 那次 9 段里 8 段这样 | 写 `cut(shot, { world: 'auto' })` 让引擎铺；或自己画一次全屏 Pass；`check` 会报出来 |
 
-`f` 上已经给你准备好了：`t`（整片时间）、`lt`（段内时间）、`p`（段内进度）、`idx`（帧号）、`seed`、`beat` / `bar` / `beatPhase`、`a`（音频特征快照）、`tin` / `tout`、`start` / `end`。
+`f` 上已经给你准备好了：`t`（整片时间）、`dt`（本帧步长；子帧路径=子帧间距）、`lt`（段内时间）、`p`（段内进度）、`idx`（帧号）、`seed`、`beat` / `bar` / `beatPhase`、`a`（音频特征快照）、`tin` / `tout`、`start` / `end`。
 
 > **`tin` / `tout` 的准确含义**（容易误解）：
 > `tin` = 与上一段重叠时，**本段入场进度**（0→1）。

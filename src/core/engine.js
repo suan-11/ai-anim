@@ -386,6 +386,56 @@ export class Engine {
     return { problems, gaps: cover };
   }
 
+  /* ---------------------------------------------------------- 段间引用（BACKLOG 1-15） */
+
+  /**
+   * 把**任意另一段**在**任意时刻**的画面渲到一张专用 RT 上（画中画 / 闪回 / 记忆墙）。
+   *
+   * 确定性上是安全的：每一帧本来就是 t 的纯函数，"重画任意时刻"与"画当前时刻"是同一件事。
+   * 成本是一次完整的单段渲染（world + 场景 + 文字层，**1 个子帧**、不走自适应）——
+   * 场景侧每个渲染子帧各调一次就是正确的运动模糊，但没有必要给它再做嵌套展开。
+   *
+   * 递归保护：被引用的段自己再调 `renderShotAt`（或 `ctx.renderShot`）直接抛 ——
+   * 引用环没有合法语义，宁可当场崩也不要静默画出一帧错的东西。
+   *
+   * @param {string} id 段 id（时间线里 `cut(scene, { id })` 的那个）
+   * @param {number} t **整片时间**（不是段内时间——与"这一帧在 t 时刻长什么样"同一口径）
+   * @returns {RT} 专用 RT（下次调用会复用同一张，所以只够画一次进当前帧；要留就自己拷）
+   */
+  renderShotAt(id, t) {
+    if (this._refDepth) throw new Error(`renderShotAt("${id}")：段间引用不允许嵌套（被引用的段自己又在引用别的段）`);
+    const item = this.timeline.find((i) => i.id === id);
+    if (!item) {
+      throw new Error(`renderShotAt：没有 id 为 "${id}" 的段。可用：${this.timeline.map((i) => i.id).join(', ')}`);
+    }
+    const scene = item._scene;
+    if (!scene) throw new Error(`renderShotAt("${id}")：这一段的场景还没加载成功（setup 失败或 --only 把它排除了）`);
+    const rt = this.refRT ?? (this.refRT = new RT(this.gl, this.gl.pw, this.gl.ph));
+    this.gl.clear(rt, [0, 0, 0]);
+    this._refDepth = 1;
+    try {
+      const ctx = this._ctxFor(item, t, Math.floor(t * this.fps), { out: rt, dt: 1 / this.fps, tin: 1, tout: 0 });
+      ctx.world = resolveWorld(this, item);
+      this.gl.beginPaint(rt, item._layer);
+      if (ctx.world && item.world !== false) {
+        try { ctx.world.render(this.gl, rt, t, 1 / this.fps); } catch (err) { this.errors.push(`[${item.id}] 引用渲染的共享背景出错: ${fmtErr(err)}`); }
+      }
+      try {
+        scene.render(ctx);
+      } catch (err) {
+        // 引用渲染里场景抛错：记入 errors（不进 renderErrors —— 它不是这一帧的主画面），画错帧卡片
+        const msg = fmtErr(err);
+        this.errors.push(`[${item.id}] 被 renderShotAt 引用渲染时出错: ${msg}`);
+        this.gl.clear(rt, [0.12, 0, 0]);
+        this._errorCard(rt, item, item.id, t, Math.floor(t * this.fps), `被引用渲染出错: ${msg}`);
+      }
+      if (item._layer?._uploaded) this.comp.draw(this.gl, item._layer, rt, { premult: false });
+    } finally {
+      this._refDepth = 0;
+    }
+    return rt;
+  }
+
   /* ------------------------------------------------------------ 帧上下文 */
 
   _ctxFor(item, t, idx, extras = {}) {
@@ -407,6 +457,23 @@ export class Engine {
       under: extras.under ?? null,
       a: this.music.at ? this.music.at(t) : {},
       params: item.params ?? {},
+      /**
+       * 段间引用（BACKLOG 1-15）：把另一段在 t2 的画面贴进当前画面。
+       * @param {string} refId 段 id @param {number} refT **整片时间**
+       * @param {{ x?: number, y?: number, w?: number, h?: number, opacity?: number }} [o]
+       *        rect 用逻辑像素（默认整幅）；opacity 默认 1。
+       */
+      renderShot: (refId, refT, o = {}) => {
+        const src = this.renderShotAt(refId, refT);
+        const w = o.w ?? this.gl.w, h = o.h ?? this.gl.h;
+        // comp.draw 的 rect 是 [x, y, w, h]（目标区域，逻辑像素）—— gl.js :1085
+        this.comp.draw(this.gl, src, extras.out, {
+          premult: false,
+          mode: 'normal',
+          opacity: o.opacity ?? 1,
+          rect: [o.x ?? 0, o.y ?? 0, w, h],
+        });
+      },
       /** 口播查询接口（`docs/NARRATION.md` A 档）：`f.narration.at(t)` / `.current(t)` … */
       narration: this.narration,
     };
@@ -417,6 +484,8 @@ export class Engine {
     const ctx = {
       f, gl: this.gl, out: extras.out, under: f.under,
       comp: this.comp, P: this.P,
+      // 段间引用（BACKLOG 1-15）：场景侧 ctx.renderShot(id, t, { rect, opacity })
+      renderShot: f.renderShot,
       // 这一段自己的 2D 图层与排版工具（画文字/图形都用它，别用 engine.text）
       text: item._layer ?? this.hud2d, type: (item._layer ?? this.hud2d).type,
       lines: this.lines, music: this.music, lyrics: this.lyrics,
@@ -599,6 +668,11 @@ export class Engine {
       }
       // 记下这一段的绘制情况，给 `check` 的背景守门用（worldAudit）
       item._lastPaint = this.gl.paint;
+      // D-1：begin 之前画、被丢弃的线段 —— 每段每帧最多警告一条（warnings.includes 去重）
+      if (this.gl.paint?.orphanLines && Array.isArray(ctx.warnings)) {
+        const msg = `lines: begin() 之前又画了 ${this.gl.paint.orphanLines} 条（上一次 flush 之后）—— 没进画面`;
+        if (!ctx.warnings.includes(msg)) ctx.warnings.push(msg);
+      }
       this.gl.paint = null;
 
       // 变换整张前景（含它自己的文字图层）——用一张外部目标做，绝不「读自己写自己」

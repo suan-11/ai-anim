@@ -137,6 +137,11 @@ const ITEMS = [
   //   这一项只断言**工具自身可用**（正例响 / 反例静 / 条数钉死 / 空≠干净 / 退出码三档），
   //   不会因为片子内容而红。夹具在 `tools/fixtures/lint-numbers/`。
   { name: 'unit:lint-numbers', cmd: ['tools/test-fabricated-numbers.mjs'], note: '1-22 画面数字必须有出处：正例必须响 / 反例必须静 / 显示位条数钉死 / 空≠干净 / 退出码三档 + 「算出来的值」（判据 ③）单列且明说没验（183 项）' },
+  { name: 'unit:particles', cmd: ['tools/test-particles.mjs'], note: '1-14 零状态 GPU 粒子：预设表契约 / 位置函数是 t 的纯函数 / hash 常数与 JS 参照对拍 / 写错预设必抛（7 项；视觉验收在夹具 _particles-lab，出图看）' },
+  { name: 'unit:narration-error', cmd: ['tools/test-narration-error.mjs'], note: 'A-2 旁白表加载失败的判定纯函数：没配/内联表/URL ⇒ 不报，文件缺失/JSON 坏 ⇒ 报，文案钉住（9 项）' },
+  { name: 'unit:shot-ref', cmd: ['tools/test-shot-ref.mjs'], note: '1-15 段间引用：递归保护 / 错误带可用段表 / ctx+f 双路径 / 引用渲染无嵌套自适应 / rect 数组契约（6 项；画中画的视觉验收在夹具 _ref-lab，出图看）' },
+  { name: 'unit:cli-hardening', cmd: ['tools/test-cli-hardening.mjs'], note: '1-24① + 渲染心跳 + E-1 渲染锁的纯逻辑：冲突开关扫描（防前缀误伤）/ 并发度夹取 / 心跳档位与重置 / pid 探活三态 / 锁全生命周期（63 项，依赖全注入可离线测）' },
+  { name: 'unit:linebatch-warn', cmd: ['tools/test-linebatch-warn.mjs'], note: 'D-1 flush 后画线要报：_push 孤儿判定（丢弃并计数）/ flush 与 begin 交计数 / paint 形状有槽 / engine 转 warnings 带去重 / 正确用法语句没被删（5 项；端到端由 _d1-probe 人工验证过，故意错的夹具不进常规回归）' },
   { name: 'harness:demo', cmd: ['tools/scene-harness.mjs', 'demo'], note: '离线跑场（假 ctx，不起 Chrome，0.1s）：未定义变量 / 确定性 / 文字出画' },
   { name: 'harness:style-sampler', cmd: ['tools/scene-harness.mjs', '_style-sampler'], note: '风格采样器：配置档 4 段 + 风格解析走通' },
 

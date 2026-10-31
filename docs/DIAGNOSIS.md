@@ -92,6 +92,8 @@
 | `没有铁律违规（Math.random / Date.now / performance.now / new Date / 逐帧累积 / 按帧抖帧）`<br>`tools/scene-harness.mjs:1502` | 离线跑场的静态扫描干净 | 无事。这条比 `check` 的扫描多覆盖"逐帧累积"和"按帧抖帧"两类 |
 | `Math.floor(t*60) 按帧抖帧 —— …逐帧抖动要用 f.idx；手持感用 shakeSmooth(f.t, amp)`<br>`tools/scene-harness.mjs:175` | 出现 `Math.floor(…*60)` | 按提示换写法；见 `AGENTS.md` §4 铁律表 |
 | `逐帧累积状态（this.x += …）—— …把位置写成时间的函数：x = f(t - birth)`<br>`tools/scene-harness.mjs:176` | 出现 `this.xxx +=` | 把位置写成**时间的函数**（可任意 seek）；`AGENTS.md` §4 |
+| `⚠ 旁白表 <路径> 加载失败（<原因>）—— ctx.narration 会是空的：字幕 / dur:{vo} / 卡点全部不工作`<br>`scripts/anim.mjs` `cmdCheck` 1.05 段（判定：`scripts/lib/narration-error.mjs`） | `task.config.mjs` 配了 `narration: '<路径>'`，但那个文件**不存在 / 不是合法 JSON**。以前只在页面启动时 console.warn 一句就滚没了——成片照常渲、check 照样绿，作者根本不知道 `ctx.narration` 是空的（A-2）。注意：**注释里的示例路径不算**（先剥行注释再匹配） | 文件该有 → 跑 `anim say` 生成它，或确认路径拼写；暂时不要 → 把 `narration` 这一行先删掉。`--strict` 下这条进 errs（退出码 1） |
+| `⚠ lines: begin() 之前又画了 N 条（上一次 flush 之后）—— 没进画面`<br>`src/core/gl.js` `LineBatch._push`（汇总进 `gl.paint.orphanLines`，engine 转 warnings） | **flush() 之后、下一次 begin() 之前**调了 `lines.seg()/fillRect()/...`：数据写进缓冲也永远不会被上传（被下一次 begin 归零覆盖）。以前静默不生效、画面错在哪都不知道（D-1） | 要画就重新 `lines.begin()`；没打算画的删掉那几行。每次渲染只报一次（warnings 数组去重） |
 
 ### 1.3 时间线 / 配置档：写错就抛
 
