@@ -192,7 +192,7 @@ export class ThreeBridge {
 
     this.pass = new Pass(gl, THREE_COMPOSITE_FRAG, {
       src: { value: null }, flipY: 1, gain: 1, opacity: 1, useAlpha: 0, premult: 0,
-    }, { key: 'three_bridge', blend: false });
+    }, { key: 'three_bridge', blend: false, jitter: false });   // 合成的是 three 自己渲好的图：不吃抖动
 
     this._v3 = new THREE.Vector3();
     this._view = new THREE.Vector3();

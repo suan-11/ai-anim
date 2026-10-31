@@ -611,7 +611,7 @@ export function applyView(ctx, src, opts = {}) {
       mode: 0, cell: 8, angle: 0.4712, levels: 4, amount: 1, accentMix: 0, scanline: 0.85,
       passes: 1, misreg: 0,
       cPaper: [1, 1, 1], cInk: [0, 0, 0], cAccent: [1, 0.3, 0.07],
-    }, { key: 'kit_views', blend: false });
+    }, { key: 'kit_views', blend: false, jitter: false });   // 整帧重采样（读的已经是抖过的图）
   }
   const p = st.pass;
   p.u.src.value = src;

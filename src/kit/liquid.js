@@ -88,5 +88,5 @@ export function liquidWarp(ctx, srcTex, opts = {}) {
       float n2 = fbm2(p * freq + vec2(0.0, t * 0.28) + 7.7) - 0.5;
       vec2 off = vec2(n1, n2) * amount / res;
       fragColor = vec4(texture(src, p + off).rgb, 1.0);
-    }`, { src: null, res: [ctx.gl.w, ctx.gl.h], amount, freq }, { key: 'kit_liquid_warp', blend: false });
+    }`, { src: null, res: [ctx.gl.w, ctx.gl.h], amount, freq }, { key: 'kit_liquid_warp', blend: false, jitter: false });   // 重采样已有画面：不吃抖动
 }

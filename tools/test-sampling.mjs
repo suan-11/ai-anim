@@ -17,6 +17,7 @@ import {
   BASE_SAMPLES, MAX_SAMPLES, DEFAULT_TOL, ERROR_QUANTILE,
   fixedOffsets, ternaryOffsets, snapMaxSamples, levelsFor,
   quantileFromHist, samplingVerdict, describeSampling, SAMPLE_REASONS,
+  JITTER_GRID, JITTER_PERIOD, NO_JITTER, jitterOffset,
 } from '../src/core/sampling.js';
 
 let pass = 0;
@@ -116,7 +117,41 @@ check('没有误差时不许装作有', describeSampling({ samples: 8, reason: '
 check('静止（第一级就停）', describeSampling({ samples: 8, reason: 'static', err: 0 }).includes('静止'));
 check('理由词表包含 static（机器读者依赖它）', SAMPLE_REASONS.includes('static'));
 
-console.log('\n⑥ 常量与文档里写的一致（改它们要同时改 ENGINE.md §11 与 AGENTS.md §7）');
+console.log('\n⑥ 子像素抖动（多子帧超采样）—— 三条约束各自可断言');
+{
+  // ① 均值 0：否则整帧内容会平移（半个像素在 1080p 上看得见）
+  let sx = 0; let sy = 0;
+  for (const [x, y] of JITTER_GRID) { sx += x; sy += y; }
+  check('抖动网格的均值必须是 0', near(sx, 0) && near(sy, 0), `(${sx}, ${sy})`);
+  // ② 全部落在 ±0.5 像素内：超过就变"重影"而不是"亚像素采样"
+  check('每个偏移都在 ±0.5 像素内',
+    JITTER_GRID.every(([x, y]) => Math.abs(x) <= 0.5 && Math.abs(y) <= 0.5),
+    JSON.stringify(JITTER_GRID));
+  // ③ 周期 4：第一级判据是"前 4 帧 vs 后 4 帧"，两半的抖动序列必须逐位相同，
+  //    否则静止画面会被判成"有运动"、一路加到 216 子帧（慢 27 倍，且没人看得出是这条引起的）
+  check('抖动周期 = 4（与"前半 4 / 后半 4"的判据对齐）', JITTER_PERIOD === 4);
+  check('JITTER_PERIOD 就是网格长度', JITTER_PERIOD === JITTER_GRID.length);
+  const half = BASE_SAMPLES >> 1;
+  let seqSame = true;
+  for (let i = 0; i < half; i++) {
+    const a = jitterOffset(i);
+    const b = jitterOffset(half + i);
+    if (a[0] !== b[0] || a[1] !== b[1]) seqSame = false;
+  }
+  check('前 4 个子帧与后 4 个子帧的抖动序列逐位相同（静止帧才判得出 static）', seqSame);
+  let seqSame2 = true;
+  for (let i = 0; i < BASE_SAMPLES; i++) {
+    const a = jitterOffset(i);
+    const b = jitterOffset(i + BASE_SAMPLES);
+    if (a[0] !== b[0] || a[1] !== b[1]) seqSame2 = false;
+  }
+  check('相邻两级之间抖动序列也对齐', seqSame2);
+  check('负数/非整数下标被规整（不许越界）',
+    Array.isArray(jitterOffset(-1)) && Array.isArray(jitterOffset(3.7)) && jitterOffset(2.4)[0] === jitterOffset(2)[0]);
+  check('不抖的是一个零向量（单子帧路径用）', NO_JITTER[0] === 0 && NO_JITTER[1] === 0);
+}
+
+console.log('\n⑦ 常量与文档里写的一致（改它们要同时改 ENGINE.md §11 与 AGENTS.md §7）');
 check('BASE_SAMPLES = 8', BASE_SAMPLES === 8);
 check('MAX_SAMPLES = 216', MAX_SAMPLES === 216);
 check('DEFAULT_TOL = 2.5（显示空间 0..255）', DEFAULT_TOL === 2.5);

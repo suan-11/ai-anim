@@ -122,7 +122,7 @@ const ITEMS = [
   { name: 'unit:stroke', cmd: ['tools/test-stroke.mjs'], note: '手绘笔迹（src/kit/stroke.js，BACKLOG 1-69，缺口表第 6 行）：MAX_WIDTH_SLOPE 0.45（>1 时上下偏移边互相追上 ⇒ 偶奇规则把自交处填成「洞」）/ minW 1.2 物理下限（更细时 fillPoly 的扫描行穿透 ⇒ 出一串虚线点）/ 端点圆头用**这一端自己的半宽**（平均值会在收笔处鼓墨滴）/ 生长按**弧长**截断（按点数截断时密采样段走得慢）/ 曲率半径 < 半宽时**轮廓必然自交**（这是几何事实，不是 bug：圆角 R 偏移 h 后内圈 = R-h，R<h 就翻转）⇒ drawStroke 的 auto 会自动退到胶囊链（端点沿切向外扩半宽补掉内切缝）/ boil 每 2 帧换一次且同组内不动 + kit·regress·文档接线自检' },
   { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：九种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
   { name: 'unit:post-wear', cmd: ['tools/test-post-wear.mjs'], note: '胶片磨损（post.weave/flicker/scratch，BACKLOG 1-64）：默认必须全 0（不写 = 一个像素不变）/ uniform 与引擎喂 t 的接线自检 / 0 时走不到磨损代码 / 磨损函数只吃 t 不读帧号（23 项）' },
-  { name: 'unit:fill', cmd: ['tools/test-fill.mjs'], note: '填充面（src/core/fill.js，LineBatch 的 fillPoly/fillCircle/fillSector）：偶奇带洞 / 圆面积误差 <2% / 扇区角度方向（0=右 90=下 180=左 270=上，写反画面照样出） / 进度环缺口落在起点一侧（39 项）' },
+  { name: 'unit:fill', cmd: ['tools/test-fill.mjs'], note: '填充面（src/core/fill.js + LineBatch.band，BACKLOG 1-70）：偶奇带洞 / 圆面积误差 <2% / 扇区角度方向（0=右 90=下 180=左 270=上，写反画面照样出） / 进度环缺口落在起点一侧 / SPAN_OVERLAP 必须是 0（非 0 时相邻扫描行的抗锯齿边叠加 ⇒ 半透明填充被叠浓，行距越细越浓：alpha 0.5 的面历史读数 194/200/222/236，正确值 188） / LineBatch 的形状图元必须是硬边带（shader 里 vW < 0 分支）而不是胶囊（39 项）' },
   { name: 'meta:gates', cmd: ['tools/test-gates-meta.mjs'], note: '守门判据的**元测试**（1-51）：每条判据都要"注入缺陷必须报 + 去掉缺陷不许报"。覆盖版面三条 / 背景守门 / 采样四个出口（tol·cap·stall·NaN）/ 误差量具 / 节奏节拍器；文末一张覆盖表点名"哪个缺口没验"（37 项）' },
   { name: 'unit:blocks', cmd: ['tools/test-blocks.mjs'], note: '方块世界 kit：面朝向判据 / 深度排序 / 世界切片 / 摄影机关键帧' },
   { name: 'unit:check-skipped', cmd: ['tools/test-check-skipped.mjs'], note: '1-19「空≠干净」：skipped 收集/聚合/结论行 + --quick 分档 + 接线自检（25 项）' },
@@ -176,6 +176,9 @@ const ITEMS = [
   { name: 'check:_carry-lab', cmd: ['scripts/anim.mjs', 'check', '_carry-lab', '--quick'], note: 'carry 图册夹具：morphRect/iris/zoomThrough/hop/gather/operatorCam 各一段 + rhythm 静/动标定', timeout: 30 * 60e3 },
   // 1-41：同一模板 blur 0 / 20 / 20 三段 —— 画面本身要人眼验收，这里只防它腐烂（模板参数 / 背景 / 版面）。
   { name: 'check:_blur-lab', cmd: ['scripts/anim.mjs', 'check', '_blur-lab', '--quick'], note: 'blur 通道夹具：title 的 blur 0 vs 20（三段，长度故意不等以免节奏腿报节拍器）', timeout: 30 * 60e3 },
+  // 1-71：填充面的 alpha 账 —— 四档扫描行距一块 alpha 0.5 的圆，四块必须一样亮（sRGB 188）。
+  // 这条是「把行距调小换平滑」能不能成立的前置条件（历史读数 194/200/222/236 = 越细越浓）。
+  { name: 'check:_fill-probe', cmd: ['scripts/anim.mjs', 'check', '_fill-probe'], note: '填充面 alpha 账夹具：step 2/1/0.5/0.25 四块 alpha 0.5 的圆，四块读数必须都是 188（单子帧与多子帧两条路径都跑）', timeout: 30 * 60e3 },
   { name: 'check:nekohome', cmd: ['scripts/anim.mjs', 'check', 'nekohome', '--quick'], note: '8 段', timeout: 30 * 60e3 },
   { name: 'check:fidus', cmd: ['scripts/anim.mjs', 'check', 'fidus', '--quick'], note: '9 段', timeout: 30 * 60e3 },
   { name: 'check:pdoom-lab', cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },

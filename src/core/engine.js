@@ -36,6 +36,7 @@ import {
   BASE_SAMPLES, MAX_SAMPLES, DEFAULT_TOL,
   fixedOffsets, ternaryOffsets, levelsFor, snapMaxSamples,
   quantileFromHist, samplingVerdict,
+  jitterOffset, NO_JITTER, JITTER_PERIOD,
 } from './sampling.js';
 
 /** @typedef {import('./post.js').PostParams} PostParams */
@@ -744,6 +745,10 @@ export class Engine {
    */
   render(t, opts = {}) {
     const gl = this.gl;
+    // 抖动的默认态是"不抖"：单子帧路径（草稿 / 预览 / 探针）拿到的必须是**没抖过的**那一帧，
+    // 否则同一时刻渲两次会因为上一次遗留的偏移而不同（这类"跨帧依赖"最难查）。
+    gl.jitter[0] = NO_JITTER[0];
+    gl.jitter[1] = NO_JITTER[1];
     const idx = Math.floor(t * this.fps + 1e-6);
     const shutter = opts.shutter ?? 0.5;
     const preview = opts.preview ?? false;
@@ -797,6 +802,17 @@ export class Engine {
 
       const levels = adaptive ? levelsFor(maxSamples) : 0;
       const offsets = adaptive ? ternaryOffsets(levels) : fixedOffsets(/** @type {number} */ (wanted));
+      /**
+       * 抖动只在"子帧数是抖动周期整数倍"时开。
+       *
+       * 为什么：`JITTER_GRID` 的 4 个位置均值是 0，但**只取前 k 个**时均值不是 0 ——
+       * `samples: 2` 的平均偏移是 -0.125px，整帧内容会被平移零点几个像素（1080p 上看得出，
+       * 而且只在多子帧路径上出现，单帧预览一切正常）。
+       * 自适应档位是 8·3^L（8/24/72/216），全部是 4 的倍数 ⇒ 不受影响；
+       * 定长档（`--samples 2` / `6` 这类）不是 4 的倍数时干脆不抖 —— 少一次超采样，
+       * 好过画面莫名平移。
+       */
+      const jitterOn = adaptive || offsets.length % JITTER_PERIOD === 0;
       const step = (1 / this.fps) * shutter;
       const acc = this._accumPass();
 
@@ -805,11 +821,37 @@ export class Engine {
       this._nearest = Infinity;
       let done = 0;
 
-      /** 渲染 offsets[from..to) 并累加（加性混合）到 target。 */
+      /**
+       * 渲染 offsets[from..to) 并累加（加性混合）到 target。
+       *
+       * ## 子像素抖动（2026-10-31）：这才是"多子帧 AA"真正生效的地方
+       *
+       * 在这之前，静止画面的 8 个子帧是**同一时刻、同一位置**渲染 8 次 ⇒ 平均 = 同一张图，
+       * 多子帧只贡献运动模糊。引擎注释里那句"逐像素 SDF + 多子帧"实现上只兑现了前半句。
+       *
+       * 现在每个子帧按 `jitterOffset(i)` 把**整帧**平移一个亚像素位置再栅格化，累加后就是
+       * **4× 超采样**：填充面的 2px 台阶、shader 背景的高频纹样、raymarch 的硬边都一次性变干净，
+       * 而**渲染时间一分不多**（这些子帧本来就要渲）。
+       *
+       * 两条纪律（都与 `src/core/sampling.js` 的 `JITTER_GRID` 绑在一起）：
+       *   · 周期 4 = 第一级判据"前半 4 帧 vs 后半 4 帧"的粒度 —— 两半抖动序列逐位相同，
+       *     静止画面才仍然判得出"静止"（否则一路加到 216 子帧，实测会慢 27 倍）；
+       *   · 偏移在 `composite()` 之前设、之后立刻归零 —— 累加 pass / 后处理**绝不能**吃到抖动
+       *     （它们是重采样已有图像，再抖一次就是把画面又平移一次）。
+       */
       const addSamples = (from, to, target) => {
         for (let i = from; i < to; i++) {
           const subT = Math.max(0, t + step * offsets[i]);
-          const r = this.composite(subT, idx, step, opts.seeked && i === 0);
+          const j = jitterOn ? jitterOffset(i) : NO_JITTER;
+          this.gl.jitter[0] = j[0];
+          this.gl.jitter[1] = j[1];
+          let r;
+          try {
+            r = this.composite(subT, idx, step, opts.seeked && i === 0);
+          } finally {
+            this.gl.jitter[0] = NO_JITTER[0];
+            this.gl.jitter[1] = NO_JITTER[1];
+          }
           // 非有限值扫描只扫**第一个子帧**：池里的 RT 下一步就会被后面的子帧覆盖，
           // 而累加 pass 会把 NaN/Inf 丢掉（`bad ? vec3(0.0) : c`）—— 只有这里还看得见它们。
           if (scanNf && i === 0) this._scanFrameNonFinite(t, idx, r.tex, 0, subT);
@@ -1027,7 +1069,7 @@ export class Engine {
             }
           }
           fragColor = vec4(texture(src, clamp(uv, vec2(0.0), vec2(1.0))).rgb, 1.0);
-        }`, { src: { value: null }, m: [1, 0, 0, 0, 1, 0, 0, 0, 1], edge: 0 }, { key: 'engine_xform', blend: false });
+        }`, { src: { value: null }, m: [1, 0, 0, 0, 1, 0, 0, 0, 1], edge: 0 }, { key: 'engine_xform', blend: false, jitter: false });
     }
     return this._xform;
   }
@@ -1044,7 +1086,7 @@ export class Engine {
           vec3 c = texture(src, vUv).rgb;
           bool bad = any(isnan(c)) || any(greaterThan(abs(c), vec3(5e4)));
           fragColor = vec4(bad ? vec3(0.0) : c, 0.0);
-        }`, { src: { value: null } }, { key: 'engine_accum', blend: false });
+        }`, { src: { value: null } }, { key: 'engine_accum', blend: false, jitter: false });
       // 纯加法：src*1 + dst*1（alpha 不动）
       const m = this._accum.prog;
       this._accum.blend = true;

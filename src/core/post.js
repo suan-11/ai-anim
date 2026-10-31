@@ -202,7 +202,7 @@ export class Post {
         w = w * w * (3.0 - 2.0 * w);
         fragColor = vec4(c * w, 1.0);
       }`, { src: { value: null }, texel: [0, 0], threshold: 0.9, knee: 1.0, karis: 0 },
-      { key: 'post_bright', blend: false, ...pal });
+      { key: 'post_bright', blend: false, jitter: false, ...pal });
 
     // 可分离高斯模糊（9 抽样，sigma≈2.2）
     this.pBlur = new Pass(gl, /* glsl */ `
@@ -214,19 +214,19 @@ export class Post {
         c += (texture(src, vUv + d * 3.2307692308).rgb + texture(src, vUv - d * 3.2307692308).rgb) * 0.0702702703;
         fragColor = vec4(c, 1.0);
       }`, { src: { value: null }, dir: [1, 0], radius: 1 },
-      { key: 'post_blur', blend: false, ...pal });
+      { key: 'post_blur', blend: false, jitter: false, ...pal });
 
     // 染色（halation 走偏红的一路）
     this.pTint = new Pass(gl, /* glsl */ `
       uniform sampler2D src; uniform vec3 mul;
       void main() { fragColor = vec4(texture(src, vUv).rgb * mul, 1.0); }`,
-      { src: { value: null }, mul: [1, 1, 1] }, { key: 'post_tint', blend: false, ...pal });
+      { src: { value: null }, mul: [1, 1, 1] }, { key: 'post_tint', blend: false, jitter: false, ...pal });
 
     // 金字塔向上合并
     this.pUp = new Pass(gl, /* glsl */ `
       uniform sampler2D src; uniform sampler2D add; uniform float k;
       void main() { fragColor = vec4(texture(src, vUv).rgb + texture(add, vUv).rgb * k, 1.0); }`,
-      { src: { value: null }, add: { value: null }, k: 1 }, { key: 'post_up', blend: false, ...pal });
+      { src: { value: null }, add: { value: null }, k: 1 }, { key: 'post_up', blend: false, jitter: false, ...pal });
 
     // 场景 + 泛光 + 光晕
     this.pCombine = new Pass(gl, /* glsl */ `
@@ -240,7 +240,7 @@ export class Post {
         c += texture(halTex, vUv).rgb * halation * vec3(1.0, 0.42, 0.22);
         fragColor = vec4(c, 1.0);
       }`, { src: { value: null }, bloomTex: { value: null }, halTex: { value: null }, bloom: 0.35, halation: 0.25 },
-      { key: 'post_combine', blend: false, ...pal });
+      { key: 'post_combine', blend: false, jitter: false, ...pal });
 
     // 最终调色 + 颗粒，转 sRGB 之前的一切都在这里
     this.pFinal = new Pass(gl, /* glsl */ `
@@ -451,7 +451,7 @@ export class Post {
         blurAmt: 0, radialBlur: 0, seed: 0, center: [0.5, 0.5],
         tonemap: 0, ditherMode: 1, grainDesign: 0, pixel: 0,
         weave: 0, flicker: 0, scratch: 0, wearT: 0,
-      }, { key: 'post_final', blend: false, ...pal });
+      }, { key: 'post_final', blend: false, jitter: false, ...pal });
   }
 
   /**

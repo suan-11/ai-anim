@@ -297,7 +297,7 @@ export function transitionPass(gl, opts = {}) {
   const fadeAt = opts.fadeAt ?? (collision ? collision.fadeAt : transitionFadeAt(mode));
   const pass = /** @type {Pass & { collision: ReturnType<typeof planCollision> | null, mode: string }} */ (
     new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt },
-      { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true }));
+      { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true, jitter: false }));   // 重采样已有内容：不吃抖动
   /** 这一笔用的是哪一套比例（没传 `victimRatio` 时是 `null` = 老行为） */
   pass.collision = collision;
   /** 这一笔是哪一种转场（`'push'` = 老路径，源码与从前逐字符相同） */

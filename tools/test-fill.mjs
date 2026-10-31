@@ -166,5 +166,40 @@ section('工具函数');
   ok(subtractInterval([0, 10], [-1, 11]).length === 0, '完全覆盖 ⇒ 空');
 }
 
+
+/* ════════════════════════════════════════════════ 带（band）与 alpha 账 */
+
+section('SPAN_OVERLAP = 0：相邻扫描行不许重叠');
+{
+  // 这条是 2026-10-31「半透明填充被画浓」的根因。当时每一行画成胶囊（1.5px 圆头余量）,
+  // 再叠 SPAN_OVERLAP 的 0.5px 补缝，相邻行的抗锯齿边互相叠加 ⇒ alpha 0.5 的面被叠成
+  // 194/200/222/236（行距 2/1/0.5/0.25），正确值 188。行距越细越浓 —— 于是
+  // 「把行距调小换平滑」这条路当时根本走不通。现在填充走硬边带，行高必须严格等于行距。
+  ok(SPAN_OVERLAP === 0, 'SPAN_OVERLAP 必须是 0（实际 ' + SPAN_OVERLAP + '）—— 非 0 会把半透明面叠浓');
+  const sp = circleSpans(0, 0, 10, 1);
+  ok(sp.every((s) => Math.abs(s.h - 1) < 1e-9), '圆跨度的高度 = 行距 1（不再多出重叠量）');
+  const sp2 = polySpans([[0, 0], [10, 0], [10, 10], [0, 10]], 2);
+  ok(sp2.every((s) => Math.abs(s.h - 2) < 1e-9), '多边形跨度的高度 = 行距 2');
+  const sorted = [...sp2].sort((a, b) => a.y - b.y);
+  let seams = true;
+  for (let i = 1; i < sorted.length; i++) {
+    const prevBottom = sorted[i - 1].y + sorted[i - 1].h / 2;
+    const curTop = sorted[i].y - sorted[i].h / 2;
+    if (Math.abs(prevBottom - curTop) > 1e-9) seams = false;
+  }
+  ok(seams, '相邻跨度的边界严格相接（有重叠 ⇒ 半透明面被叠两遍）');
+}
+
+section('行距越细，覆盖面积不变（否则就是细行距 = 更浓）');
+{
+  const sq = [[0, 0], [20, 0], [20, 20], [0, 20]];
+  const areas = [2, 1, 0.5].map((step) => {
+    const sp = polySpans(sq, step);
+    return sp.reduce((a, s) => a + s.w * (s.h - SPAN_OVERLAP), 0);
+  });
+  const spread = Math.max(...areas) - Math.min(...areas);
+  ok(spread < 1e-6, '20x20 方块的覆盖面积与行距无关（2/1/0.5 三档：' + areas.map((a) => a.toFixed(2)).join(' / ') + '）');
+}
+
 console.log('\n' + (fail ? '✗' : '✓') + ' ' + pass + ' 项通过' + (fail ? '，' + fail + ' 项失败' : ''));
 process.exit(fail ? 1 : 0);

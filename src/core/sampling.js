@@ -202,3 +202,56 @@ export function describeSampling(v) {
   const e = Number.isFinite(Number(v.err)) ? `err ${(Number(v.err) * 255).toFixed(1)}/255` : 'err 不可用';
   return `${v.samples} 子帧（${why}，${e}）`;
 }
+
+/* ------------------------------------------------------------------ 子像素抖动（超采样） */
+
+/**
+ * 子像素抖动的**旋转网格**：4 个位置，单位 = 像素，相对像素中心。
+ *
+ * ## 为什么要有它
+ *
+ * 引擎的注释一直写着"我们自己做 AA（逐像素 SDF + **多子帧**）"，但事实上静止画面的
+ * 8 个子帧是**同一时刻、同一位置渲染 8 次** —— 求平均等于同一张图，多子帧只贡献运动模糊。
+ * 也就是说"多子帧 AA"这件事从来没有真正发生过。
+ *
+ * 现在每个子帧把**整帧**按下面 4 个位置之一偏移再渲染（亚像素偏移由 `GL.jitter` 下发到
+ * 全屏 Pass 的顶点着色器与 LineBatch），累加后就是 **4× 超采样**：线条、填充面、
+ * shader 背景、raymarch 都免费拿到抗锯齿，而**渲染时间一分不多**（子帧本来就要渲）。
+ *
+ * ## 三条约束（写错不报错，只是"看起来没效果"或者"突然慢 27 倍"）
+ *
+ * 1. **均值必须是 0**：否则整帧内容会平移（半个像素的位移在 1080p 上看得见）。
+ * 2. **全部落在 ±0.5 像素内**：超过就变成"重影"而不是"亚像素采样"。
+ * 3. **周期必须是 4**（= 自适应采样第一级分成两半、每半 4 个子帧）：
+ *    判据是「前半 4 帧与后半 4 帧长得一样吗」，两半的抖动位置序列必须**逐位相同**，
+ *    否则静止画面也会被判成"有运动" ⇒ 一路加到 216 子帧。
+ *    `tools/test-sampling.mjs` 钉着这三条。
+ *
+ * 用旋转网格而不是方正网格：4 个点落在 2×2 四个象限的中心并整体转 45°，
+ * 对接近水平/竖直的边缘比方正网格更均匀（行业默认配方）。
+ *
+ * @type {readonly (readonly [number, number])[]}
+ */
+export const JITTER_GRID = Object.freeze([
+  Object.freeze([0.125, -0.375]),
+  Object.freeze([-0.375, -0.125]),
+  Object.freeze([0.375, 0.125]),
+  Object.freeze([-0.125, 0.375]),
+]);
+
+/** 抖动周期（见 `JITTER_GRID` 第 3 条约束）。 */
+export const JITTER_PERIOD = JITTER_GRID.length;
+
+/** 不抖（= 单子帧路径 / 引擎内部重采样 pass）。 */
+export const NO_JITTER = Object.freeze([0, 0]);
+
+/**
+ * 第 `i` 个子帧的亚像素偏移（**物理像素，x 向右、y 向上**）。
+ * @param {number} i 子帧序号（0 起；负数/非整数会被规整）
+ * @returns {readonly [number, number]}
+ */
+export function jitterOffset(i) {
+  const k = ((Math.round(Number(i)) || 0) % JITTER_PERIOD + JITTER_PERIOD) % JITTER_PERIOD;
+  return JITTER_GRID[k];
+}
+

@@ -207,9 +207,22 @@ export const VERT_FULLSCREEN = /* glsl */ `#version 300 es
 precision highp float;
 in vec2 aPos;
 out vec2 vUv;
+/**
+ * **子像素抖动**（NDC；默认 0 ⇒ 逐像素与从前一致）。
+ *
+ * 引擎的子帧本来就是"同一帧渲 N 次"，静止时 N 张图逐像素相同、平均 = 一张图 ——
+ * 于是"多子帧 AA"从来没生效过。这里把整帧按 GL.jitter 平移亚像素后再栅格化，
+ * 累加就是真正的 4× 超采样（见 src/core/sampling.js 的 JITTER_GRID）。
+ *
+ * 之所以加在这里而不是每个场景自己算：引擎里所有 shader 都是**全屏 Pass**，
+ * 顶点一移，vUv 相对屏幕就移了 —— 于是任意 shader 的采样位置都跟着变，不用改场景代码。
+ * ⚠ 只对"从几何/程序化内容算出来的"内容成立；**重采样已有图像的 pass 必须退出抖动**
+ * （合成器 / 拷贝 / 转场 / xform / 仪器视图），否则抖动会被叠加成"越描越糊"。
+ */
+uniform vec2 uJitter;
 void main() {
   vUv = aPos * 0.5 + 0.5;
-  gl_Position = vec4(aPos, 0.0, 1.0);
+  gl_Position = vec4(aPos + uJitter, 0.0, 1.0);
 }`;
 
 /* ------------------------------------------------------------------ NV12（YUV420）编码 */
@@ -348,6 +361,19 @@ export class GL {
     this.canvas = canvas;
     /** 输出倍率：1 = 1920×1080，2 = 3840×2160（真 4K，不是放大） */
     this.scale = scale;
+    /**
+     * **当前子帧的亚像素抖动**（物理像素，x 向右 / y 向上；[0,0] = 不抖）。
+     *
+     * 由引擎在渲染每个子帧之前设置（`src/core/engine.js` 的 `addSamples`），
+     * 之后自动下发到全屏 Pass（`Pass.render`）与 LineBatch（`flush`）。
+     * **只有"从几何/程序化内容算出像素"的那条路该抖**；重采样已有图像的 pass 一律
+     * `new Pass(gl, frag, uniforms, { jitter: false })`（见 `Pass` 构造器）。
+     *
+     * 为什么不是每个子帧自己算：抖动是"相机侧"的量，同一子帧里所有内容必须用**同一个**
+     * 偏移，否则背景与前景会各自按不同方向抖、叠加出相对位移。
+     * @type {number[]} 长度 2
+     */
+    this.jitter = [0, 0];
 
     // 线性 HDR 渲染要能写浮点色（RGBA16F）
     const cbf = ctx.getExtension('EXT_color_buffer_float');
@@ -393,7 +419,7 @@ export class GL {
     this.blitPass = new Pass(this, /* glsl */ `
       uniform sampler2D src;
       void main() { fragColor = vec4(toSRGB(texture(src, vUv).rgb), 1.0); }`,
-      { src: { value: null } }, { key: 'gl_blit' });
+      { src: { value: null } }, { key: 'gl_blit', jitter: false });
 
     ctx.disable(ctx.DEPTH_TEST);
     ctx.disable(ctx.CULL_FACE);
@@ -718,12 +744,19 @@ export class Pass {
    * @param {GL} gl
    * @param {string} frag
    * @param {Record<string, any>} [uniforms] 初值；数组长度决定 vec2/vec3/vec4，数字是 float，纹理是 texture 对象
-   * @param {{ palette?: string, key?: string, blend?: boolean }} [opts]
+   * @param {{ palette?: string, key?: string, blend?: boolean, jitter?: boolean }} [opts]
+   *        `jitter: false` = **这一笔退出子像素抖动**。凡是"把已有图像重新采样一遍"的 pass
+   *        （合成器 / 拷贝 / 转场混合 / xform / 仪器视图 / 降采样）都必须写它：
+   *        它们的输入已经是抖过的内容，再抖一次等于把画面又平移一次 —— 多个 pass 叠起来
+   *        就会变成"越描越糊"（早期内容比后画的糊，而且随 pass 数量增加）。
+   *        默认 `true`：场景自己 new 的 Pass（背景 / raymarch / world）**应该**参与抖动。
    */
   constructor(gl, frag, uniforms = {}, opts = {}) {
     this.gl = gl;
     this.key = opts.key ?? `pass_${hashString(frag)}`;
     this.blend = opts.blend ?? true;
+    /** 这一笔要不要吃 `gl.jitter`（见构造器的 `jitter` 选项） */
+    this.jitter = opts.jitter !== false;
     // 调色板以 GLSL 常量的形式注入（C_INK / C_SIGNAL …），任务可以在 task.config 里覆盖。
     // 后处理链也要用它（heat() 等函数），所以默认注入全局调色板。
     const pal = opts.palette ?? DEFAULT_PALETTE;
@@ -780,6 +813,15 @@ export class Pass {
     this._ensure();
     const g = gl.ctx;
     g.useProgram(this.prog.program);
+    // 子像素抖动：全屏三角形的顶点一移，vUv 相对屏幕就移了 —— 任意 shader 的采样位置都跟着变。
+    // `jitter: false` 的 pass 显式写 0（不能"留上一次的值"：同一个程序会被不同 pass 复用）。
+    {
+      const loc = gl.uniform(this.prog, 'uJitter');
+      if (loc !== null && loc !== undefined) {
+        const j = this.jitter ? gl.jitter : null;   // 缺字段 = 不抖（离线单测的假 gl 没有它）
+        g.uniform2f(loc, j ? (j[0] * 2) / gl.pw : 0, j ? (j[1] * 2) / gl.ph : 0);
+      }
+    }
     g.uniform1f(gl.uniform(this.prog, 't'), time);
     g.uniform1f(gl.uniform(this.prog, 'dt'), dt);
     g.uniform2f(gl.uniform(this.prog, 'res'), gl.pw, gl.ph);
@@ -1008,11 +1050,11 @@ export class Compositor {
       }`, {
       src: { value: null }, src2: { value: null }, mode: 0, opacity: 1,
       tint: [1, 1, 1], rect: [0, 0, 1920, 1080], uvRect: [0, 0, 1, 1], premult: 0,
-    }, { key: 'compositor_draw', blend: false });
+    }, { key: 'compositor_draw', blend: false, jitter: false });   // 重采样已有内容：不吃抖动
     this.copy = new Pass(gl, /* glsl */ `
       uniform sampler2D src; uniform float opacity;
       void main() { fragColor = vec4(texture(src, vUv).rgb, opacity); }`,
-      { src: { value: null }, opacity: 1 }, { key: 'compositor_copy' });
+      { src: { value: null }, opacity: 1 }, { key: 'compositor_copy', jitter: false });
   }
 
   /** 目标尺寸变了就换掉内部缓冲。 */
@@ -1088,7 +1130,7 @@ export class Compositor {
       this.passthrough = new Pass(gl, /* glsl */ `
         uniform sampler2D src;
         void main() { fragColor = texture(src, vUv); }`,
-        { src: { value: null } }, { key: 'compositor_passthrough', blend: false });
+        { src: { value: null } }, { key: 'compositor_passthrough', blend: false, jitter: false });
     }
     this.passthrough.u.src.value = tex(from);
     this.passthrough.render(gl, target, 0, 1 / 60);
@@ -1113,7 +1155,7 @@ export class Compositor {
       this.mixPass = new Pass(gl, /* glsl */ `
         uniform sampler2D a; uniform sampler2D b; uniform float k;
         void main() { fragColor = vec4(mix(texture(a, vUv).rgb, texture(b, vUv).rgb, k), 1.0); }`,
-        { a: { value: null }, b: { value: null }, k: 0 }, { key: 'compositor_mix' });
+        { a: { value: null }, b: { value: null }, k: 0 }, { key: 'compositor_mix', jitter: false });
     }
     this.mixPass.u.a.value = tex(aTex);
     this.mixPass.u.b.value = tex(bTex);
@@ -1177,18 +1219,30 @@ layout(location=4) in vec2 aCorner;   // -1..1 沿线段方向
 layout(location=5) in float aSide;    // -1 或 1：法线方向
 layout(location=6) in float aU;       // 0..1 沿线段的参数（做渐变/虚线）
 uniform vec2 RES_LOGICAL;             // 逻辑分辨率（顶点用逻辑像素，换算与 SCALE 无关）
+uniform vec2 uJitter;                 // 子像素抖动（NDC，y 向上；0 = 不抖）
 out vec2 vP; out float vW; out vec4 vC; out float vU; out vec2 vA; out vec2 vB;
 void main() {
-  vec2 a = aA, b = aB;
+  // 子像素抖动：**平移几何本身**（逻辑像素，y 向下），而不是只挪 gl_Position。
+  //
+  // 为什么不能只挪 gl_Position：覆盖率的 AA 是在片元里按 vA / vB 算距离的，
+  // 几何挪了而端点没挪，边缘带就跟栅格化足迹错开 —— 结果不是更平滑，而是四个子帧
+  // 各自按同一条曲线取值（等于没抖）。所以 a / b 与 vA / vB 一起平移。
+  vec2 jit = vec2(uJitter.x * 0.5 * RES_LOGICAL.x, -uJitter.y * 0.5 * RES_LOGICAL.y);
+  vec2 a = aA + jit, b = aB + jit;
   vec2 d = b - a;
   float len = max(length(d), 1e-5);
   vec2 dir = d / len;
   vec2 nrm = vec2(-dir.y, dir.x);
-  float hw = aWidth * 0.5 + 1.5;        // 加一点余量给抗锯齿（注意 half 是 GLSL 保留字）
+  // **宽度为负 = "带"（band）**：填充面的扫描行用它（见 LineBatch.fillRect 的注释）。
+  // 胶囊要 1.5px 余量给圆头抗锯齿；带是**硬边矩形**，不能有余量 —— 余量会让相邻两行重叠，
+  // 半透明填充就会被叠两遍（实测 alpha 0.5 的面：应 188 实测 194～236，行距越细越浓）。
+  float wt = abs(aWidth);
+  float hw = wt * 0.5 + (aWidth > 0.0 ? 1.5 : 0.0);
   vec2 p = mix(a, b, (aCorner.x * 0.5 + 0.5)) + nrm * aSide * hw;
   vP = p; vW = aWidth; vC = aColor; vU = aU; vA = a; vB = b;
   // 用**逻辑**分辨率换算裁剪空间：p 本来就是逻辑像素，除以逻辑尺寸得到的 NDC 与 SCALE 无关。
   // （曾经用物理 res 再靠 PX_SCALE 还原，SCALE>1 时几何会落错位置/被裁掉 —— 4K 下矢量消失的根因。）
+  // 几何已经平移过了（见上面的 jit），这里**不能再加** uJitter —— 加了就是 2 倍位移。
   vec2 clip = (p / RES_LOGICAL) * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
 }`;
@@ -1196,7 +1250,7 @@ void main() {
     //   （引擎自己一个、页面上别的 canvas 又一个）。只按源码哈希做 key 的话，
     //   第二个上下文会拿到第一个上下文的 program 对象 —— 那是**别的上下文的程序**，
     //   在当前上下文里画不出任何东西（而且不报错）。踩过：诊断脚本里 LineBatch 全黑。
-    const key = `linebatch_v1#${this.gl.instanceId}`;
+    const key = `linebatch_v2#${this.gl.instanceId}`;   // v2 = 加了 uJitter（子像素抖动）
     const hit = this.gl.programs.get(key);
     const p = hit ?? (() => {
       const vs = g.createShader(g.VERTEX_SHADER);
@@ -1221,7 +1275,22 @@ void main() {
   // 这样 1080p 与 4K 下同一根细线的墨水浓度一致，4K 只是边缘更锐；
   // 若按逻辑像素取固定宽度，4K 下细线会被摊薄到看不见（踩过）。
   float aa = max(0.5 * fwidth(dist), 1e-4);
-  float cov = 1.0 - smoothstep(vW * 0.5 - aa, vW * 0.5 + aa, dist);
+  float cov;
+  if (vW < 0.0) {
+    // ── 带（填充面的扫描行）：**只在 x 方向抗锯齿，y 方向是硬边**
+    //
+    // 为什么 y 不能抗锯齿：相邻两行共用同一条边界，两边各给 50% 覆盖率时
+    // 合成出来是 1-(1-0.5)² = 75% ⇒ 一道比面更暗/更亮的**横纹**，而且 alpha 面
+    // 还会被叠两遍描浓。硬边 + 几何严格分区 ⇒ 每个采样点只落在**一行**里，
+    // 覆盖率精确为 1；竖向的平滑交给多子帧的亚像素抖动（4× 超采样）。
+    // ⚠ 过渡带必须从 **0** 起算：smoothstep(-aa, aa, 0) 等于 0.5，
+    //   写成那样会让带内部**整片只得到半覆盖率**（alpha 0.5 的面会画成 0.25 → 137 而不是 188）。
+    float along = dot(q - vA, dir);
+    float beyond = max(max(-along, along - len), 0.0);
+    cov = 1.0 - smoothstep(0.0, aa * 2.0, beyond);
+  } else {
+    cov = 1.0 - smoothstep(vW * 0.5 - aa, vW * 0.5 + aa, dist);
+  }
   if (cov <= 0.002) discard;
   fragColor = vec4(vC.rgb * vC.a * cov, vC.a * cov);
 }`);
@@ -1262,6 +1331,16 @@ void main() {
   /** 一条线段。color 是 [r,g,b] 线性（可 >1 让它发光）或 [r,g,b,a]。 */
   seg(ax, ay, bx, by, width = 1, color = [1, 1, 1]) { return this._push(ax, ay, bx, by, width, color); }
 
+  /**
+   * **带**：一条硬边矩形（宽度参数取**负**交给 shader，见 `_program` 里 `vW < 0` 那一支）。
+   *
+   * 这是填充面该用的图元：填充 = 一定数量的水平带，带与带**严格分区、不重叠**，
+   * 所以半透明填充的浓度与行距无关（胶囊拼法下相邻行的 AA 边会互相叠加：
+   * alpha 0.5 的面在 step 0.5 时实测被描成 222，而正确值是 188）。
+   * 竖向的平滑不靠几何、靠多子帧的亚像素抖动。
+   */
+  band(x0, x1, y, h, color = [1, 1, 1]) { return this._push(x0, y, x1, y, -Math.abs(h), color); }
+
   /** 折线。pts 是 [[x,y], ...]。 */
   polyline(pts, width = 1, color = [1, 1, 1], closed = false) {
     for (let i = 1; i < pts.length; i++) this.seg(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], width, color);
@@ -1300,17 +1379,12 @@ void main() {
    * @param {number[]} color `[r,g,b]` 或 `[r,g,b,a]`，线性值
    * @param {number} [step] 覆盖步进（逻辑像素），越小越精确也越贵
    */
-  fillRect(x, y, w, h, color = [1, 1, 1], step = 2) {
+  fillRect(x, y, w, h, color = [1, 1, 1], step = 1) {
     if (!(w > 0) || !(h > 0)) return this;
     const s = Math.max(0.5, step);
     const n = Math.max(1, Math.ceil(h / s));
     const dy = h / n;
-    // 线宽 = 步进 + 一点重叠，避免抗锯齿边缘之间出现缝
-    const width = dy + 0.5;
-    for (let i = 0; i < n; i++) {
-      const yy = y + i * dy + dy * 0.5;
-      this.seg(x, yy, x + w, yy, width, color);
-    }
+    for (let i = 0; i < n; i++) this.band(x, x + w, y + i * dy + dy * 0.5, dy, color);
     return this;
   }
 
@@ -1327,16 +1401,14 @@ void main() {
    * @param {number[]} color 线性 RGB 或 RGBA
    * @param {number} [step] 扫描行距（逻辑像素，默认 2；越小越精确也越贵）
    */
-  fillPoly(pts, color = [1, 1, 1], step = 2) {
-    const spans = polySpans(pts, step);
-    for (const sp of spans) this.seg(sp.x, sp.y, sp.x + sp.w, sp.y, sp.h, color);
+  fillPoly(pts, color = [1, 1, 1], step = 1) {
+    for (const sp of polySpans(pts, step)) this.band(sp.x, sp.x + sp.w, sp.y, sp.h, color);
     return this;
   }
 
   /** **填充圆**（比 `fillPoly` 逼近更准也更便宜：每行一次 `sqrt`）。 */
-  fillCircle(cx, cy, r, color = [1, 1, 1], step = 2) {
-    const spans = circleSpans(cx, cy, r, step);
-    for (const sp of spans) this.seg(sp.x, sp.y, sp.x + sp.w, sp.y, sp.h, color);
+  fillCircle(cx, cy, r, color = [1, 1, 1], step = 1) {
+    for (const sp of circleSpans(cx, cy, r, step)) this.band(sp.x, sp.x + sp.w, sp.y, sp.h, color);
     return this;
   }
 
@@ -1344,9 +1416,8 @@ void main() {
    * **填充扇环 / 扇形**：`r0 > 0` 是扇环，`r0 = 0` 是实心扇形。
    * 角度是弧度、0 指向 +x，y 向下为正（所以 π/2 朝下）。
    */
-  fillSector(cx, cy, r0, r1, a0, a1, color = [1, 1, 1], step = 2) {
-    const spans = sectorSpans(cx, cy, r0, r1, a0, a1, step);
-    for (const sp of spans) this.seg(sp.x, sp.y, sp.x + sp.w, sp.y, sp.h, color);
+  fillSector(cx, cy, r0, r1, a0, a1, color = [1, 1, 1], step = 1) {
+    for (const sp of sectorSpans(cx, cy, r0, r1, a0, a1, step)) this.band(sp.x, sp.x + sp.w, sp.y, sp.h, color);
     return this;
   }
 
@@ -1368,6 +1439,14 @@ void main() {
     g.uniform2f(this.gl.uniform(p, 'res'), this.gl.pw, this.gl.ph);
     g.uniform2f(this.gl.uniform(p, 'RES_LOGICAL'), this.gl.w, this.gl.h);
     g.uniform1f(this.gl.uniform(p, 'PX_SCALE'), this.gl.scale);
+    {
+      // 缺字段时按"不抖"处理（离线单测里的假 gl 没有 jitter）
+      const j = this.gl.jitter;
+      const loc = this.gl.uniform(p, 'uJitter');
+      if (loc !== null && loc !== undefined) {
+        g.uniform2f(loc, j ? (j[0] * 2) / this.gl.pw : 0, j ? (j[1] * 2) / this.gl.ph : 0);
+      }
+    }
     g.enable(g.BLEND);
     g.blendFuncSeparate(g.ONE, g.ONE_MINUS_SRC_ALPHA, g.ONE, g.ONE_MINUS_SRC_ALPHA);
     if (target) target.bind(); else { g.bindFramebuffer(g.FRAMEBUFFER, null); g.viewport(0, 0, this.gl.pw, this.gl.ph); }
