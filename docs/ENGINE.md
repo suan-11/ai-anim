@@ -1194,7 +1194,7 @@ export default {
 
 | 类别 | 键 | 落点 |
 |---|---|---|
-| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` | 与 `cut(scene, {…})` 的第二参数同义；`worldPass: true` 等价于 `world: 'auto'` |
+| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` | 与 `cut(scene, {…})` 的第二参数同义；`worldPass: true` 等价于 `world: 'auto'`；`transition` 默认 `push`，可选 `wipe` / `iris` / `glitch` / `pixel` / `dissolve` / `mix` / `none`（§3.7.6） |
 | **模板参数** | **其余所有键** | `shot(type, { ...其余键, ...params })`（显式写在 `params` 里的优先）；`id != null` 时也一并传给模板 |
 
 - `id` 不写 → `scene.id`（模板自己的默认段名，例如 `'chart'`）；重名仍然自动加 `_2`。
@@ -1648,10 +1648,10 @@ export default shot('chart', {
   唯一来源，所以"文档里写的默认值"与"代码实际用的默认值"不可能对不上。
 - **参数名写错会抛错**，不静默忽略：`shot('chart', { value: [...] })`（少个 `s`）会点名
   「没有参数 "value"」并列出可用参数；未知模板名抛 `未知的镜头模板 "xxx"`。
-- 查询方式：`node scripts/anim.mjs shots`（列全部 23 个）、`node scripts/anim.mjs shots chart`（某个模板的全部参数与默认值）；
+- 查询方式：`node scripts/anim.mjs shots`（列全部 25 个）、`node scripts/anim.mjs shots chart`（某个模板的全部参数与默认值）；
   **机器可读**的那一份是 `node scripts/anim.mjs shots --json`（字段契约见 §14.9）。
 
-### 14.2 23 个模板
+### 14.2 25 个模板
 
 | 名字 | 画什么 | 参数（默认值） |
 |---|---|---|
@@ -1678,6 +1678,8 @@ export default shot('chart', {
 | `lockup` | 署名定版：环/菱形/方块标记画出来 + 字标 + 副标 + 从中间展开的分隔线 + 署名行，停住不压黑 | `id` `mark`（`'ring'`）`kicker` `name` `tagline` `meta` `footer` |
 | `timeline` | 横向事件轴：轴从左画到右，笔尖路过的事件节点依次弹出（外圈+信号色中心点+短刻度），事件名上下交替淡入 | `id` `kicker` `title` `events`（4 个名字）`footer` |
 | `radial` | 径向分布：中心呼吸核 + 一圈轮辐（节点/名字/沿辐条的读数条）+ 外圈慢转的缺口环 | `id` `kicker` `title` `nodes`（5 个）`weights`（读数条 0..1）`footer` |
+| `pixel` | 像素风：4–8 色调色板 + 整块栅格 + Bayer 抖出来的渐变 + 12fps 台阶的精灵队列；中文标题走引擎文字层，最后与图一起压进同一栅格（1-67） | `id` `kicker` `title` `sub` `footer` `palette`（`'gameboy'`；nes / amber / pico / bit1 或自给色表）`cell`（`8`）`crawl`（`'bot'`） |
+| `handwrite` | 手写讲解：白板 / 纸感，一笔一笔按弧长生长（落笔细、行笔粗、收笔细），每 2 帧重描；标题用手写体栈（1-69） | `id` `kicker` `title` `sub` `footer` `mode`（`'whiteboard'` / `'paper'`）`seed`（`3`）`boil`（`1.4`，0 = 一笔画完） |
 
 `values` / `headline` 这类数组参数的**元素个数决定画面**（柱子数、两行大字），不是随便塞几个都行。
 
@@ -1700,7 +1702,7 @@ export default shot('chart', {
 
 ### 14.4 每个模板都自己铺满整帧（`whip` 是转场）
 
-- **23 个模板都自己画整帧背景**（`gl.clear(ctx.out, …)` 或自带的全屏 `Pass`），所以一个模板镜头就是**一段完整的画面**，
+- **25 个模板都自己画整帧背景**（`gl.clear(ctx.out, …)` 或自带的全屏 `Pass`），所以一个模板镜头就是**一段完整的画面**，
   不要在同一个 `cut` 里把两个模板叠起来。
 - `whip` 用 `ctx.under`（上一段的成帧）做甩镜，所以**必须**在时间线上给它交叠与转场声明：
 
@@ -1722,7 +1724,7 @@ export default shot('chart', {
 | 交付什么 | **画面本身**（柱子、字、背景、post 全在里面） | **骨架**：`handlesTransition`、共享背景、交叠期把上一帧甩走、`cameraPost(f.t, …)` |
 | 你写什么 | `shot('chart', { 参数 })` | `draw(ctx, { k, dx, dy, enter })` 里的前景代码 |
 | 背景 | 模板自己铺 | `makeShot` 铺（或 `cut(shot, { world: 'auto' })` 让引擎铺） |
-| 什么时候用 | 23 个常见镜头之一 | 要有新视觉，但又不想自己记那四件容易漏的事 |
+| 什么时候用 | 25 个常见镜头之一 | 要有新视觉，但又不想自己记那四件容易漏的事 |
 
 **不要指望把模板塞进 `makeShot().draw()`**：模板的 `render` 会自己 `gl.clear(ctx.out, …)` / 画全屏 Pass，
 覆盖掉 `makeShot` 铺的背景。要用模板就用模板，要自己画就用 `makeShot`，一段里二选一。
@@ -1788,7 +1790,7 @@ export default {
 （都来自 `listShots()`，§14.1）以固定字段名打出来：
 
 ```sh
-node scripts/anim.mjs shots --json          # 23 个模板
+node scripts/anim.mjs shots --json          # 25 个模板
 node scripts/anim.mjs shots chart --json    # 只给一个模板（同样是这个形状，count = 1）
 ```
 
@@ -1849,10 +1851,10 @@ node scripts/anim.mjs shots chart --json    # 只给一个模板（同样是这�
 
 三条**读法**（与字段名一样是契约的一部分）：
 
-1. **`required: true` ⟺ 缺默认值**，不代表"画面离不开它"。当前 23 个模板的每一个参数都有默认值 ⇒
+1. **`required: true` ⟺ 缺默认值**，不代表"画面离不开它"。当前 25 个模板的每一个参数都有默认值 ⇒
    全是 `false`：省掉任何参数都不会报错，画面就是模板自带的那一段。
 2. **缺字段 ≠ `false` / 空**：`requires` 与 `outputs` 是 **1-21 补上的声明式 spec**
-   （`src/shots/*.js` 的 `xxxShot.spec`）—— 现在 23 个模板都有了。**没有 spec 的模板，这两个键
+   （`src/shots/*.js` 的 `xxxShot.spec`）—— 现在 25 个模板都有了。**没有 spec 的模板，这两个键
    根本不出现**，读到"没有这个键"要理解成**"还没声明过"**，不能当成"不需要"。
    1-21 只加字段、没改任何已有字段名 ⇒ `schema` 仍是 `anim.shots/1`，老的读者不会坏。
    （`required` 已经按同一条规矩设计：模板哪天去掉某个参数的默认值，它自动变成 `true`，
@@ -1968,14 +1970,14 @@ seq([ cut(a, { dur: 4 }), cut(b, { dur: 3, overlap: 0.5 }), par(1.0, [cut(c, {du
 
 // 镜头库（A 档，§14）：一行一个整镜头；参数写错会抛错
 import { shot, SHOTS, listShots } from '../../src/shots/index.js';
-export default shot('chart', { values: [0.3, 0.7, 0.95], title: '成绩' });   // 23 个：title chart kinetic whip outro wave pulse grid quote counter compare bigtype scan device lineart morph layers isometric cel liquid lockup timeline radial
+export default shot('chart', { values: [0.3, 0.7, 0.95], title: '成绩' });   // 25 个：title chart kinetic whip outro wave pulse grid quote counter compare bigtype scan device lineart morph layers isometric cel liquid lockup timeline radial pixel handwrite
 export default shot('wave', { id: 'intro' });                               // id 覆盖段名（wave/pulse/grid 需要音乐）
 
 // 配置档（B 档，§9.7 / §14.8）：时间线里直接写模板；任务可以没有 scenes/、整个文件没有任何 import
 timeline: [ { type: 'title', title: '标题', dur: { beat: 8 } },
             { type: 'chart', values: [0.3, 0.7, 0.95], dur: 5, id: 'bars' },
             { type: 'outro', dur: 3 } ]                                     // 数组、seq([...]) 都行
-// 时间线字段 = type id dur at overlap params post maxSamples handlesTransition note world worldPass
+// 时间线字段 = type id dur at overlap params post maxSamples handlesTransition note world worldPass focus carry transition
 // 其余所有键都是模板参数 → shot(type, {…})（写错就抛，并列出可用参数）
 
 // 第 3 种 3D（真网格，§3.8 / docs/THREE.md）：Three.js 镜头，与 makeShot 同形状

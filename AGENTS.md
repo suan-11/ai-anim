@@ -112,8 +112,8 @@ export default {
 `task.config.mjs` + `scenes/title.js` + `scenes/shapes.js` + `audio/`；改这两个场景文件就能出片，
 **不需要动 `src/` 里的引擎**（除非确实要加底层能力）。
 
-> **要写多少代码？** 常见镜头是**一行**——A 档镜头库 `src/shots/` 有 23 个参数化模板
-> （`title` `chart` `kinetic` `whip` `outro` `wave` `pulse` `grid` `quote` `counter` `compare` `bigtype` `scan` `device` `lineart` `morph` `layers` `isometric` `cel` `liquid` `lockup` `timeline` `radial`），
+> **要写多少代码？** 常见镜头是**一行**——A 档镜头库 `src/shots/` 有 25 个参数化模板
+> （`title` `chart` `kinetic` `whip` `outro` `wave` `pulse` `grid` `quote` `counter` `compare` `bigtype` `scan` `device` `lineart` `morph` `layers` `isometric` `cel` `liquid` `lockup` `timeline` `radial` `pixel` `handwrite`），
 > 场景文件退化成「取模板 + 给参数」：
 >
 > ```js
@@ -228,7 +228,7 @@ export default {
     镜头模板 "chart" 没有参数 "value"（大概是拼错了）。可用参数：id / values / title / sub / footer / peak
   ```
 
-**什么时候必须回去写场景**：模板只有这 23 个，参数只能调它们**本来就有的画面**。要新视觉
+**什么时候必须回去写场景**：模板只有这 25 个，参数只能调它们**本来就有的画面**。要新视觉
 （raymarch 晶格、燃烧的引线、某支片子特有的母题）就回 §3 手写场景 / §3.5 的 `makeShot`；
 要自己掌控转场与背景时同理。**别为了"纯配置"把模板撑成万能 DSL。**
 
@@ -634,7 +634,7 @@ node scripts/anim.mjs check <任务>
 | 要改什么 | 去哪 |
 |---|---|
 | 渲染一帧 / 合成 / 后处理 / 自适应运动模糊 | `src/core/`（先读 `docs/ENGINE.md`） |
-| 镜头模板（A 档，23 个） | `src/shots/`；参数：`node scripts/anim.mjs shots [名字]` |
+| 镜头模板（A 档，25 个） | `src/shots/`；参数：`node scripts/anim.mjs shots [名字]` |
 | 写镜头的骨架与元件 | `src/kit/`（`index.js` 是统一出口：`makeShot` `makeWorldKit` `panel` …） |
 | 时间线 DSL、任务加载、配置档节点判定 | `src/timeline.js`、`src/tasks.js` |
 | 风格包 | `src/style/`（见 `docs/STYLE.md`） |
@@ -650,7 +650,7 @@ node scripts/anim.mjs check <任务>
 | `docs/ENGINE.md` | 引擎规格（`src/` 的地基；**改引擎之前读**） |
 | `docs/COOKBOOK.md` | 常见效果怎么做 —— 按「画面要什么」找做法 |
 | `docs/MOTIFS.md` | **母题库**`src/kit/motifs/`：拆方波 / 8×8 DCT / 波形+游标 —— 同一件事只写一次 |
-| `docs/shots/` | **镜头卡索引**（按叙事功能分组，23 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
+| `docs/shots/` | **镜头卡索引**（按叙事功能分组，25 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
 | `docs/CONFIG-ONLY.md` | 零代码出片（B 档，§3.2 的完整版） |
 | `docs/STYLE.md` | 风格包与反审美疲劳（相邻两片换脸是**建议**：风格由内容决定） |
 | `docs/CAPTIONS.md` | 字幕层与信息分工（画面只放标注） |
@@ -658,7 +658,7 @@ node scripts/anim.mjs check <任务>
 | `docs/LAYOUT.md` | 版面纪律与「版面守门」（一屏一个主体） |
 | `docs/MOTION.md` | 运动规则表（什么时候用哪个、数值上限、证据分级） |
 | `docs/NARRATION.md` | 旁白 / 口播这一层（A/B/C 三档） |
-| `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（20 提交 / 311 文件，按引擎·工作台·模板·风格·判据·流程分块） |
+| `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（37 提交 / 381 文件，按引擎·工作台·模板·风格·判据·流程分块） |
 | `docs/SFX.md` | 音效层：从 SoundDino 取（授权/配额/记账）、`anim` 侧的接入缺口 |
 | `docs/THREE.md` | 第 3 种 3D：Three.js 镜头 |
 | `docs/DIAGNOSIS.md` | 输出词 → 含义 → 修法（**看到不认识的诊断词就查**） |

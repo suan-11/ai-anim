@@ -1561,7 +1561,7 @@ instrumented(ctx, {
 
 ### 16.2 整片介质：`style.view`（风格包字段，默认 off）
 
-八种成像可以提成**风格包字段**——整支片子是同一种介质，场景与模板一行都不用改：
+九种成像（§16 表里的全部 mode，含 `woodcut`）可以提成**风格包字段**——整支片子是同一种介质，场景与模板一行都不用改：
 
 ```js
 // 在风格包里（src/style/panels.js），或任务里临时覆盖：
@@ -1570,7 +1570,7 @@ style: { name: 'paper', view: { mode: 'halftone', cell: 6, passes: 2 } },
 
 引擎在「全部段合成完 → post 之前」把整帧换成像（`src/core/engine.js` 的 `composite`），
 所以转场、叠加、图表、刻度全都在里面；**字幕画在后处理之后，永远清晰**。
-模式名写错**当场抛**（`resolveView()` 列出可用清单）。31 套里只有 `h-riso`（双版套印）与
+模式名写错**当场抛**（`resolveView()` 列出可用清单）。32 套里只有 `h-riso`（双版套印）与
 `h-vhs`（CRT + 磨损）写了它，其余全部 `null` —— 不写就是 `null`，老片子一个像素不变。
 
 夹具：`tasks/_style-view-lab`（整片 CRT）；示范：`node scripts/anim.mjs still _style-sampler -t 2.4 --style h-riso`。
@@ -1706,7 +1706,7 @@ instrumented(ctx, { mode: 'woodcut', cell: 22 }, (target) => { /* … 和 §16 �
 ## 17. 画「面」：fillPoly / fillCircle / fillSector
 
 引擎的矢量层只会画**线段**（胶囊）。在这之前，「一块面」只能靠 fillRect（一行行矩形）表达，
-圆、山体、扇区都只能描边逼近 —— 这是 23 个镜头模板看起来都是「线 + 矩形」的**图元原因**，
+圆、山体、扇区都只能描边逼近 —— 这是 25 个镜头模板看起来都是「线 + 矩形」的**图元原因**，
 不是审美选择。现在补了三个填充：
 
 ```js

@@ -189,7 +189,7 @@ node scripts/anim.mjs still _style-sampler -t 2.4 --style h-poster
 | `captions` | 字幕样式：`position` `size` `weight` `maxCharsPerLine` `maxLines` `bg` `padX` `padY` `lineHeight` `hold` `fade` `karaoke` `dim` `color` `sungColor` | `src/core/captions.js`。⚠ **`print` 的这一项是 `false`**（这套风格默认不开字幕）；其余四套 = `{ ...DEFAULT_CAPTION_STYLE, 各自的微调 }`（微调值见 §3 末尾） |
 | `motif` | 背景**母题名**：`grid` / `blueprint` / `paper` / `scan` / `noir` / `flat`（纯色，不画母题） | `src/kit/world.js` 的 `worldPass`（`motif: 'auto'` 时读 `ctx.style.motif`） |
 | `tokens` | **设计 token**：字号阶梯 / 线宽三档 / 动效配方 / 边距 / 质感（2026-10-25 起，来自 `src/style/tokens.js`） | `ctx.style.tokens`（场景读它：**写 `size: T.type.hero` 不写 `size: 24`**）；**`type.write` 的语义字号**也读它（见 §4.1）。纯被动字段，老任务不变 |
-| `view` | **整片介质**（2026-10-30，默认 `null` = off）：把 `src/kit/views.js` 的八种成像之一提成这套风格的默认观感 —— `'halftone'` 字符串，或 `{ mode, cell, passes, misreg, paper, ink, accent, … }`。`halftone` 加 `passes: 2..4` = **N 版套印**（riso），`crt` = 录像带 | `src/style/index.js` 的 `resolveView()`（模式名写错**当场抛**）→ `src/core/engine.js` 在「全部段合成完 → post 之前」把整帧换成像。**字幕画在后处理之后，所以字幕永远清晰** |
+| `view` | **整片介质**（2026-10-30，默认 `null` = off）：把 `src/kit/views.js` 的九种成像之一提成这套风格的默认观感 —— `'halftone'` 字符串，或 `{ mode, cell, passes, misreg, paper, ink, accent, … }`。`halftone` 加 `passes: 2..4` = **N 版套印**（riso），`crt` = 录像带 | `src/style/index.js` 的 `resolveView()`（模式名写错**当场抛**）→ `src/core/engine.js` 在「全部段合成完 → post 之前」把整帧换成像。**字幕画在后处理之后，所以字幕永远清晰** |
 
 ### 4.2 整片介质 `view`：什么时候用、什么时候别用（2026-10-30）
 

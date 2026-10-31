@@ -99,7 +99,7 @@
 |---|---|---|
 | `tasks/<任务>/task.config.mjs 的时间线不合法：`<br>`src/tasks.js:173` | 时间线构建失败的最外层包装（带文件名） | 读它下面那几行——真正的判据在 `src/timeline.js` |
 | `timeline[i] 这一段（type: "…"）取不到镜头模板：`<br>`src/timeline.js:79` | 配置档节点写错（模板名或参数名） | 报错里就列了可用模板 / 可用参数；`node scripts/anim.mjs shots <名字>` 查参数与默认值。`AGENTS.md` §3.2 |
-| `未知的镜头模板 "x"。可用的：title / chart / …（看参数：node scripts/anim.mjs shots <名字>）`<br>`src/shots/index.js:86` | 模板名拼错 | 照行内命令查；只有 23 个模板（`src/shots/`） |
+| `未知的镜头模板 "x"。可用的：title / chart / …（看参数：node scripts/anim.mjs shots <名字>）`<br>`src/shots/index.js:86` | 模板名拼错 | 照行内命令查；只有 25 个模板（`src/shots/`） |
 | `镜头模板 "x" 没有参数 "y"（大概是拼错了）。可用参数：…`<br>`src/shots/index.js:95` | 参数名拼错（`value` vs `values`） | 照可用参数改；**这是刻意的抛错，不是静默吃默认值**（见 `src/shots/index.js:22`） |
 | `时间线里不能混写「配置档节点」和「已经展开好的段」`<br>`src/timeline.js:265` | 同时写了 `{ type: 'chart', … }` 和手搓的 `{ id, scene, start, end }` | 统一成一种写法：都写配置档，或者都写 `cut()` / `seq()` |
 | `你是不是忘了调 cut()？`<br>`src/timeline.js:324` | 时间线里塞了一个既不是 `cut()/seq()/par()` 返回值、也不是配置档节点、又没有时长的对象 | 补 `cut(scene, { dur })` |

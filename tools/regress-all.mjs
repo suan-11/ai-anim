@@ -118,7 +118,7 @@ const ITEMS = [
   // BACKLOG 1-69：手绘笔迹（中心线 + 压力 -> 轮廓多边形）。钉的是**几何事实**：
   // 窄了一半的坑全在这一层：斜率夹 / minW 下限 / 圆头半径 / 弧长生长 / 曲率 < 半宽时轮廓必然自交
   { name: 'unit:stroke', cmd: ['tools/test-stroke.mjs'], note: '手绘笔迹（src/kit/stroke.js，BACKLOG 1-69，缺口表第 6 行）：MAX_WIDTH_SLOPE 0.45（>1 时上下偏移边互相追上 ⇒ 偶奇规则把自交处填成「洞」）/ minW 1.2 物理下限（更细时 fillPoly 的扫描行穿透 ⇒ 出一串虚线点）/ 端点圆头用**这一端自己的半宽**（平均值会在收笔处鼓墨滴）/ 生长按**弧长**截断（按点数截断时密采样段走得慢）/ 曲率半径 < 半宽时**轮廓必然自交**（这是几何事实，不是 bug：圆角 R 偏移 h 后内圈 = R-h，R<h 就翻转）⇒ drawStroke 的 auto 会自动退到胶囊链（端点沿切向外扩半宽补掉内切缝）/ boil 每 2 帧换一次且同组内不动 + kit·regress·文档接线自检' },
-  { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：八种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
+  { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：九种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
   { name: 'unit:post-wear', cmd: ['tools/test-post-wear.mjs'], note: '胶片磨损（post.weave/flicker/scratch，BACKLOG 1-64）：默认必须全 0（不写 = 一个像素不变）/ uniform 与引擎喂 t 的接线自检 / 0 时走不到磨损代码 / 磨损函数只吃 t 不读帧号（23 项）' },
   { name: 'unit:fill', cmd: ['tools/test-fill.mjs'], note: '填充面（src/core/fill.js，LineBatch 的 fillPoly/fillCircle/fillSector）：偶奇带洞 / 圆面积误差 <2% / 扇区角度方向（0=右 90=下 180=左 270=上，写反画面照样出） / 进度环缺口落在起点一侧（39 项）' },
   { name: 'meta:gates', cmd: ['tools/test-gates-meta.mjs'], note: '守门判据的**元测试**（1-51）：每条判据都要"注入缺陷必须报 + 去掉缺陷不许报"。覆盖版面三条 / 背景守门 / 采样四个出口（tol·cap·stall·NaN）/ 误差量具 / 节奏节拍器；文末一张覆盖表点名"哪个缺口没验"（37 项）' },
