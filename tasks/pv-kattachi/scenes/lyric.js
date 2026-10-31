@@ -231,6 +231,14 @@ export default {
     text.upload();
     comp.draw(gl, text, ctx.out, { premult: false });
     void css;
-    return { bloom: 0.26 + 0.22 * pump, grain: 0.028, vignette: 0.5 };
+    // 错误色（色差 ca）：每拍随 kick 抖一下；glitch 段更狠。
+    // ⚠ post 的 ca 与 radialBlur 二选一（这里不用径向模糊），见 docs/ENGINE.md §8。
+    const caBase = mode === 'glitch' ? 0.5 : mode === 'split' ? 0.26 : 0.1;
+    return {
+      bloom: 0.26 + 0.22 * pump,
+      grain: 0.028,
+      vignette: 0.5,
+      ca: caBase + 0.45 * pump,
+    };
   },
 };
