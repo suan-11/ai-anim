@@ -135,8 +135,8 @@
 | `⚠ 渲染停滞：Xs 没有任何进展（已收到 n/N）`<br>`scripts/anim.mjs:3428` | 真卡住：页面崩了 / WebSocket 断了 / 渲染期间改了文件 | 看紧跟的"页面推流状态 / 已连接客户端 / ffmpeg 退出码"三行；按提示先排除 HMR 重载 |
 | `✓ out/… N 帧（ffprobe 复核 M 帧），用时 Xs`<br>`scripts/anim.mjs:3080` | 出片成功，且 CLI **自己**用 ffprobe 复核过 | 想再确认一遍：`node scripts/anim.mjs verify <任务>`（`AGENTS.md` §10.4） |
 | `子帧分布 8子帧:12  24子帧:200 …`<br>`scripts/anim.mjs:3081` | 运动模糊实际吃到的子帧数分布 | 拖影有台阶 → 调小 `--tol`，或调小 `--shutter`（`AGENTS.md` §8 末行） |
-| `[--dry-run] 先测速：整片均匀取 10 个时刻…` / `预估：N 帧（Xs @60fps）约 M 分钟`<br>`scripts/anim.mjs:2607` `:2614` | 只测速不出片 | 开渲之前先看这个数；`--samples 8` 压一压、或切段 |
-| `⚠ 超过 20 分钟：建议 --segments 分块（可断点续渲）…`<br>`scripts/anim.mjs:2616` | 预估超过 20 分钟 | 照做：`node scripts/anim.mjs video <任务> --segments 10` |
+| `[--dry-run] 按档预估：每档整片均匀取 10 个时刻…` / `草稿档/成片档 … N 帧约 M 分钟`（C-1 起两档都给，`← 本次参数` 标记手上这版）<br>`scripts/anim.mjs` 的 `printEstimate` | 只测速不出片 | 开渲之前先看这个数；`--samples 8` 压一压、或切段。某档「没测成」时只有另一档的读数，**别按比例硬推** |
+| `⚠ 本次参数超过 20 分钟：建议 --segments 分块（可断点续渲）…`<br>`scripts/anim.mjs` 的 `printEstimate` | 本次参数预估超过 20 分钟 | 照做：`node scripts/anim.mjs video <任务> --segments 10` |
 | `⚠ 抖动看着像"振动"而不是手持（…）`<br>`scripts/anim.mjs:2865`（`cmdVideo` 收尾守门） | 出片收尾时抖动判据不通过（判据同 `anim shake`） | 见 §1.8；**不影响文件合格与否，产物保留**（`:2888`） |
 | `并行渲染有 N/M 段失败`<br>`scripts/anim.mjs:4075`（`--parallel`） | 并行路径里有段挂了 | 已渲好的段保留在 `out/<任务>/_parallel/`；修完重跑，日志逐段在各自目录 |
 | `逐帧数出 N 帧，期望 M 帧` / `并行拼接后的产物不合格：` / `并行拼接后的时间戳不合格：`<br>`scripts/anim.mjs` 的 `--parallel` 守门（都走 `gateFailureLines()`；时间戳那条还带 `hint: 'stitch'`） | 拼接路径的帧数与时间戳守门（**帧数对但时间戳漂了同样是废品**） | 分类头会说 `已知原因（确定性）：拼接 / 封装这一步出错，画面本身没问题（各块都已经单独通过守门）。`，并直接点名两种典型签名：尾部被切（`-af apad` 与 `-shortest` 没成对）/ 帧距不齐（concat 少 `-copyts`）。见 `docs/PERF.md` |

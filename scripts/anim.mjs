@@ -29,7 +29,7 @@
  *   node scripts/anim.mjs queue <taskA> <taskB> […选项]    睡前排队渲几支：顺序渲完（并行实测更慢）、
  *                                                          每支结束响一声、全部结束响三声、某支失败不中断后续；
  *                                                          选项原样转发给 video（如 --segments 10 --gpu high）
- *   node scripts/anim.mjs video <task> --dry-run          只测速 + 给耗时预估，不出片
+ *   node scripts/anim.mjs video <task> --dry-run          按档预估：草稿档/成片档各测 10 帧，给两条分钟数，不出片
  *   node scripts/anim.mjs video <task> --draft            草稿档：半分辨率（960×540）+ samples=1，
  *                                                         只用来审节奏与信息密度（**不是成片**；定稿去掉）
  *   node scripts/anim.mjs analyze <task>                  分析音频（拍子/小节/段落/包络）
@@ -166,6 +166,7 @@ import { analyzeShake, shakeSummary } from './lib/shake.mjs';
 import { blankJsComments as sharedBlankJsComments } from './lib/js-source.mjs';
 // 分块增量重渲的判据（BACKLOG 1-45）：纯函数，`tools/test-block-sig.mjs` 直接测
 import { sceneFileIndex, blockSignature } from './lib/blocksig.mjs';
+import { DRAFT_SCALE, DRAFT_ENCODE_MS, planTiers, estimateTier } from './lib/tier-estimate.mjs';
 import { layoutReport, layoutSummary } from '../src/layout.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -4668,22 +4669,83 @@ async function measureSpeed({ info, from, to, fps, samples, shutter, n = 10 }) {
   return { fps: drawn / (elapsed / 1000), frames: drawn, elapsed, hist, perFrame: elapsed / drawn };
 }
 
-/** 打印渲染预估（--dry-run）。 */
-async function printEstimate({ info, from, to, fps, samples, shutter, label }) {
+/**
+ * 打印渲染预估（--dry-run）。
+ *
+ * C-1：改成**按档预估**。老版本只测「这次手上的参数」，而用户真正要回答的问题
+ * 是两档各自的价钱 —— 草稿档（`--draft`：绝对 scale 0.5 + samples 1）与
+ * 成片档（任务 scale + samples auto），两者差 8–24×（docs/PERF.md A1）：
+ * 只看成片档会被分钟数吓住、只看草稿档会被速度骗到。现在一次 dry-run 两档都测
+ * （缺的档另起一个短会话，`--scale` 沿用档位定义），两行分钟数都给。
+ * 非标准参数（比如 `--samples 8`）不属于任何一档时，补一行「本次参数」。
+ */
+async function printEstimate({ task, info, from, to, fps, samples, shutter, label }) {
   const total = Math.max(1, Math.round((to - from) * fps));
+  const encMs = Number(opt('encode', '4'));                // 编码开销（x264 veryfast @1080p 约 3–6ms/帧）
   // ⚠ 必须在渲染之前测，而且**不能在测速期间关掉 ack** —— 这里是主流渲染循环之外的
   //   独立 evaluate，安全。
-  log(`\n[--dry-run] 先测速：整片均匀取 10 个时刻，每个渲一帧（samples=${samples}）…`);
-  const sp = await measureSpeed({ info, from, to, fps, samples, shutter });
-  const perFrame = sp.perFrame + Number(opt('encode', '4'));   // 编码开销（x264 veryfast 约 3–6ms/帧）
-  const mins = (total * perFrame) / 60000;
-  const seed = [...sp.hist.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}子帧:${v}`).join('  ');
-  log(`  测速：${sp.frames} 帧用了 ${(sp.elapsed / 1000).toFixed(1)}s → ${sp.fps.toFixed(2)} fps（${perFrame.toFixed(0)} ms/帧，含编码）`);
-  log(`  抽到的子帧分布 ${seed}`);
-  log(`  预估：${total} 帧（${(to - from).toFixed(1)}s @${fps}fps）约 ${mins.toFixed(1)} 分钟`);
+  //
+  // 「成片档」的分辨率以任务自己声明的 scale 为准：草稿档会话里 info.scale 是 0.5，
+  // 问不出成片的 scale（config scale 2 + --draft 时尤其）。
+  let configScale = null;
+  try {
+    configScale = parseTaskMeta({ id: task, cfgText: readFileSync(path.join(ROOT, 'tasks', task, 'task.config.mjs'), 'utf8') }).scale;
+  } catch { /* 读不到就走下面的兜底 */ }
+  if (!configScale) configScale = Math.abs(info.scale - DRAFT_SCALE) < 1e-9 ? 1 : info.scale;
+  const tiers = planTiers({ configScale, scale: info.scale, samples });
+
+  log(`\n[--dry-run] 按档预估：每档整片均匀取 10 个时刻各渲一帧测速…`);
+  const rows = [];
+  for (const t of tiers) {
+    if (!t.current) continue;
+    log(`  · 测 ${t.label}（${info.pw}×${info.ph}，samples=${samples}）…`);
+    const sp = await measureSpeed({ info, from, to, fps, samples, shutter });
+    rows.push({ ...t, sp, pw: info.pw, ph: info.ph });
+  }
+  for (const t of tiers) {
+    if (t.current) continue;
+    const rec = { ...t, sp: null, error: null };
+    rows.push(rec);
+    log(`  · 测 ${t.label}（另起一个短会话，按那一档的参数）…`);
+    try {
+      await closeSession();
+      await openSession({ task, scale: t.scale, only: opt('only', undefined) });
+      rec.pw = session.info.pw; rec.ph = session.info.ph;
+      rec.sp = await measureSpeed({ info: session.info, from, to, fps, samples: String(t.samples), shutter });
+    } catch (e) { rec.error = String(e?.message ?? e).split('\n')[0].slice(0, 140); }
+  }
+
+  // 打表按档位顺序（草稿 → 成片 → 本次），不按测速先后 —— 方向感交给「← 本次参数」标记
+  rows.sort((a, b) => tiers.findIndex((t) => t.id === a.id) - tiers.findIndex((t) => t.id === b.id));
+  log('');
+  for (const r of rows) {
+    if (r.error) { log(`  ${r.label}  （没测成：${r.error} —— 这一档没有读数，别拿另一档按比例硬推）`); continue; }
+    const enc = r.id === 'draft' ? DRAFT_ENCODE_MS : encMs;   // 540p 的编码开销约是 1080p 的一半
+    const est = estimateTier({ seconds: to - from, fps, perFrameMs: r.sp.perFrame, encodeMs: enc });
+    log(`  ${r.label}  ${r.pw}×${r.ph}  samples=${r.samples}  ${r.sp.fps.toFixed(2)} fps（${est.perFrameMs.toFixed(0)} ms/帧 含编码）→ ${est.frames} 帧约 ${est.minutes.toFixed(1)} 分钟${r.current ? ' ← 本次参数' : ''}`);
+    const hist = [...r.sp.hist.entries()].sort((a, b) => a[0] - b[0]);
+    if (hist.length && !(hist.length === 1 && hist[0][0] === 1)) {
+      log(`      子帧分布 ${hist.map(([k, v]) => `${k}子帧:${v}`).join('  ')}`);
+    }
+  }
   log(`  段数 ${info.timeline.length}；${flag('segments') || opt('segments', null) ? '分块渲染（已渲好的块会跳过）' : '未分块（中断要重来，长片子建议加 --segments）'}`);
-  if (mins > 20) log(`  ⚠ 超过 20 分钟：建议 --segments 分块（可断点续渲）、先 --samples 8 压一压，或缩短${label}`);
-  if (flag('json')) log(JSON.stringify({ total, perFrameMs: perFrame, minutes: mins, measureFps: sp.fps }));
+  const curRow = rows.find((r) => r.current && r.sp);
+  const curEst = curRow && estimateTier({ seconds: to - from, fps, perFrameMs: curRow.sp.perFrame, encodeMs: curRow.id === 'draft' ? DRAFT_ENCODE_MS : encMs });
+  if (curEst && curEst.minutes > 20) log(`  ⚠ 本次参数超过 20 分钟：建议 --segments 分块（可断点续渲）、先 --samples 8 压一压，或缩短${label}`);
+  if (flag('json')) {
+    log(JSON.stringify({
+      total,
+      perFrameMs: curEst?.perFrameMs ?? null,
+      minutes: curEst?.minutes ?? null,
+      measureFps: curRow?.sp.fps ?? null,
+      tiers: rows.map((r) => {
+        const base = { id: r.id, label: r.label, scale: r.scale, samples: r.samples, current: r.current, pw: r.pw ?? null, ph: r.ph ?? null };
+        if (r.error) return { ...base, error: r.error };
+        const est = estimateTier({ seconds: to - from, fps, perFrameMs: r.sp.perFrame, encodeMs: r.id === 'draft' ? DRAFT_ENCODE_MS : encMs });
+        return { ...base, measureFps: r.sp.fps, renderMsPerFrame: r.sp.perFrame, perFrameMs: est.perFrameMs, frames: est.frames, minutes: est.minutes };
+      }),
+    }));
+  }
   return true;
 }
 
@@ -5132,7 +5194,7 @@ async function cmdVideo(short = false) {
 
     // --dry-run：只测速 + 给预估，不出片（长片子开渲之前先看一眼值不值得）
     if (flag('dry-run')) {
-      await printEstimate({ info, from, to, fps, samples, shutter, label: '时长' });
+      await printEstimate({ task, info, from, to, fps, samples, shutter, label: '时长' });
       return;
     }
 

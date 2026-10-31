@@ -117,6 +117,7 @@ const ITEMS = [
   { name: 'unit:pixel', cmd: ['tools/test-pixel.mjs'], note: '像素精灵 / 调色板量化 / 5x7 像素字（BACKLOG 1-67，素材包缺口表第 9 行）：抖动必须按**块**坐标取（按像素取 = 块被撕成噪点）/ 量化只在最近两色之间（按亮度找色阶会把饱和橙摊成灰）/ 覆盖率随距离单调 / 像素字的胶囊端点内缩半格（不缩每字右边多出半格墨）/ 时间台阶由整片时间算且 snapTime ≡ snapIndex/fps / 字模表每项恰好 7 行 x 5 列 + 覆盖 A-Z 0-9 标点 / 调色板名与精灵名写错必须抛 + kit·回归清单·AGENTS 接线自检' },
   // BACKLOG 1-69：手绘笔迹（中心线 + 压力 -> 轮廓多边形）。钉的是**几何事实**：
   // 窄了一半的坑全在这一层：斜率夹 / minW 下限 / 圆头半径 / 弧长生长 / 曲率 < 半宽时轮廓必然自交
+  { name: 'unit:dry-run-tiers', cmd: ['tools/test-tier-estimate.mjs'], note: 'dry-run 按档预估（C-1）：草稿档 scale 绝对 0.5 + samples 1、成片档 = 任务 scale + auto，两档都不属于才补「本次参数」；current 永远恰好一个；分钟数含编码（草稿 2ms/帧）；anim.mjs 接线自检（不走 planTiers/estimateTier 就红）' },
   { name: 'unit:stroke', cmd: ['tools/test-stroke.mjs'], note: '手绘笔迹（src/kit/stroke.js，BACKLOG 1-69，缺口表第 6 行）：MAX_WIDTH_SLOPE 0.45（>1 时上下偏移边互相追上 ⇒ 偶奇规则把自交处填成「洞」）/ minW 1.2 物理下限（更细时 fillPoly 的扫描行穿透 ⇒ 出一串虚线点）/ 端点圆头用**这一端自己的半宽**（平均值会在收笔处鼓墨滴）/ 生长按**弧长**截断（按点数截断时密采样段走得慢）/ 曲率半径 < 半宽时**轮廓必然自交**（这是几何事实，不是 bug：圆角 R 偏移 h 后内圈 = R-h，R<h 就翻转）⇒ drawStroke 的 auto 会自动退到胶囊链（端点沿切向外扩半宽补掉内切缝）/ boil 每 2 帧换一次且同组内不动 + kit·regress·文档接线自检' },
   { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：九种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
   { name: 'unit:post-wear', cmd: ['tools/test-post-wear.mjs'], note: '胶片磨损（post.weave/flicker/scratch，BACKLOG 1-64）：默认必须全 0（不写 = 一个像素不变）/ uniform 与引擎喂 t 的接线自检 / 0 时走不到磨损代码 / 磨损函数只吃 t 不读帧号（23 项）' },

@@ -54,6 +54,12 @@ npm run dev                                     # 浏览器里实时预览（空
 
 出图落在 `out/<任务名>/`。**渲染完立刻用 Read 打开那些 PNG 看** —— 这是唯一可靠的验证方式。
 
+**做整支片子时先出草稿、后出成片**：先用 `still` 看画面，再跑
+`node scripts/anim.mjs video <任务> --draft --segments 10`，把草稿路径交给用户并停下等反馈。
+改稿仍走「单帧/短段 → 整支草稿」；**只有用户明确说「定稿 / 出正式版 / 全渲染」这类话，
+才去掉 `--draft` 跑正式成片**。用户没看过草稿或只说「继续做 / 再改一下」≠ 同意全渲染。
+长片先 `video <任务> --dry-run` 看两档分钟数，但**别拿它代替草稿给用户看**。
+
 > **前置条件**：**Chrome**（`playwright-core` 走 `channel: 'chrome'`）+ **ffmpeg / ffprobe**（PATH 里，或
 > `ANIM_FFMPEG` / `ANIM_FFPROBE`）。CLI 自己起私有 Vite 并 spawn 无头 Chrome，用管道读回帧 ——
 > **受限沙箱（只允许写工作区那档）会 `spawn EPERM`**，报错点在 `openSession`，看不出是权限问题。
@@ -544,8 +550,8 @@ node scripts/anim.mjs shot  <任务> --from 0 --to 6 --samples 4   # 短预览 m
 # 出片
 node scripts/anim.mjs video <任务>                       # 1080p60 + 自动运动模糊 + 音轨
 node scripts/anim.mjs video <任务> --segments 10         # 分块：>30 秒的片子**默认就加**
-node scripts/anim.mjs video <任务> --dry-run             # 测速 + 预估（⚠ 它量的是 samples=1，不是成片的 auto）
-node scripts/anim.mjs video <任务> --draft               # 960×540 + samples=1，**只审节奏，不是成片**
+node scripts/anim.mjs video <任务> --dry-run             # 按档预估：草稿 / 成片各测 10 帧，两行分钟数
+node scripts/anim.mjs video <任务> --draft --segments 10 # 草稿审片：960×540 + samples=1，改稿可复用块
 node scripts/anim.mjs queue a b --segments 10 --gpu high # 睡前排队：顺序跑（并行实测更慢）、失败不中断后续
 
 # 验收（verify 管"画面是不是这一版"，qa 管"这份文件有没有黑闪/冻结/静音"）
