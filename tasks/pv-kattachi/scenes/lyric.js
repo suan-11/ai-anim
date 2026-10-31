@@ -56,7 +56,7 @@ export default {
       if (k > 0.02) {
         lines.begin();
         const y = H * (0.5 + 0.42 * (1 - k) * (f.beatPhase > 0.5 ? 1 : -1));
-        lines.seg(0, y, W, y, 1.5 + 3 * k, [sig[0], sig[1], sig[2], 0.35 * k]);
+        lines.seg(0, y, W, y, 1 + 2 * k, [sig[0], sig[1], sig[2], 0.16 * k]);
         lines.flush(ctx.out);
       }
     }
@@ -233,7 +233,7 @@ export default {
     void css;
     // 错误色（色差 ca）：每拍随 kick 抖一下；glitch 段更狠。
     // ⚠ post 的 ca 与 radialBlur 二选一（这里不用径向模糊），见 docs/ENGINE.md §8。
-    const caBase = mode === 'glitch' ? 0.5 : mode === 'split' ? 0.26 : 0.1;
+    const caBase = mode === 'glitch' ? 0.85 : mode === 'split' ? 0.45 : 0.22;
     return {
       bloom: 0.26 + 0.22 * pump,
       grain: 0.028,
