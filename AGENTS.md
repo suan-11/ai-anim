@@ -572,8 +572,10 @@ node scripts/anim.mjs shake <任务> [--from 0 --to 48]      # 抖动是"平滑�
 node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再定：填充重的片子差 2×
 ```
 
-**分块渲染（`--segments`）两条必知**：切点只落在段边界、避开转场；**块级判断**（BACKLOG 1-45）——
-只改 `tasks/` 下的场景 ⇒ 只重渲它所在那块，改了 `src/` 或渲染参数 ⇒ 整批重渲。
+**分块渲染（`--segments`）三条必知**：切点只落在段边界、避开转场；**块级判断**（BACKLOG 1-45）——
+只改 `tasks/` 下的场景 ⇒ 只重渲它所在那块；改 `src/core` `src/style` `src/app.js` `src/timeline.js` 或 `public/`
+（**引擎地基**）⇒ 整批重渲；改 `src/kit` `src/shots` 这类**通用件** ⇒ 只重渲**真正 import 到它**的块
+（按 import 图收窄，含 `import { makeShot }` 只跟那一条、`shot('chart')` 只跟 chart 模板）；渲染参数变了 ⇒ 整批。
 ⚠ 长时间单进程推流**会中途卡死**（实测 1260/4550 帧处 12 分钟无进度而进程还在）—— 分块每块重启浏览器，天然规避。
 
 **出片速度**（本机实测、1080p60、`samples=1`）：7.5 fps，raymarch 类加 `--gpu high` 再翻倍；

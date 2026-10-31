@@ -167,6 +167,8 @@ import { blankJsComments as sharedBlankJsComments } from './lib/js-source.mjs';
 // 分块增量重渲的判据（BACKLOG 1-45）：纯函数，`tools/test-block-sig.mjs` 直接测
 import { sceneFileIndex, blockSignature } from './lib/blocksig.mjs';
 import { DRAFT_SCALE, DRAFT_ENCODE_MS, planTiers, estimateTier } from './lib/tier-estimate.mjs';
+// 引擎改动的爆炸半径（BACKLOG 1-45 细化）：把 `src/` 一改就整片重渲，改成按真实 import 图判定
+import { isGlobalSource, entryEngineDeps } from './lib/engine-graph.mjs';
 import { layoutReport, layoutSummary } from '../src/layout.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -1449,24 +1451,57 @@ function sceneSignature(task) {
 }
 
 /**
- * 引擎签名 = `src/` 下所有源文件的 `相对路径:大小:mtime`（排序后拼起来）。
+ * 引擎改动 → **原子签名表**（BACKLOG 1-45 的细化版）。
  *
- * 为什么要单独算：**分块增量重渲（BACKLOG 1-45）**需要知道"这次改动影响的是哪一块"。
- * `tasks/` 下的改动只影响用到它的那几块；`src/` 下的改动（引擎）**任何一块都可能变** ——
- * 所以引擎签名一变化就整批失效，这是保守但正确的方向。
+ * ## 以前的做法与代价
+ *
+ * 老版本把 `src/` 下**所有**文件的 mtime 拼成一个总签名，塞进每一块 ⇒ 改一行引擎注释
+ * 就等于整片重渲。对一个 70 分钟的片子，这把「改一个镜头」和「改一个底层函数」的代价拉平了。
+ *
+ * ## 现在的做法
+ *
+ *   · **地基**（`src/core/` `src/style/` `src/app.js` `src/timeline.js` `public/` …）仍然
+ *     合成**一个**总签名 `g:` —— 它们被所有块依赖，改动就是整批失效（省时间也更不易错）；
+ *   · **其余源文件**（`src/kit/` `src/shots/` 这些通用件）各自一个原子签名
+ *     `f:<相对路径>:<大小>:<mtime>`，**只有真正用到它的块**才把它们拼进自己的块签名。
+ *
+ * 于是「改了 `src/shots/chart.js`，而这片子根本没用 chart」⇒ 块的签名不变 ⇒ 直接复用。
+ * 实测（本仓 138 个场景）：改 `chart.js` 只波及 8 个场景 / 2 个任务；改 `kit/pixel.js` 53 个。
+ *
+ * ## 保守规则（错了就是"拿旧块冒充新画面"，比多渲一块贵得多）
+ *
+ *   · 文件消失（被删）也进表 —— 否则删掉一个模板会被当成"没变"；
+ *   · 读不到（权限 / 刚被删）记 `missing`，照样让签名变；
+ *   · 解析不出 import 的文件由 `classifyEngineChange()` 直接判整批，不进这张表。
+ *
+ * @returns {{ global: string, atoms: Map<string, string> }}
+ *   `global` 是地基的总签名（打进每一块）；`atoms` 是 `相对路径 -> 原子签名`
  */
-function engineSignature() {
+function engineAtoms() {
   const files = [];
   walkSourceTree(path.join(ROOT, 'src'), SOURCE_EXT, files);
-  files.sort();
-  const parts = [];
-  for (const f of files) {
-    try {
-      const st = statSync(f);
-      parts.push(`${path.relative(ROOT, f)}:${st.size}:${Math.round(st.mtimeMs)}`);
-    } catch { /* 读不到就跳过 */ }
+  walkSourceTree(path.join(ROOT, 'public'), SOURCE_EXT, files);
+  const keys = new Set(files.map((f) => path.relative(ROOT, f).split(path.sep).join('/')));
+  for (const extra of ['vite.config.mjs']) {
+    if (existsSync(path.join(ROOT, extra))) keys.add(extra);
   }
-  return parts.join('|');
+  /** @type {Map<string, string>} */
+  const atoms = new Map();
+  /** @type {string[]} */
+  const globalParts = [];
+  for (const rel of [...keys].sort()) {
+    let sig;
+    try {
+      const st = statSync(path.join(ROOT, rel));
+      sig = `${rel}:${st.size}:${Math.round(st.mtimeMs)}`;
+    } catch {
+      // ⚠ 读不到**不等于没变**：旧文件被删掉时这里会抛，必须留痕（否则整批复用旧画面）
+      sig = `${rel}:missing`;
+    }
+    atoms.set(rel, sig);
+    if (isGlobalSource(rel)) globalParts.push(sig);
+  }
+  return { global: globalParts.join('|'), atoms };
 }
 
 /**
@@ -4811,11 +4846,30 @@ async function renderSegments({ task, info, out, from, to, fps, samples, shutter
    *   · 渲染参数（fps / samples / shutter / scale / vcodec / crf …）变了 ⇒ 整批重渲
    *     （混合出来的片子自己都不自洽，这是 P1-1 的结论，不改）；
    *   · 只有 `tasks/` 下的场景改了 ⇒ 逐块比签名，只重渲**签名变了**的那几块；
-   *   · `src/` 下的引擎改了 ⇒ 引擎签名进每一块的签名 ⇒ 整批失效（保守且正确）。
+   *   · `src/` 下的**引擎地基**（core / style / app / timeline / public）改了 ⇒ 整批失效；
+   *   · `src/kit/` `src/shots/` 这些**通用件**改了 ⇒ **只重渲真正用到它的块**
+   *     （2026-10-31 细化：以前是"改一行引擎注释也整片重渲"）。
    */
   const force = flag('force');
-  const engineSig = engineSignature();
+  const eng = engineAtoms();
   const sceneIndex = sceneFileIndex(path.join(ROOT, 'tasks', task), ROOT);
+  /**
+   * 每个场景文件**传递依赖**到的引擎通用件（按真实 import 图算）。
+   *
+   * 只把**场景文件**作为收窄入口。
+   *
+   * `task.config.mjs`（时间线配置）与 `src/timeline.js`（构建器）**不参与块级收窄**：
+   * 它们的内容由"段参数 / 时间边界"和地基全局签名决定；把它们也当收窄入口会得到
+   * "判不出字面量"的误报（它们确实不写 shot('x')），进而让每一块都退回全部引擎件。
+   */
+  const sceneEntries = sceneIndex.all
+    .filter((rel) => !/task\.config\.mjs$/.test(rel))
+    .map((rel) => path.join(ROOT, rel));
+  const entryDeps = entryEngineDeps(sceneEntries, ROOT);
+  for (const rel of entryDeps.unresolved) {
+    if (!sceneIndex.all.includes(rel) && !(sceneIndex.shared ?? []).includes(rel)) continue;
+    warn(`  ⚠ ${rel} 里有静态解析不了的 import ⇒ 含它的块按"全部引擎件"判重渲（保守）`);
+  }
   /**
    * 字幕表（task.narration）的绝对路径 —— 进块签名用。
    * 为什么现算：改字幕不会动任何场景文件，块签名不变就会整批复用，
@@ -4865,8 +4919,9 @@ async function renderSegments({ task, info, out, from, to, fps, samples, shutter
     // 块的 key 用**时间边界**：时间线一改（段变长/挪位），对得上号的块才会复用
     const key = `${c.from.toFixed(2)}-${c.to.toFixed(2)}`;
     const sig = blockSignature({
-      root: ROOT, engineSig, paramsText: man.fp.text, timeline: info.timeline,
+      root: ROOT, engineSig: eng.global, paramsText: man.fp.text, timeline: info.timeline,
       index: sceneIndex, from: c.from, to: c.to,
+      engineAtoms: eng.atoms, engineDeps: entryDeps.deps,
       // 字幕改了就重渲：字幕层是引擎画的（task.narration → 每帧文字），不是 ffmpeg 烧的
       narrationFile,
     });

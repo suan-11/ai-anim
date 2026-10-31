@@ -207,7 +207,18 @@ export function sceneFileIndex(taskDir, root = taskDir) {
 export function blockSignature(o) {
   const stat = o.stat ?? ((p) => statSync(p));
   const segs = (o.timeline ?? []).filter((it) => it.end > o.from && it.start < o.to);
-  const parts = [`p:${o.paramsText}`, `e:${o.engineSig}`];
+  const parts = [`p:${o.paramsText}`, `e:${o.globalSig ?? o.engineSig}`];
+  /**
+   * 这一块**真正依赖**的引擎通用件（`src/kit/` `src/shots/` 之类）。
+   *
+   * 以前这里只有 `e:<整仓 src/ 的 mtime 总和>` 一项 ⇒ 改一行引擎注释就整片重渲。
+   * 现在按依赖图收窄：只把**这些段的场景真的 import 到**的引擎文件拼进来。
+   *
+   * ⚠ 拿不到某个场景的依赖（解析失败 / 跨任务 import 里指向包名）时**不猜**：
+   * 设 `allEngine = true`，退回到"整仓引擎签名"的老行为 —— 宁可白重渲，也不拿旧块冒充新画面。
+   */
+  const usedEngine = new Set();
+  let allEngine = false;
   for (const it of segs) {
     const files = o.index.byId.get(it.id);
     if (!files || !files.length) { parts.push(`?:${it.id}`); continue; }
@@ -220,9 +231,19 @@ export function blockSignature(o) {
         const st = stat(path.join(o.root, rel));
         parts.push(`${rel}:${st.size}:${Math.round(st.mtimeMs)}`);
       } catch { parts.push(`${rel}:missing`); }
+      // 这个场景**传递依赖**到的引擎文件（由 engine-graph 的正向闭包算好传进来）
+      const deps = o.engineDeps?.get(rel);
+      if (!deps) { allEngine = true; } else { for (const d of deps) usedEngine.add(d); }
     }
     // 段参数（时间线上的 params）改了一样要重渲这一块
     parts.push(`params:${it.id}:${JSON.stringify(it.params ?? null)}`);
+  }
+  // 引擎通用件的原子签名：只有用得到的才进签名（allEngine = 退回"全部进"）
+  if (o.engineAtoms) {
+    const keys = allEngine ? [...o.engineAtoms.keys()] : [...usedEngine];
+    for (const k of keys) parts.push('a:' + o.engineAtoms.get(k));
+  } else if (allEngine) {
+    // 没有原子表的老调用方：保持老行为（整仓签名已在 parts 里）
   }
   // 字幕（narration）改了画面就变了：字幕层是引擎画的，不是 ffmpeg 烧的 ——
   // 不把它算进签名，改完旁白文字会「5.8 秒渲完」却还是旧字幕（实测踩过）。
