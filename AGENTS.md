@@ -64,7 +64,11 @@ npm run dev                                     # 浏览器里实时预览（空
 > `ANIM_FFMPEG` / `ANIM_FFPROBE`）。CLI 自己起私有 Vite 并 spawn 无头 Chrome，用管道读回帧 ——
 > **受限沙箱（只允许写工作区那档）会 `spawn EPERM`**，报错点在 `openSession`，看不出是权限问题。
 > PowerShell 里**别用管道接原生程序输出**（`| Select-Object` 会以"命名管道"为由被拒）—— 直接跑。
-> 沙箱里推仓库：用 Windows 自带 OpenSSH，`git -c core.sshCommand='C:/Windows/System32/OpenSSH/ssh.exe' push origin HEAD`；
+> 沙箱里推仓库：**用 Git 自带的 ssh，不是系统那个** —— 系统 `C:/Windows/System32/OpenSSH/ssh.exe`
+> 在本机实测**返回 255 且毫无输出**（连 `ssh -V` 都是），看不出原因，别在那里浪费时间。
+> 能用的是 `C:/Program Files/Git/usr/bin/ssh.exe`（`ssh -T git@github.com` 会说 "Hi suan-11!"）；
+> ⚠ **路径有空格，必须加引号**（不加会被拆成 `C:/Program`，报 "No such file or directory"）：
+> `git -c core.sshCommand='"C:/Program Files/Git/usr/bin/ssh.exe"' push origin HEAD`；
 > 预提交钩子（sh 脚本）起不来时用 `--no-verify`，但**手动跑一遍钩子里的三项自检**。
 > ⚠ **仓库搬过一次家**（`NekoHome-Studio/ai-anim` → `suan-11/ai-anim`）：GitHub 会重定向所以老远端照样能推，
 > 但每次打一行 `Please use the new location`。`git remote set-url origin git@github.com:suan-11/ai-anim.git` 一次就干净了。
