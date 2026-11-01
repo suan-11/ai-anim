@@ -5,7 +5,7 @@ import wire from './scenes/wire.js';
 import lattice from './scenes/lattice.js';
 
 /**
- * Three.js 沙盒（`docs/HANDOFF-THREEJS.md` 的 ① + ②）。
+ * Three.js 沙盒（`docs/history/HANDOFF-THREEJS.md` 的 ① + ②）。
  *
  * 三段故意做成"同一个物体换了三种画法"：
  *   ① A 段 Three.js 画分层实体（真深度、真遮挡、标签贴在 3D 点上）

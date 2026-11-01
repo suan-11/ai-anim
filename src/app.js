@@ -595,7 +595,7 @@ const api = {
       seeked: true,
     });
     // 自适应采样的**结论**跟着回来：子帧数只是结果，"为什么停在这里"才是有用的信息
-    // （docs/HANDOFF-spectrum-friction.md §1 抱怨的正是"引擎从不解释自己"）。
+    // （docs/history/HANDOFF-spectrum-friction.md §1 抱怨的正是"引擎从不解释自己"）。
     return {
       samples: r.samples, errors: r.errors,
       reason: engine.lastSampleReason, maxSamples: engine.lastMaxSamples,

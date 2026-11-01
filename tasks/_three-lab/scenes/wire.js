@@ -3,7 +3,7 @@
  * B 段：**过渡镜头，完全由 anim 自己画**（不碰 Three.js）。
  *
  * 为什么这一段是整条链的关键：两侧的像素风格**由同一个渲染器产出**，
- * 所以不存在"对齐两套材质/光照"的问题（`docs/HANDOFF-THREEJS.md` §6）。
+ * 所以不存在"对齐两套材质/光照"的问题（`docs/history/HANDOFF-THREEJS.md` §6）。
  * 更硬的一条是：这里的投影用的是 `src/core/cam.js` 的 `project3()`，
  * 它与 Three.js 的 `PerspectiveCamera` 是**同一个公式**、同一台 `camAt(t)`，
  * 所以这个线框盒子能落在 A/C 段实体的**同一个像素位置**上 —— 转场时物体不跳。

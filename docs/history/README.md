@@ -24,6 +24,16 @@
 | [`IMPROVEMENTS-4-5.md`](IMPROVEMENTS-4-5.md) | `docs/IMPROVEMENTS-4.md` · `IMPROVEMENTS-5.md` | 第四轮（`tasks/optifine` 那轮）与第五轮（风格包 + 字幕层） | 代码 · 未落地项见 [`../BACKLOG.md`](../BACKLOG.md) |
 | [`STATUS-rounds-1-6.md`](STATUS-rounds-1-6.md) | `docs/STATUS.md` §1–§13 | `STATUS.md` 前六轮的详细记录（§1–§13） | `../STATUS.md`（§14 起）；**章节号原样保留** |
 | [`STATUS-rounds-7-10.md`](STATUS-rounds-7-10.md) | `docs/STATUS.md` §14–§17 | `STATUS.md` 第七～十轮的详细记录（A 档镜头库 / B 档配置档 / 渲染提速 / NV12） | `../STATUS.md`（§18 起）；**章节号原样保留** |
+| [`HANDOFF-spectrum-friction.md`](HANDOFF-spectrum-friction.md) | `docs/HANDOFF-spectrum-friction.md` | 《把信号拆开》那一轮的用法摩擦（P-3～P-5 的来源） | [`../BACKLOG.md`](../BACKLOG.md) §0 · 代码 |
+| [`HANDOFF-directions.md`](HANDOFF-directions.md) | `docs/HANDOFF-directions.md` | 方向定案：硬约束 C-1～C-8 / 四阶段路线 / 12 周排期 | [`../BACKLOG.md`](../BACKLOG.md) §0 / §1.F（已销账） |
+| [`HANDOFF-2026-10-25.md`](HANDOFF-2026-10-25.md) | `docs/HANDOFF-2026-10-25.md` | 2026-10-25 周末工程批次（W1 + W2 + flat 风格） | [`../BACKLOG.md`](../BACKLOG.md) §1.F |
+| [`HANDOFF-2026-10-25-night.md`](HANDOFF-2026-10-25-night.md) | 同名 | 采样 bug / 语义字号 / 竖屏 / 块级重渲 / 判据元测试 / 断行 | 同上 |
+| [`HANDOFF-2026-10-30.md`](HANDOFF-2026-10-30.md) | 同名 | 图元层 + 介质层第一批 | 同上 |
+| [`HANDOFF-2026-10-30-media.md`](HANDOFF-2026-10-30-media.md) | 同名 | 介质层第二批（style.view / 胶片磨损 / N 版套印） | 同上 |
+| [`HANDOFF-2026-10-31.md`](HANDOFF-2026-10-31.md) | 同名 | AGENTS 瘦身 / 参数化转场 / 纸艺层叠 | 同上 |
+| [`HANDOFF-2026-10-31-pixel-hatch.md`](HANDOFF-2026-10-31-pixel-hatch.md) | 同名 | 像素精灵 + 多方向排线 | 同上 |
+| [`HANDOFF-bikeshed-proposal.md`](HANDOFF-bikeshed-proposal.md) / [`HANDOFF-bikeshed-postmortem.md`](HANDOFF-bikeshed-postmortem.md) | `docs/HANDOFF-bikeshed-*.md` | 《车棚》选题方案与复盘（**本地文档**，不入库） | [`../BACKLOG.md`](../BACKLOG.md) §0 |
+| [`HANDOFF-sodium-feedback.md`](HANDOFF-sodium-feedback.md) | `docs/HANDOFF-sodium-feedback.md` | sodium 外部反馈（**本地文档**，不入库） | [`../STATUS.md`](../STATUS.md) §18 |
 
 > `tasks/sodium` / `tasks/optifine` / `tasks/fidus` / `tasks/beast` / `tasks/nekohome` 这几支片子
 > **不在公开仓库里**（作者本地的成片项目）。归档文档里出现的 `tasks/xxx/...` 路径是**证据出处**，
@@ -47,6 +57,9 @@
 | `docs/HANDOFF-R8RG8.md` | 本目录同名文件（bikeshed 两份 HANDOFF 随片子留在本地，不入库） |
 | `docs/ROADMAP.md` | **已删除**（2026-10-18；三档 A/B/C 全部落地）—— §5 立场并入 [`../CONFIG-ONLY.md`](../CONFIG-ONLY.md) §11，§2 术语在 [`../CONFIG-ONLY.md`](../CONFIG-ONLY.md) 头部 |
 | `docs/STATUS.md` §14…§19 | [`../STATUS.md`](../STATUS.md) |
+| `docs/HANDOFF-2026-10-25.md` · `-night` · `2026-10-30.md` · `-media` · `2026-10-31.md` · `-pixel-hatch` | 本目录同名文件（2026-11-01 批量归档） |
+| `docs/HANDOFF-directions.md` · `docs/HANDOFF-spectrum-friction.md` | 本目录同名文件（2026-11-01 批量归档） |
+| `docs/HANDOFF-bikeshed-proposal.md` · `-postmortem` · `docs/HANDOFF-sodium-feedback.md` | 本目录同名文件（2026-11-01 归档；仍是**本地文档**，不入库） |
 
 > 这些旧路径在正文里**已经全部改成新路径**（2026-10-07 整理时批量改过）。
 > 上表留着的意义是：读到外部笔记、旧对话或 git 历史里的老路径时，知道该去哪找。
@@ -98,3 +111,19 @@
 >    对外片子的原始材料）。
 
 整理前的完整备份在 `out/_docbackup-20261007/`（25 个文件 / 1.5 MB，不进版本控制）。
+
+---
+
+### 整理记录（2026-11-01）
+
+1. **归档 8 份已完成的入库交接单**：`HANDOFF-2026-10-25{,-night}` / `HANDOFF-2026-10-30{,-media}` /
+   `HANDOFF-2026-10-31{,-pixel-hatch}` / `HANDOFF-directions` / `HANDOFF-spectrum-friction` ——
+   顶部各加「📦 已归档（2026-11-01）」横幅；**活待办仍只认 [`../BACKLOG.md`](../BACKLOG.md)**。
+2. **3 份本地交接随移**（`.gitignore` 里的路径同步改到 `docs/history/`）：
+   `HANDOFF-bikeshed-proposal` / `HANDOFF-bikeshed-postmortem`（这两份 2026-10-18 的横幅此次才真正落到本目录）/
+   `HANDOFF-sodium-feedback`（新加横幅）。
+3. **修引用**：这批文件内部的相对链接 49 处改写为从本目录出发的路径；仓内其余文件
+   （`BACKLOG.md` / `SCENE-BRIEF-TEMPLATE.md` / `REFERENCE-style-pack-capability.md` / `src/` / `tools/` /
+   `tasks/_ideas.md`）指向旧路径的引用 23 处同步改到 `docs/history/`。
+4. **验证**：全仓 md 相对链接检查 —— 除 2 处**归档前就存在**的坏链（`REFERENCE-hyperframes.md` 的
+   `LICENSE`、`REFERENCE-onetake.md` 的 `上游`）外，**0 新增坏链**。

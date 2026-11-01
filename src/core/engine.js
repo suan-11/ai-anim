@@ -144,7 +144,7 @@ export class Engine {
      * `readPixels(RGBA, UNSIGNED_BYTE)` 读它 —— WebGL2 对 RGBA16F + UNSIGNED_BYTE 抛
      * `INVALID_OPERATION`，缓冲原样不动（全 0）⇒ 误差恒为 0 ⇒ 自适应采样**从来没起过作用**
      * 每一帧都在第 1 级"收敛"。这个 bug 不报错、只少画拖影，活了很久
-     * （`docs/HANDOFF-spectrum-friction.md` §1 把它误判成"静止画面上不收敛"）。
+     * （`docs/history/HANDOFF-spectrum-friction.md` §1 把它误判成"静止画面上不收敛"）。
      * 见 `tools/probe-sampling.mjs` 与 `tools/test-sampling.mjs`。
      */
     this.errRT = new RT(this.gl, Math.ceil(this.gl.pw / 16), Math.ceil(this.gl.ph / 16), { float: false, nearest: true });
@@ -160,7 +160,7 @@ export class Engine {
     /**
      * 上一帧**为什么**停在这个子帧数上（`'tol'` 收敛 / `'stall'` 停滞熔断 / `'cap'` 到上限 /
      * `'more'` 还在加 / `null` 没走自适应）。`video` 收尾与 `perf` 会打出来 ——
-     * 作者以前只能靠"实测帧率反推"，因为引擎从不解释自己（`docs/HANDOFF-spectrum-friction.md` §1）。
+     * 作者以前只能靠"实测帧率反推"，因为引擎从不解释自己（`docs/history/HANDOFF-spectrum-friction.md` §1）。
      */
     this.lastSampleReason = null;
     /** 上一帧判定时的误差（0..1，显示空间；`NaN` = 第一级就到上限，没量过） */
@@ -944,7 +944,7 @@ export class Engine {
          * 这一条是这一轮最重要的行为改动。"画面主体静止"的片子（图表、方波、格阵）以前
          * 每一帧都被迫跑 24 个子帧 —— 因为旧代码在 8 个子帧之后**无条件**进入下一级，
          * 而判据又永远读 0、于是 24 之后立刻"收敛"。作者实测 0.9 fps，唯一的办法是
-         * 逐段写 `maxSamples: 8`（`docs/HANDOFF-spectrum-friction.md` §1）。
+         * 逐段写 `maxSamples: 8`（`docs/history/HANDOFF-spectrum-friction.md` §1）。
          * 现在静止帧在**第一级**就判停：8 子帧，比原来快 3 倍，而画面**一个像素都不差**
          * （静止画面求 N 次平均 = 同一张图）。
          *
@@ -994,7 +994,7 @@ export class Engine {
          * 症状是在**显示空间**上暗 0.73×（线性 0.5 → sRGB ≈ 0.73），而不是"看不出来"：
          * `check` 报「单子帧与多子帧亮度差了 0.73×」，而 `maxSamples: 8` 正是 HANDOFF
          * 里那个"提速旋钮"（spectrum 全片都写着它）⇒ **凡是给段写了 maxSamples: 8 的片子，
-         * 成片都比预览暗 27%**。搬运：`docs/HANDOFF-spectrum-friction.md` §1 的绕法用了它。
+         * 成片都比预览暗 27%**。搬运：`docs/history/HANDOFF-spectrum-friction.md` §1 的绕法用了它。
          *
          * 除数与累加数必须始终一致，这是 `copyOver(1/n)` 那条注释的同一条纪律。
          */

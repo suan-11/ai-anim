@@ -61,11 +61,11 @@ scripts/make-bikeshed-audio.mjs
 
 # ── 只留在本地的片子相关文档 ──────────────────────────
 # 对外片子的评论反馈与复盘草稿（B 站评论截图 + 候选行动），随片子留本地。
-docs/HANDOFF-sodium-feedback.md
+docs/history/HANDOFF-sodium-feedback.md
 docs/images/sodium-feedback-2026-10.png
 # · 本地成片的选题方案/复盘交接（同上，随片子留本地）
-docs/HANDOFF-bikeshed-proposal.md
-docs/HANDOFF-bikeshed-postmortem.md
+docs/history/HANDOFF-bikeshed-proposal.md
+docs/history/HANDOFF-bikeshed-postmortem.md
 
 # ── 调试残留 ─────────────────────────────────────────────────
 *.log

@@ -3,7 +3,7 @@
 > **为什么有这个文件**：每周末要做 2 支片子，"选题"是最容易卡住的一步（面对空白页想半小时）。
 > 这里是唯一入口：**平时看到、想到就往最后一行加一行**（手机上记也行），周末从「🟡 候选」里抽一条，不用再想。
 >
-> 出处：[HANDOFF-directions.md](../docs/HANDOFF-directions.md) §5 Phase 4（BACKLOG 1-54）。
+> 出处：[HANDOFF-directions.md](../docs/history/HANDOFF-directions.md) §5 Phase 4（BACKLOG 1-54）。
 
 ## 怎么用（三步，不超过 5 分钟）
 

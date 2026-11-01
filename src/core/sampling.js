@@ -6,7 +6,7 @@
  *
  * 它原来整个藏在 `Engine.render()` 的一个循环里（`_sampleError()` + 三级三倍地加子帧），
  * 而那里同时有 GL 状态、RT、Pass、readPixels —— 所以**判据错了没人能测出来**。
- * 事实就是错的：`docs/HANDOFF-spectrum-friction.md` §1 记的是"静止画面上它一路加到 72 子帧"，
+ * 事实就是错的：`docs/history/HANDOFF-spectrum-friction.md` §1 记的是"静止画面上它一路加到 72 子帧"，
  * 2026-10-25 复核发现真相更糟 —— `_sampleError()` 用 `RGBA/UNSIGNED_BYTE` 去读一个
  * **RGBA16F** 的 `errRT`，WebGL2 对这种组合报 `INVALID_OPERATION`、缓冲保持全 0，
  * 于是误差**恒等于 0**（< 任何 tol）⇒ 每一帧都在第 1 级就"收敛"，8 → 24 之后直接停。

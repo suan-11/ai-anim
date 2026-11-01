@@ -1,8 +1,11 @@
 # HANDOFF · 2026-10-30 晚 · 介质层第二批（style.view / 胶片磨损 / N 版套印）
 
+> **📦 已归档（2026-11-01）**：原在 `docs/HANDOFF-2026-10-30-media.md`，介质层第二批（style.view / 胶片磨损 / N 版套印）已落地，移入 `docs/history/`。
+> 归档目录的索引见 [`README.md`](./README.md)；活的待办一律以 [`../BACKLOG.md`](../BACKLOG.md) 为准 —— 别把本文的"留给下一步"当成待办，那是**当时**的状态。
+
 > **自包含的一次性交接文档**：假设读者看不到产生它的会话。
 > 上一份交接单是 [HANDOFF-2026-10-30.md](HANDOFF-2026-10-30.md)（图元层 + 介质层第一批）；
-> 活的待办只以 [BACKLOG.md](BACKLOG.md) 为准。
+> 活的待办只以 [BACKLOG.md](../BACKLOG.md) 为准。
 
 ---
 
@@ -98,7 +101,7 @@
 
 ## 4. 还没做（下一个会话从这里接）
 
-> 与 [REFERENCE-style-pack-capability.md](REFERENCE-style-pack-capability.md) §3 的能力缺口表同源。
+> 与 [REFERENCE-style-pack-capability.md](../REFERENCE-style-pack-capability.md) §3 的能力缺口表同源。
 
 | 能力 | 覆盖条数 | 代价 | 备注 |
 |---|---|---|---|
@@ -157,10 +160,10 @@ node tools/test-post-wear.mjs               # 23 项
 | 文档 | 讲什么 |
 |---|---|
 | [HANDOFF-2026-10-30.md](HANDOFF-2026-10-30.md) | 上一轮（图元层 + 介质层第一批：填充面 / 八种成像 / 九套版式风格） |
-| [BACKLOG.md](BACKLOG.md) | 活待办。本轮收账：**1-63** / **1-64** / **1-65**，并记了三条拍板 |
-| [COOKBOOK.md](COOKBOOK.md) | **§16.1** N 版套印、**§16.2** style.view、**§16.3** 胶片磨损 |
-| [STYLE.md](STYLE.md) | **§3.1** 十一套版式风格、**§4** 字段表（新增 `view`）、**§4.2** 整片介质纪律 |
-| [ENGINE.md](ENGINE.md) | **§8** 后处理全表（新增 `weave` / `flicker` / `scratch`）与新的执行顺序 |
-| [REFERENCE-style-pack.md](REFERENCE-style-pack.md) | 素材包的我方使用判据（本轮 17 条磨损 + 18 条套印条目的出处） |
+| [BACKLOG.md](../BACKLOG.md) | 活待办。本轮收账：**1-63** / **1-64** / **1-65**，并记了三条拍板 |
+| [COOKBOOK.md](../COOKBOOK.md) | **§16.1** N 版套印、**§16.2** style.view、**§16.3** 胶片磨损 |
+| [STYLE.md](../STYLE.md) | **§3.1** 十一套版式风格、**§4** 字段表（新增 `view`）、**§4.2** 整片介质纪律 |
+| [ENGINE.md](../ENGINE.md) | **§8** 后处理全表（新增 `weave` / `flicker` / `scratch`）与新的执行顺序 |
+| [REFERENCE-style-pack.md](../REFERENCE-style-pack.md) | 素材包的我方使用判据（本轮 17 条磨损 + 18 条套印条目的出处） |
 
 夹具：`tasks/_wear-lab/`、`tasks/_style-view-lab/`（都带 hashes 基线）；`_view-lab` 追加两段。

@@ -118,7 +118,7 @@
 | ~~P-3~~ | **已完成（2026-10-26 随 1-45 落地，2026-11-01 核实销账）**：块级增量重渲 —— `scripts/lib/blocksig.mjs` 签名 + `renderSegments` 逐块比对，改一段只重渲所在块（实测 demo `--draft`：全渲 47s → 不改 0.9s → 只改 chart.js 15.3s） | 已收 | §1 的 1-45 行 |
 | ~~P-4~~ | **已完成（2026-10-25 随 1-71 落地，2026-10-31 本轮核实销账）**：`src/core/sampling.js` 的 `samplingVerdict()` 就是停滞熔断（`reason: 'stall'`，连续 `STALL_LEVELS=2` 级 err 没降到前级 `STALL_RATIO=0.7` 以下即停）+ 分位判据（99 分位，单坏格不再决定整帧）+ **单位 bug 修复**（err 0..1 与 tol 0..255 从前直接比 ⇒ 恒真，`--tol` 完全无效——HANDOFF §1 的"摄影机抖动"诊断是误判，真相是判据读不出数）。钉在 `tools/test-sampling.mjs` | 已收 | `src/core/sampling.js` 文件头 |
 | ~~P-5~~ | **已完成（2026-10-26 随 1-23 批次落地，2026-10-31 本轮核实销账）**：`anim mix --target streaming|cinema|off|<数字>`（默认关，开了才两遍式 loudnorm；`resolveLoudnessTarget()` 收口在 `scripts/lib/mix.mjs`）。钉在 `tools/test-mix-loudnorm.mjs`（53 项，挂 `unit:mix-loudnorm`） | 已收 | `scripts/lib/mix.mjs` |
-| ~~P-6~~ | **已拍板（2026-10-25）：成片保留 60fps**。渲染时间不减半 ⇒ 靠 1-44 草稿档 / 1-43 排队 / 1-45 增量重渲补回来；`fps` 全局默认仍 60 | — | [HANDOFF-directions.md](HANDOFF-directions.md) §9 |
+| ~~P-6~~ | **已拍板（2026-10-25）：成片保留 60fps**。渲染时间不减半 ⇒ 靠 1-44 草稿档 / 1-43 排队 / 1-45 增量重渲补回来；`fps` 全局默认仍 60 | — | [HANDOFF-directions.md](history/HANDOFF-directions.md) §9 |
 | ~~P-7~~ | **已拍板（2026-10-25）：竖屏提前**，排 W4–W5（tokens 之后、块级增量重渲之前） | 已并入 1-52 | 同 §9 |
 | ~~P-8~~ | **已拍板（2026-10-25）：可以拆 Opus 5.5 案例，好的就学**；纪律 = 只学手法与配方，**不抄素材/文案/代码** | 已并入 1-48 | 同 §9 |
 
@@ -131,7 +131,7 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 
 > **2026-10-25 · 《把信号拆开》（`tasks/spectrum`）做完之后的摩擦点** ——
 > 那一轮**没改引擎**，摩擦全在"用法 / 默认值 / 报错时机"。逐条带复现命令与根因（已核到代码）：
-> [`docs/HANDOFF-spectrum-friction.md`](HANDOFF-spectrum-friction.md)。
+> [`docs/history/HANDOFF-spectrum-friction.md`](history/HANDOFF-spectrum-friction.md)。
 > 上面 P-4 / P-5 是其中**需要拍板**的两条；其余（渲染卡死要用 `--segments`、`--only` 平移、
 > 片段没音轨、focus 对图形主体不友好、标注可以合并成一行）已在 §1 各自条目里登记或直接进文档。
 
@@ -140,24 +140,24 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 > **"每支片子的边际工时 + 画面下限"**，分发层（MCP / Agent Skills / WebMCP / OTIO / 跨生态视频 CI / 商业化）
 > **全部砍掉**，VLM 自动评审当 gate 也砍（judge 会把 78–90% 的画面失败判成通过，见
 > [arXiv 2609.28564](https://arxiv.org/abs/2609.28564)）。
-> 完整背景、外部证据、四阶段路线与判据在 **[HANDOFF-directions.md](HANDOFF-directions.md)**（自包含）；
+> 完整背景、外部证据、四阶段路线与判据在 **[HANDOFF-directions.md](history/HANDOFF-directions.md)**（自包含）；
 > 活条目落在下面 **§1.F**（1-43 ~ 1-55）；三条待拍板 **P-6 / P-7 / P-8 已于同日拍板**：
 > 成片**保留 60fps**、**竖屏提前**（W4–W5）、**可以拆 Opus 案例**（只学手法，不抄素材/文案/代码）。
 > ~~目前 §0 **没有待拍板项**~~（2026-10-25 时点如此；2026-10-18 复盘重开的 **P-1 / P-2** 仍待拍板，见上表）。
-> **同一天的工程批次交接单**：[HANDOFF-2026-10-25.md](HANDOFF-2026-10-25.md)
+> **同一天的工程批次交接单**：[HANDOFF-2026-10-25.md](history/HANDOFF-2026-10-25.md)
 > （W1+W2 已完成的证据、踩掉的坑、以及接管的上一会话 WIP 清单）。
 >
 > **2026-10-30 · 图元层 + 介质层**：从用户提供的 341 条风格素材包里挑出三件事落地（填充面 `src/core/fill.js`、
 > 仪器视图 `src/kit/views.js`、九套版式风格 `src/style/panels.js`）。交接单：
-> [HANDOFF-2026-10-30.md](HANDOFF-2026-10-30.md)；素材包分析：
+> [HANDOFF-2026-10-30.md](history/HANDOFF-2026-10-30.md)；素材包分析：
 > [REFERENCE-style-pack.md](REFERENCE-style-pack.md) 与 [REFERENCE-style-pack-capability.md](REFERENCE-style-pack-capability.md)。
 >
 > **2026-10-31 · AGENTS 瘦身 + 参数化转场 + 纸艺层叠**：AGENTS.md 63795 → 55015 B（-13.8%，零章节删除）；
 > **1-13** 参数化转场落地（`wipe` / `iris` / `glitch` / `pixel` / `dissolve`，共 8 种模式，`push` 源码逐字符未变）；
 > **1-66** 剪纸 / 纸艺层叠（`src/kit/paper.js`，覆盖素材包 20 条）。交接单：
-> [HANDOFF-2026-10-31.md](HANDOFF-2026-10-31.md)。验收 `regress-all --ci` **53/53**。
+> [HANDOFF-2026-10-31.md](history/HANDOFF-2026-10-31.md)。验收 `regress-all --ci` **53/53**。
 >
-> **2026-10-31 晚 · 像素精灵 + 多方向排线（同一天的第二轮）**：接着 [HANDOFF-2026-10-31.md](HANDOFF-2026-10-31.md) §5
+> **2026-10-31 晚 · 像素精灵 + 多方向排线（同一天的第二轮）**：接着 [HANDOFF-2026-10-31.md](history/HANDOFF-2026-10-31.md) §5
 > 那张「按复用度排序」的缺口表往下做，收掉第 9 / 10 两行：
 > **1-67** 像素精灵（`src/kit/pixel.js` + 模板 `shot('pixel')`，调色板 / 块 / 抖动 / 12fps 台阶四件事齐全）；
 > **1-68** 木刻铜版多方向排线（`views.woodcut`：按明暗**加方向**，亮部一道 / 中间调两道 / 暗部三道）。
@@ -173,7 +173,7 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 >
 > 落地：`post.weave/flicker/scratch`（1-64）、`halftone` 的 N 版套印（1-65）、两套新风格
 > `h-riso`（双版套印）/ `h-vhs`（CRT + 磨损）、夹具 `tasks/_wear-lab` 与 `tasks/_style-view-lab`；
-> 交接单 [HANDOFF-2026-10-30-media.md](HANDOFF-2026-10-30-media.md)。
+> 交接单 [HANDOFF-2026-10-30-media.md](history/HANDOFF-2026-10-30-media.md)。
 >
 > ⚠ 本轮**改了一处已交付的可视行为**：`crt` 成像的亮度补偿 1.55 裸乘会把浅底画面打成 20%+ 死白
 > （`check _style-view-lab` 当场红），改成亮部软肩；`_view-lab` 基线已按流程 `--accept --note`。
@@ -282,13 +282,13 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 
 ### 1.F 个人内容工厂（2026-10-25 定的主线，**按"周末能多出一支"排序**）
 
-> 来源：[HANDOFF-directions.md](HANDOFF-directions.md)（这一轮的方向结论：硬约束 C-1~C-8、现状读数、外部证据、四阶段路线）。
+> 来源：[HANDOFF-directions.md](history/HANDOFF-directions.md)（这一轮的方向结论：硬约束 C-1~C-8、现状读数、外部证据、四阶段路线）。
 > 判断口径只有两条：**每支片子的边际工时**（现在 3 小时/支，顺利时）与**画面下限**。
 > 前三条（1-43 ~ 1-45）解决"等渲染"；1-46 ~ 1-49 解决"劣质感"；其后是复利与选题。
 
 | # | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
-| ~~1-43~~ | **已完成（2026-10-25）**：`anim queue <任务…> [video 选项…]` 落地 —— 顺序跑（并行实测更慢）、每支结束响一声 / 全部结束响三声（`--silent` 静音）、**某支失败不中断后续**、最后汇总并按失败数给退出码；实测 `queue _calib --from 0 --to 1 --samples 1` 一次跑通，坏任务名报错退出码 1。文档进了 `AGENTS.md` §7 与 `anim help` | **判据（还差一步）**：周末连续两天各用 `queue` 跑两支无人值守，产物 `verify`/`qa` 通过 —— 代码与文档到位，只等真实周末验证 | [同 §5 Phase 1](HANDOFF-directions.md) |
+| ~~1-43~~ | **已完成（2026-10-25）**：`anim queue <任务…> [video 选项…]` 落地 —— 顺序跑（并行实测更慢）、每支结束响一声 / 全部结束响三声（`--silent` 静音）、**某支失败不中断后续**、最后汇总并按失败数给退出码；实测 `queue _calib --from 0 --to 1 --samples 1` 一次跑通，坏任务名报错退出码 1。文档进了 `AGENTS.md` §7 与 `anim help` | **判据（还差一步）**：周末连续两天各用 `queue` 跑两支无人值守，产物 `verify`/`qa` 通过 —— 代码与文档到位，只等真实周末验证 | [同 §5 Phase 1](history/HANDOFF-directions.md) |
 | ~~1-44~~ | **已完成（2026-10-25）**：`--draft` 落地 —— `--scale` 放开到 **0.25..4**（`scripts/anim.mjs` 校验 + `src/app.js` 的 clamp），draft = 半分辨率 + `samples 1`（都可被显式选项覆盖），输出帧就是 960×540。读数（`_calib` 60 帧，`samples=1`）：**13.5 → 33.5 fps = 2.5×**；走 `auto` 的片子差距 8–24×。读数进了 `PERF.md` A1。**判据修正**：没有按原写的"PSNR ≥30dB"验（draft 字看着糊是正常的，本来就是分辨率）—— 改验"输出尺寸正确 + 渲染路径无报错 + 速度提升" | — | 同 §5 Phase 1 |
 | ~~1-45~~ | **已完成（2026-10-26）**：块级增量重渲 —— `scripts/lib/blocksig.mjs`（纯函数）+ `renderSegments` 逐块比对签名。签名 = 渲染参数 + **引擎签名**（`src/**` 变了整批失效，保守且正确）+ 这一块**真正跨过**的段的场景文件与段参数（段 id → 源文件靠静态扫 `id:` / `makeShot(` / `shot(`；扫不到记 `?<id>` ⇒ 那块每次重渲）。块的 key 用时间边界，时间线一挪位就不复用。判据实测（`demo` 4 块 / 999 帧 / `--draft`）：全渲 **47s** → 什么都不改 **0.9s** → 只改 `chart.js` **15.3s（只重渲第 2 块）**；参数变仍整批重渲并给出原因（`samples: "1" → "2"`）。验证：`tools/test-block-sig.mjs` **21 项** | 同 §5 Phase 1 · P-3 |
 | ~~1-46~~ | **已完成（2026-10-25，W3）**：设计 token 层 —— `src/style/tokens.js` + 新风格包 `flat` + `ctx.style.tokens` 接线；**语义字号**（`size: 'hero'/'h1'/'h2'/'body'/'label'/'mono'`）已接进 `type.write`/`writeLine`/`karaoke`/`wrap`/`paragraph`/`writeOnPath`（`resolveTypeSize()` 纯函数，写错**抛**而不是回落到 64），引擎在 `applyStyleFonts()` 里把**这套风格的** token 下发到每个图层的 `TextKit`。四套风格给了各自的覆盖：blueprint 120 / paper 128 / terminal 112 / noir 152（print 与 flat 吃默认 136）。验证：`tools/test-tokens.mjs` **38 项**（含"拼错必须抛"与"每套风格 6 档齐全"）+ `test-style.mjs` 66 项；样片 `out/_token-lab/styles/{print,blueprint,paper,terminal,flat,noir}/`，接触表 `_sheet.png`。文档：`docs/STYLE.md` §4.1 + `AGENTS.md` §5 一行 | 同 §7 |
