@@ -91,7 +91,8 @@ const ITEMS = [
   { name: 'unit:motion-caps', cmd: ['tools/test-motion-caps.mjs'], note: '运动上限静态扫描（BACKLOG 1-33）：判据与 waterfallOver 同口径（items × stagger > 0.5）/ 元素个数怎么读（const 字符串、数组，别抓 family 样式值）/ 读不出进 unchecked（含简写）/ 接线自检 + 夹具 _motion-lab 的 --strict 红证明' },
   { name: 'unit:transition-collision', cmd: ['tools/test-transition-collision.mjs'], note: '碰撞式转场（BACKLOG 1-33 ③ / MOTION.md §3.5）：受害者时长 = 入侵者 × 0.40–0.50 —— 区间内原样返回 / 越界夹回并给说明（不静默）/ NaN·±Inf 当场抛 / enterDur ≤ 0 ⇒ 时长记 0 / victimSpan 与 planCollision 同口径 / **不传 victimRatio ⇒ shader 源码与四个 uniform 逐字不变**（已交付片子的画面一个像素都不许动）+ kit 转发与回归清单接线自检' },
   { name: 'unit:paper', cmd: ['tools/test-paper.mjs'], note: '剪纸 / 纸艺层叠（BACKLOG 1-49 缺口表第 5 行，覆盖素材包 20 条）：撕边采样密度必须跟边长走（默认 40 点 ⇒ 毛刺被 fillPoly 抹平，出图是直线）/ 白芯只浅 5–9%（第一版 35% ⇒ 雪白高光带）/ 投影必须不透明（半透明会在扫描行之间出条纹）/ 撕边只吃 seed 不吃 t / 层栈由远到近 / 平移不改原对象 + kit·文档接线自检' },
-  { name: 'unit:transition-modes', cmd: ['tools/test-transition-modes.mjs'], note: '参数化转场（BACKLOG 1-13）：八种模式两张表不许有孤儿 / 写错模式名当场抛并列出可用清单 / **push 的源码与 uniform 逐字符不变**（已交付片子的画面一个像素都不许动）/ 每支 shader 共用 6 个 uniform 且不重复声明 GLSL_COMMON 的函数（踩过：自写 vnoise ⇒ 编译失败）/ 掩码型转场不许再叠全局淡出 + engine·kit·文档接线自检' },
+  { name: 'unit:relay', cmd: ['tools/test-relay.mjs'], note: '相机接力（BACKLOG 1-12，src/core/relay.js 纯函数层 + engine/timeline/kit 接线）：poseFromCamera3/poseToCamera3 互逆（roundtrip ≤1e-9，pitch 顶格夹 ±89.9）/ blendPose 的 look 直线、dist 与 tan(fov/2) 几何插值、yaw 最短路径恒定角速度、端点精确还原 / e 非有限当场抛 / relayHandover 边界单调 smoothstep / MOVES.glide·whip / resolveRelayMove 未知名抛错 / trans.js 九模式 + relay 不进 _pushTransition（防御抛错）/ transitionOpts 两种时间线写法 build 落位 / relayPose 是 t 的纯函数 + 探针无记忆化（静态）/ openFrame 跳过甩镜 + makeThreeShot drive（静态）/ relay.js 零 GPU 零 ctx 无随机无时钟' },
+  { name: 'unit:transition-modes', cmd: ['tools/test-transition-modes.mjs'], note: '参数化转场（BACKLOG 1-13）：九种模式两张表不许有孤儿 / 写错模式名当场抛并列出可用清单 / **push 的源码与 uniform 逐字符不变**（已交付片子的画面一个像素都不许动）/ 每支 shader 共用 6 个 uniform 且不重复声明 GLSL_COMMON 的函数（踩过：自写 vnoise ⇒ 编译失败）/ 掩码型转场不许再叠全局淡出 + engine·kit·文档接线自检' },
   { name: 'unit:variants', cmd: ['tools/test-variants.mjs'], note: '变体（BACKLOG 1-23）：deepMergeInto 语义（对象递归 / 数组整体替换 / 原始值覆盖）+ CLI 接线（--variant 进 URL、产物目录 taskOut 带子目录、无漏网调用点）+ 夹具声明' },
   { name: 'unit:pin-timing', cmd: ['tools/test-pin-timing.mjs'], note: 'anim say --pin-timing（BACKLOG 1-23）：同 id 且放得下 ⇒ slot/stretch 逐位不动；放不下 ⇒ 只重解那一段并警告长多少；部分钉住；pinned 缺 id / 为空 / 陌生 id 的边界' },
   { name: 'unit:pin-timing-e2e', cmd: ['tools/test-pin-timing-e2e.mjs'], note: 'anim say --pin-timing 端到端（真跑 CLI + 假 TTS 驱动 tools/fake-tts.mjs）：改短一句 ⇒ 时间线逐位不动；改长一句 ⇒ 只重解那一段' },
@@ -117,10 +118,13 @@ const ITEMS = [
   { name: 'unit:pixel', cmd: ['tools/test-pixel.mjs'], note: '像素精灵 / 调色板量化 / 5x7 像素字（BACKLOG 1-67，素材包缺口表第 9 行）：抖动必须按**块**坐标取（按像素取 = 块被撕成噪点）/ 量化只在最近两色之间（按亮度找色阶会把饱和橙摊成灰）/ 覆盖率随距离单调 / 像素字的胶囊端点内缩半格（不缩每字右边多出半格墨）/ 时间台阶由整片时间算且 snapTime ≡ snapIndex/fps / 字模表每项恰好 7 行 x 5 列 + 覆盖 A-Z 0-9 标点 / 调色板名与精灵名写错必须抛 + kit·回归清单·AGENTS 接线自检' },
   // BACKLOG 1-69：手绘笔迹（中心线 + 压力 -> 轮廓多边形）。钉的是**几何事实**：
   // 窄了一半的坑全在这一层：斜率夹 / minW 下限 / 圆头半径 / 弧长生长 / 曲率 < 半宽时轮廓必然自交
+  { name: 'unit:engine-graph', cmd: ['tools/test-engine-graph.mjs'], note: '引擎改动的爆炸半径（BACKLOG 1-45 细化）：地基（core/style/app/timeline/public）一改就整批；通用件（kit/shots）按**真实 import 图**收窄，只波及用到它的块；barrel 按符号级跟进（import {makeShot} 不会拉进整个 kit）；镜头模板 barrel 按 shot(\'chart\') 的字面量只跟那一个模板；判不出（变量传参 / export * / 动态 import）一律退回整表并记 unresolved —— 漏算会让旧块冒充新画面，比多渲一块贵得多（11 项）' },
+  { name: 'unit:dry-run-tiers', cmd: ['tools/test-tier-estimate.mjs'], note: 'dry-run 按档预估（C-1）：草稿档 scale 绝对 0.5 + samples 1、成片档 = 任务 scale + auto，两档都不属于才补「本次参数」；current 永远恰好一个；分钟数含编码（草稿 2ms/帧）；anim.mjs 接线自检（不走 planTiers/estimateTier 就红）' },
   { name: 'unit:stroke', cmd: ['tools/test-stroke.mjs'], note: '手绘笔迹（src/kit/stroke.js，BACKLOG 1-69，缺口表第 6 行）：MAX_WIDTH_SLOPE 0.45（>1 时上下偏移边互相追上 ⇒ 偶奇规则把自交处填成「洞」）/ minW 1.2 物理下限（更细时 fillPoly 的扫描行穿透 ⇒ 出一串虚线点）/ 端点圆头用**这一端自己的半宽**（平均值会在收笔处鼓墨滴）/ 生长按**弧长**截断（按点数截断时密采样段走得慢）/ 曲率半径 < 半宽时**轮廓必然自交**（这是几何事实，不是 bug：圆角 R 偏移 h 后内圈 = R-h，R<h 就翻转）⇒ drawStroke 的 auto 会自动退到胶囊链（端点沿切向外扩半宽补掉内切缝）/ boil 每 2 帧换一次且同组内不动 + kit·regress·文档接线自检' },
-  { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：八种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
+  { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：九种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
+  { name: 'unit:sampling', cmd: ['tools/test-sampling.mjs'], note: '自适应采样判据 + 亚像素抖动（src/core/sampling.js，HANDOFF-2026-10-25 / BACKLOG 1-71）：档位只往下压 / 99 分位 / 停滞熔断 / 抖动三条约束（均值 0、±0.5px、周期 4）。此前漏在清单外 —— CI 一直没跑它' },
   { name: 'unit:post-wear', cmd: ['tools/test-post-wear.mjs'], note: '胶片磨损（post.weave/flicker/scratch，BACKLOG 1-64）：默认必须全 0（不写 = 一个像素不变）/ uniform 与引擎喂 t 的接线自检 / 0 时走不到磨损代码 / 磨损函数只吃 t 不读帧号（23 项）' },
-  { name: 'unit:fill', cmd: ['tools/test-fill.mjs'], note: '填充面（src/core/fill.js，LineBatch 的 fillPoly/fillCircle/fillSector）：偶奇带洞 / 圆面积误差 <2% / 扇区角度方向（0=右 90=下 180=左 270=上，写反画面照样出） / 进度环缺口落在起点一侧（39 项）' },
+  { name: 'unit:fill', cmd: ['tools/test-fill.mjs'], note: '填充面（src/core/fill.js + LineBatch.band，BACKLOG 1-70）：偶奇带洞 / 圆面积误差 <2% / 扇区角度方向（0=右 90=下 180=左 270=上，写反画面照样出） / 进度环缺口落在起点一侧 / SPAN_OVERLAP 必须是 0（非 0 时相邻扫描行的抗锯齿边叠加 ⇒ 半透明填充被叠浓，行距越细越浓：alpha 0.5 的面历史读数 194/200/222/236，正确值 188） / LineBatch 的形状图元必须是硬边带（shader 里 vW < 0 分支）而不是胶囊（39 项）' },
   { name: 'meta:gates', cmd: ['tools/test-gates-meta.mjs'], note: '守门判据的**元测试**（1-51）：每条判据都要"注入缺陷必须报 + 去掉缺陷不许报"。覆盖版面三条 / 背景守门 / 采样四个出口（tol·cap·stall·NaN）/ 误差量具 / 节奏节拍器；文末一张覆盖表点名"哪个缺口没验"（37 项）' },
   { name: 'unit:blocks', cmd: ['tools/test-blocks.mjs'], note: '方块世界 kit：面朝向判据 / 深度排序 / 世界切片 / 摄影机关键帧' },
   { name: 'unit:check-skipped', cmd: ['tools/test-check-skipped.mjs'], note: '1-19「空≠干净」：skipped 收集/聚合/结论行 + --quick 分档 + 接线自检（25 项）' },
@@ -135,6 +139,11 @@ const ITEMS = [
   //   这一项只断言**工具自身可用**（正例响 / 反例静 / 条数钉死 / 空≠干净 / 退出码三档），
   //   不会因为片子内容而红。夹具在 `tools/fixtures/lint-numbers/`。
   { name: 'unit:lint-numbers', cmd: ['tools/test-fabricated-numbers.mjs'], note: '1-22 画面数字必须有出处：正例必须响 / 反例必须静 / 显示位条数钉死 / 空≠干净 / 退出码三档 + 「算出来的值」（判据 ③）单列且明说没验（183 项）' },
+  { name: 'unit:particles', cmd: ['tools/test-particles.mjs'], note: '1-14 零状态 GPU 粒子：预设表契约 / 位置函数是 t 的纯函数 / hash 常数与 JS 参照对拍 / 写错预设必抛（7 项；视觉验收在夹具 _particles-lab，出图看）' },
+  { name: 'unit:narration-error', cmd: ['tools/test-narration-error.mjs'], note: 'A-2 旁白表加载失败的判定纯函数：没配/内联表/URL ⇒ 不报，文件缺失/JSON 坏 ⇒ 报，文案钉住（9 项）' },
+  { name: 'unit:shot-ref', cmd: ['tools/test-shot-ref.mjs'], note: '1-15 段间引用：递归保护 / 错误带可用段表 / ctx+f 双路径 / 引用渲染无嵌套自适应 / rect 数组契约（6 项；画中画的视觉验收在夹具 _ref-lab，出图看）' },
+  { name: 'unit:cli-hardening', cmd: ['tools/test-cli-hardening.mjs'], note: '1-24① + 渲染心跳 + E-1 渲染锁的纯逻辑：冲突开关扫描（防前缀误伤）/ 并发度夹取 / 心跳档位与重置 / pid 探活三态 / 锁全生命周期（63 项，依赖全注入可离线测）' },
+  { name: 'unit:linebatch-warn', cmd: ['tools/test-linebatch-warn.mjs'], note: 'D-1 flush 后画线要报：_push 孤儿判定（丢弃并计数）/ flush 与 begin 交计数 / paint 形状有槽 / engine 转 warnings 带去重 / 正确用法语句没被删（5 项；端到端由 _d1-probe 人工验证过，故意错的夹具不进常规回归）' },
   { name: 'harness:demo', cmd: ['tools/scene-harness.mjs', 'demo'], note: '离线跑场（假 ctx，不起 Chrome，0.1s）：未定义变量 / 确定性 / 文字出画' },
   { name: 'harness:style-sampler', cmd: ['tools/scene-harness.mjs', '_style-sampler'], note: '风格采样器：配置档 4 段 + 风格解析走通' },
 
@@ -174,6 +183,9 @@ const ITEMS = [
   { name: 'check:_carry-lab', cmd: ['scripts/anim.mjs', 'check', '_carry-lab', '--quick'], note: 'carry 图册夹具：morphRect/iris/zoomThrough/hop/gather/operatorCam 各一段 + rhythm 静/动标定', timeout: 30 * 60e3 },
   // 1-41：同一模板 blur 0 / 20 / 20 三段 —— 画面本身要人眼验收，这里只防它腐烂（模板参数 / 背景 / 版面）。
   { name: 'check:_blur-lab', cmd: ['scripts/anim.mjs', 'check', '_blur-lab', '--quick'], note: 'blur 通道夹具：title 的 blur 0 vs 20（三段，长度故意不等以免节奏腿报节拍器）', timeout: 30 * 60e3 },
+  // 1-71：填充面的 alpha 账 —— 四档扫描行距一块 alpha 0.5 的圆，四块必须一样亮（sRGB 188）。
+  // 这条是「把行距调小换平滑」能不能成立的前置条件（历史读数 194/200/222/236 = 越细越浓）。
+  { name: 'check:_fill-probe', cmd: ['scripts/anim.mjs', 'check', '_fill-probe'], note: '填充面 alpha 账夹具：step 2/1/0.5/0.25 四块 alpha 0.5 的圆，四块读数必须都是 188（单子帧与多子帧两条路径都跑）', timeout: 30 * 60e3 },
   { name: 'check:nekohome', cmd: ['scripts/anim.mjs', 'check', 'nekohome', '--quick'], note: '8 段', timeout: 30 * 60e3 },
   { name: 'check:fidus', cmd: ['scripts/anim.mjs', 'check', 'fidus', '--quick'], note: '9 段', timeout: 30 * 60e3 },
   { name: 'check:pdoom-lab', cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },

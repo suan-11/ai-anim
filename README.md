@@ -206,7 +206,7 @@ node scripts/anim.mjs analyze 我的片子      # 分析拍子/小节/段落/包
   };
   ```
 
-  节点上除**时间线字段**（`type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass`）以外的键，全都是镜头模板的参数；**参数名写错会抛错并列出可用参数**（不静默忽略）。`dur` 不写 = 4 秒，`dur: { beat: n }` / `{ bar: n }` / `{ vo: 'line-id' }` 都行，`id` 不写 = 模板自己的默认段名。
+  节点上除**时间线字段**（`type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition`）以外的键，全都是镜头模板的参数；**参数名写错会抛错并列出可用参数**（不静默忽略）。`dur` 不写 = 4 秒，`dur: { beat: n }` / `{ bar: n }` / `{ vo: 'line-id' }` 都行，`id` 不写 = 模板自己的默认段名。
   教程见 `docs/CONFIG-ONLY.md`，可以照抄的完整示例是 `tasks/example-config-only/`。
 
   ```sh

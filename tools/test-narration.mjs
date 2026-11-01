@@ -100,6 +100,28 @@ const shot = { id: 'shot', render() {} };
   const tl = build(seq([cut(shot, { dur: { vo: 'hook-1', tail: 1.0 } })]), { narration: n });
   say(Math.abs((tl[0].end - tl[0].start) - 4.2) < 1e-9, `dur: { vo, tail } 会加上留白（3.2 + 1.0 = ${(tl[0].end - tl[0].start).toFixed(2)}s）`);
 }
+{
+  // tail 写错必须当场抛，不许 NaN 静默进段表（2026-11-01：旧实现 Number('x') 直接返回 NaN）
+  let e1 = null, e2 = null, e3 = null;
+  try { build(seq([cut(shot, { dur: { vo: 'hook-1', tail: 'x' } })]), { narration: n }); } catch (e) { e1 = e; }
+  try { build(seq([cut(shot, { dur: { vo: 'hook-1', tail: NaN } })]), { narration: n }); } catch (e) { e2 = e; }
+  try { build(seq([cut(shot, { dur: { vo: 'hook-1', tail: -0.5 } })]), { narration: n }); } catch (e) { e3 = e; }
+  say(!!e1 && /tail 必须是有限数/.test(e1.message), `tail: 'x' → 抛「tail 必须是有限数」`);
+  say(!!e2 && /tail 必须是有限数/.test(e2.message), 'tail: NaN → 同样抛');
+  say(!!e3 && /tail 不能是负数/.test(e3.message), `tail: -0.5 → 抛「tail 不能是负数」（段不许比旁白本身短）`);
+  say(!!e1 && /hook-1/.test(e1.message), '报错里带段用的 vo id（能定位到哪一句）');
+}
+{
+  // dur 直接写 NaN / ±Inf 也必须抛（普通数字路径），不许把 NaN 段表交给下游
+  let eN = null, eI = null, eOk = null;
+  try { build(seq([cut(shot, { dur: NaN })]), {}); } catch (e) { eN = e; }
+  try { build(seq([cut(shot, { dur: Infinity })]), {}); } catch (e) { eI = e; }
+  let tl2 = null;
+  try { tl2 = build(seq([cut(shot, { dur: 2 })]), {}); } catch (e) { eOk = e; }
+  say(!!eN && /有限数/.test(eN.message), 'dur: NaN → 抛');
+  say(!!eI && /有限数/.test(eI.message), 'dur: Infinity → 抛');
+  say(!eOk && tl2 && tl2[0].end === 2, '正常数字 dur 不受影响（2s 照旧）');
+}
 
 console.log(`\n（TAIL 默认 = ${TAIL}s，与 docs/NARRATION.md §5.2 的「≥1.0s」一致）`);
 

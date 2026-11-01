@@ -1,3 +1,4 @@
+export { makeParticles, PARTICLE_PRESETS, MAX_PARTICLES } from './particles.js';
 // @ts-check
 /**
  * `src/kit/` —— 引擎自带的镜头工具。
@@ -83,6 +84,47 @@ export {
   // 转场模式（BACKLOG 1-13）：'push' / 'wipe' / 'iris' / 'glitch' / 'pixel' / 'dissolve'（+ 'mix' / 'none'）
   TRANSITION_MODES, resolveTransitionMode,
 } from './world.js';
+
+/**
+ * `src/core/relay.js` —— **相机接力**（BACKLOG 1-12）的纯函数层：位姿换算、混合、
+ * 换手窗、运动曲线。零 GPU、零 ctx 依赖（离线单测 `node tools/test-relay.mjs`）。
+ *
+ *   · `poseFromCamera3` / `poseToCamera3`：camera3 形状 ⇄ Pose（互逆）；
+ *   · `blendPose(a, b, e)`：位姿混合（look 直线、dist/tan(fov/2) 几何、yaw 最短路径）；
+ *   · `relayHandover(k, window?)`：换手进度（默认窗 [.35, .65]，smoothstep）；
+ *   · `MOVES` / `resolveRelayMove(name)`：运动曲线（glide / whip，未知名抛错）。
+ *
+ * `HANDOVER_GLIDE` 是默认换手窗常量。
+ */
+export {
+  poseFromCamera3, poseToCamera3, blendPose, relayHandover,
+  HANDOVER_GLIDE, MOVES, resolveRelayMove,
+} from '../core/relay.js';
+
+/**
+ * **camera3 场景的一行接力接入**（BACKLOG 1-12）：
+ *
+ * ```js
+ * render(ctx) {
+ *   const cam = camera3({ ...relayPose3(ctx, myHome), H });   // myHome = 这段自己的 home 机位
+ *   …
+ * }
+ * ```
+ *
+ * 引擎在交叠期给了 `ctx.relay.pose`（混合位姿）就替换自己的 home 机位，否则原样返回 home。
+ * ⚠ `Pose` 与 `camera3` 的入参**恰好同形不同义**（`look` = 看向哪、`pos` = 站在哪）：
+ * `ctx.relay.pose` 是引擎用 `poseToCamera3()` 换算过的 camera3 形状（`pos/target/fov/roll`），
+ * 所以两个形状可以直接 `{ ... }` 混搭 —— 这是刻意的字段对齐，写在这里防止后人"顺手改名"。
+ *
+ * @param {{ relay?: { pose?: any } | null }} [ctx] 场景 ctx（非 relay 段的 ctx.relay 恒空）
+ * @param {{ pos: number[], target: number[], fov?: number, roll?: number }} home
+ *        这一段自己的 home 机位（camera3 入参形状）
+ * @returns {{ pos: number[], target: number[], fov?: number, roll?: number }}
+ */
+export function relayPose3(ctx, home) {
+  const p = ctx?.relay?.pose;
+  return p ?? home;
+}
 
 /**
  * `src/kit/paper.js` —— **剪纸 / 纸艺层叠**（BACKLOG 1-49 能力缺口表第 5 行，覆盖素材包 20 条）。

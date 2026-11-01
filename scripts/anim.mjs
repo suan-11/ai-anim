@@ -29,7 +29,7 @@
  *   node scripts/anim.mjs queue <taskA> <taskB> […选项]    睡前排队渲几支：顺序渲完（并行实测更慢）、
  *                                                          每支结束响一声、全部结束响三声、某支失败不中断后续；
  *                                                          选项原样转发给 video（如 --segments 10 --gpu high）
- *   node scripts/anim.mjs video <task> --dry-run          只测速 + 给耗时预估，不出片
+ *   node scripts/anim.mjs video <task> --dry-run          按档预估：草稿档/成片档各测 10 帧，给两条分钟数，不出片
  *   node scripts/anim.mjs video <task> --draft            草稿档：半分辨率（960×540）+ samples=1，
  *                                                         只用来审节奏与信息密度（**不是成片**；定稿去掉）
  *   node scripts/anim.mjs analyze <task>                  分析音频（拍子/小节/段落/包络）
@@ -127,8 +127,10 @@
  *                               已渲好的块自动复用，但**渲染参数或源文件变了就全部重渲**
  *                               （指纹在 <任务>.parts/params.json，见 docs/history/IMPROVEMENTS-1-3.md P1-1）
  *   --parallel 3                切成 3 段**并行**渲染再自己拼（实测 2 进程 1.81×、3 进程 2.3×；
- *                               每个进程一个无头 Chrome，别超过物理核数。切点自动避开转场，
- *                               拼接走 MPEG-TS，不受 `-copyts` 那个坑影响）
+ *                               每个进程一个无头 Chrome：并发度按 cpu-2 / 内存/3GiB / 块数
+ *                               取小后夹在 2..8。切点自动避开转场，拼接走 MPEG-TS，
+ *                               不受 `-copyts` 那个坑影响。与 --segments/--only/--idle/
+ *                               --force/--keep-raw 互斥，同给会报错 —— 那些开关它不认）
  *   --force                     配合 --segments：忽略已存在的分块，全部重渲
  *   --scan-nf[=N]               出片时每 N 帧扫一次**浮点缓冲**里的 NaN / ±Inf（默认 30；0 = 关掉）
  *                               —— 「整屏白 / 单帧白多帧黑」那一类事故的唯一可靠判据（check 也在用它）：
@@ -159,13 +161,24 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, statSync, openSync, closeSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { availableParallelism, totalmem } from 'node:os';
 import { WebSocketServer } from 'ws';
 import { chromium } from 'playwright-core';
 // 抖动统计（纯函数，无依赖）：`anim shake` 与 `video` 收尾的守门共用同一套判据
 import { analyzeShake, shakeSummary } from './lib/shake.mjs';
 import { blankJsComments as sharedBlankJsComments } from './lib/js-source.mjs';
+import { narrationConfigProblem, describeNarrationError } from './lib/narration-error.mjs';
 // 分块增量重渲的判据（BACKLOG 1-45）：纯函数，`tools/test-block-sig.mjs` 直接测
 import { sceneFileIndex, blockSignature } from './lib/blocksig.mjs';
+import { DRAFT_SCALE, DRAFT_ENCODE_MS, planTiers, estimateTier } from './lib/tier-estimate.mjs';
+// 引擎改动的爆炸半径（BACKLOG 1-45 细化）：把 `src/` 一改就整片重渲，改成按真实 import 图判定
+import { isGlobalSource, entryEngineDeps } from './lib/engine-graph.mjs';
+// CLI 渲染硬化的纯逻辑（BACKLOG 1-24① / 复盘 §2 心跳 / E-1 渲染锁）：
+// 冲突开关清单、并发度、切块数、探活判定都在 lib 里（tools/test-cli-hardening.mjs 离线测）
+import {
+  conflictingParallelFlags, planParallelConcurrency, planParallelChunks,
+  createFrameStallWatch, acquireRenderLock, clearRenderLock, renderLockRel,
+} from './lib/render-guard.mjs';
 import { layoutReport, layoutSummary } from '../src/layout.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -249,6 +262,12 @@ function cleanupChildren() {
 process.on('exit', cleanupChildren);
 process.on('SIGINT', () => { cleanupChildren(); process.exit(130); });
 process.on('SIGTERM', () => { cleanupChildren(); process.exit(143); });
+// E-1 兜底：closeSession 只在"走到了 finally"的路径上清锁；kill / 未捕获异常不走它。
+// 'exit' 是同步的，rmSync 在这里可靠（异步 API 在 exit 里来不及跑）。
+// 锁只在 openSession 成功后存在（renderLockPath），没渲染过的命令这里什么也不做。
+process.on('exit', () => {
+  if (session?.renderLockPath) { try { clearRenderLock(session.renderLockPath); } catch { /* ignore */ } }
+});
 
 /**
  * 这个文件是不是**直接被 node 跑**的？（而不是被 import 进来做单测）
@@ -1036,7 +1055,39 @@ async function openSession(o) {
     die(`页面初始化失败：\n${status.error}`);
   }
   const info = await page.evaluate(() => /** @type {any} */ (window).__anim.info());
-  session = { browser, page, vite, url, consoleLog, info, task: o.task };
+  // E-1：per-任务渲染锁。会话已经**真的起来了**（浏览器 + 页面就绪），这时锁才有意义 ——
+  // 锁落在 out/<任务>/.render-lock（out/ 不进 git，锁天然只属于本机工作区）。
+  // 判定与读写都在 scripts/lib/render-guard.mjs；并行模式的子进程是**同一把锁的持有者之一**
+  // （父进程先渲着、又 spawn 我们），带 ANIM_RENDER_LOCK_SKIP=1 跳过 —— 不跳过就是自己锁死自己。
+  // verify/qa/clean 这些不开渲染会话的命令不走 openSession，天然不受影响。
+  let renderLockPath = null;
+  if (process.env.ANIM_RENDER_LOCK_SKIP === '1') {
+    log('· 渲染锁：--parallel 子进程跳过（父进程持有同一把锁）');
+  } else {
+    const got = acquireRenderLock({
+      root: path.join(ROOT, 'out'),
+      task: o.task,
+      pid: process.pid,
+      startedAt: new Date().toISOString(),
+      cmd: `anim ${process.argv.slice(2).join(' ')}`.trim(),
+      log,
+    });
+    if (!got.ok) {
+      const h = got.holder ?? {};
+      try { await browser.close(); } catch { /* ignore */ }
+      vite?.kill();
+      die(
+        `任务 ${o.task} 正在被 pid ${h.pid ?? '?'} 渲染（startedAt ${h.startedAt ?? '?'}），锁：${renderLockRel(o.task)}；
+` +
+        `  锁内容：${JSON.stringify(h)}
+` +
+        `  确认没有别的进程在渲就删掉锁文件重跑：del out\\${o.task}\\.render-lock`,
+      );
+    }
+    renderLockPath = got.file;
+    log(`· 渲染锁：${renderLockRel(o.task)}（pid ${process.pid}）`);
+  }
+  session = { browser, page, vite, url, consoleLog, info, task: o.task, renderLockPath };
   return session;
 }
 
@@ -1044,6 +1095,11 @@ async function closeSession() {
   if (!session) return;
   try { await session.browser.close(); } catch { /* ignore */ }
   try { if (session.vite) { children.delete(session.vite); session.vite.kill(); } } catch { /* ignore */ }
+  // E-1：会话结束（正常收尾 / 异常退出 finally）都清锁。锁里记着我们的 pid，
+  // 就算这里没清掉（进程被 -9），下一次 acquireRenderLock 的探活也会判出"死进程"并清掉。
+  if (session.renderLockPath) {
+    try { clearRenderLock(session.renderLockPath); } catch { /* ignore */ }
+  }
   session = null;
 }
 
@@ -1448,24 +1504,57 @@ function sceneSignature(task) {
 }
 
 /**
- * 引擎签名 = `src/` 下所有源文件的 `相对路径:大小:mtime`（排序后拼起来）。
+ * 引擎改动 → **原子签名表**（BACKLOG 1-45 的细化版）。
  *
- * 为什么要单独算：**分块增量重渲（BACKLOG 1-45）**需要知道"这次改动影响的是哪一块"。
- * `tasks/` 下的改动只影响用到它的那几块；`src/` 下的改动（引擎）**任何一块都可能变** ——
- * 所以引擎签名一变化就整批失效，这是保守但正确的方向。
+ * ## 以前的做法与代价
+ *
+ * 老版本把 `src/` 下**所有**文件的 mtime 拼成一个总签名，塞进每一块 ⇒ 改一行引擎注释
+ * 就等于整片重渲。对一个 70 分钟的片子，这把「改一个镜头」和「改一个底层函数」的代价拉平了。
+ *
+ * ## 现在的做法
+ *
+ *   · **地基**（`src/core/` `src/style/` `src/app.js` `src/timeline.js` `public/` …）仍然
+ *     合成**一个**总签名 `g:` —— 它们被所有块依赖，改动就是整批失效（省时间也更不易错）；
+ *   · **其余源文件**（`src/kit/` `src/shots/` 这些通用件）各自一个原子签名
+ *     `f:<相对路径>:<大小>:<mtime>`，**只有真正用到它的块**才把它们拼进自己的块签名。
+ *
+ * 于是「改了 `src/shots/chart.js`，而这片子根本没用 chart」⇒ 块的签名不变 ⇒ 直接复用。
+ * 实测（本仓 138 个场景）：改 `chart.js` 只波及 8 个场景 / 2 个任务；改 `kit/pixel.js` 53 个。
+ *
+ * ## 保守规则（错了就是"拿旧块冒充新画面"，比多渲一块贵得多）
+ *
+ *   · 文件消失（被删）也进表 —— 否则删掉一个模板会被当成"没变"；
+ *   · 读不到（权限 / 刚被删）记 `missing`，照样让签名变；
+ *   · 解析不出 import 的文件由 `classifyEngineChange()` 直接判整批，不进这张表。
+ *
+ * @returns {{ global: string, atoms: Map<string, string> }}
+ *   `global` 是地基的总签名（打进每一块）；`atoms` 是 `相对路径 -> 原子签名`
  */
-function engineSignature() {
+function engineAtoms() {
   const files = [];
   walkSourceTree(path.join(ROOT, 'src'), SOURCE_EXT, files);
-  files.sort();
-  const parts = [];
-  for (const f of files) {
-    try {
-      const st = statSync(f);
-      parts.push(`${path.relative(ROOT, f)}:${st.size}:${Math.round(st.mtimeMs)}`);
-    } catch { /* 读不到就跳过 */ }
+  walkSourceTree(path.join(ROOT, 'public'), SOURCE_EXT, files);
+  const keys = new Set(files.map((f) => path.relative(ROOT, f).split(path.sep).join('/')));
+  for (const extra of ['vite.config.mjs']) {
+    if (existsSync(path.join(ROOT, extra))) keys.add(extra);
   }
-  return parts.join('|');
+  /** @type {Map<string, string>} */
+  const atoms = new Map();
+  /** @type {string[]} */
+  const globalParts = [];
+  for (const rel of [...keys].sort()) {
+    let sig;
+    try {
+      const st = statSync(path.join(ROOT, rel));
+      sig = `${rel}:${st.size}:${Math.round(st.mtimeMs)}`;
+    } catch {
+      // ⚠ 读不到**不等于没变**：旧文件被删掉时这里会抛，必须留痕（否则整批复用旧画面）
+      sig = `${rel}:missing`;
+    }
+    atoms.set(rel, sig);
+    if (isGlobalSource(rel)) globalParts.push(sig);
+  }
+  return { global: globalParts.join('|'), atoms };
 }
 
 /**
@@ -2142,6 +2231,7 @@ async function cmdCheck() {
   const statics = scanScenes(task);
   for (const s of statics) warn(`⚠ ${s}`);
 
+
   /**
    * 静态检查阶段（开浏览器**之前**）攒下的错误 —— `errs` 要等 `openSession` 之后才构造
    * （它读的是页面回传的 `info`），所以这一段先攒在这儿，下面 `const errs = [...staticErrs, ...]`。
@@ -2150,6 +2240,26 @@ async function cmdCheck() {
    *   "旁白复述检查没跑成"（假 skipped）。**先攒后并**，别在 try 里引用后面的 const。
    */
   const staticErrs = [];
+  // 1.05) 静态：旁白表（narration）配了但加载不了 —— A-2。以前只在页面侧 console.warn 一句
+  //（src/app.js 的 catch），滚进日志就没了：成片照常渲、check 照样绿，作者根本不知道
+  // ctx.narration 是空的（字幕不出现、dur:{vo} 解不出来）。现在 Node 侧直接验证配置指向的
+  // 文件（不起浏览器；判定纯函数在 scripts/lib/narration-error.mjs），--strict 下进 errs。
+  {
+    const cfgPath = path.join(ROOT, 'tasks', task, 'task.config.mjs');
+    if (existsSync(cfgPath)) {
+      const cfgSrc = readFileSync(cfgPath, 'utf8');
+      // 只认"真的把 narration 当配置字段写"的那一行（注释里的示例不算——先剥行注释）
+      const m = /^\s*narration\s*:\s*(['"])([^'"]+)\1/m.exec(cfgSrc.replace(/^\s*\/\/.*$/gm, ''));
+      if (m) {
+        const problem = narrationConfigProblem({ narration: m[2] }, { taskDir: path.join(ROOT, 'tasks', task) });
+        if (problem) {
+          warn('⚠ ' + describeNarrationError(problem));
+          warn('  → 修法：确认 tasks/' + task + '/' + m[2].replace(/^\.\//, '') + ' 存在且是 say 生成的合法 JSON；暂时不要就先把 narration 这行删掉');
+          if (strict) staticErrs.push('[旁白表] ' + describeNarrationError(problem));
+        }
+      }
+    }
+  }
 
   // 1.5) 静态：**画面文字逐字复述旁白**（`docs/CAPTIONS.md`）。
   //
@@ -2806,6 +2916,24 @@ async function cmdCheck() {
       }
     }
     log(`\n试渲染 ${info.timeline.length} 段 × ${quick ? 1 : 3} 个点 × ${quick ? 1 : 2} 条路径（共 ${points * (quick ? 1 : 2)} 帧）用了 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+
+    // 渲染期间攒下的**运行期警告**（ctx.warnings / engine.warnings：D-1 的孤儿线、
+    // kit 的字幕带冲突等）：info 快照取在渲染**之前**（:2558），所以这里必须重取一次。
+    // 只打新增的（seen 里记渲染前已有的），每条只打一次 —— 同一句每帧都发生也不刷屏。
+    try {
+      const after = await session.page.evaluate(() => /** @type {any} */ (window).__anim.info());
+      const seenWarnings = new Set(info.warnings ?? []);
+      let nWarn = 0;
+      for (const w of after.warnings ?? []) {
+        if (seenWarnings.has(w)) continue;
+        seenWarnings.add(w);
+        warn(`⚠ ${w}`);
+        nWarn++;
+      }
+      if (nWarn) warn('  → 上面是**渲染中**攒出来的运行期警告（每帧都发生也只报一次）；修掉它们或确认无害。');
+    } catch (err) {
+      pushSkipped(skipped, '运行期警告收集', '页面失联：' + firstLine(err));
+    }
 
     /**
      * **版面守门**（`docs/LAYOUT.md`，2026-10-16）：钠那期三条外部批评里的两条 ——
@@ -4668,22 +4796,83 @@ async function measureSpeed({ info, from, to, fps, samples, shutter, n = 10 }) {
   return { fps: drawn / (elapsed / 1000), frames: drawn, elapsed, hist, perFrame: elapsed / drawn };
 }
 
-/** 打印渲染预估（--dry-run）。 */
-async function printEstimate({ info, from, to, fps, samples, shutter, label }) {
+/**
+ * 打印渲染预估（--dry-run）。
+ *
+ * C-1：改成**按档预估**。老版本只测「这次手上的参数」，而用户真正要回答的问题
+ * 是两档各自的价钱 —— 草稿档（`--draft`：绝对 scale 0.5 + samples 1）与
+ * 成片档（任务 scale + samples auto），两者差 8–24×（docs/PERF.md A1）：
+ * 只看成片档会被分钟数吓住、只看草稿档会被速度骗到。现在一次 dry-run 两档都测
+ * （缺的档另起一个短会话，`--scale` 沿用档位定义），两行分钟数都给。
+ * 非标准参数（比如 `--samples 8`）不属于任何一档时，补一行「本次参数」。
+ */
+async function printEstimate({ task, info, from, to, fps, samples, shutter, label }) {
   const total = Math.max(1, Math.round((to - from) * fps));
+  const encMs = Number(opt('encode', '4'));                // 编码开销（x264 veryfast @1080p 约 3–6ms/帧）
   // ⚠ 必须在渲染之前测，而且**不能在测速期间关掉 ack** —— 这里是主流渲染循环之外的
   //   独立 evaluate，安全。
-  log(`\n[--dry-run] 先测速：整片均匀取 10 个时刻，每个渲一帧（samples=${samples}）…`);
-  const sp = await measureSpeed({ info, from, to, fps, samples, shutter });
-  const perFrame = sp.perFrame + Number(opt('encode', '4'));   // 编码开销（x264 veryfast 约 3–6ms/帧）
-  const mins = (total * perFrame) / 60000;
-  const seed = [...sp.hist.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}子帧:${v}`).join('  ');
-  log(`  测速：${sp.frames} 帧用了 ${(sp.elapsed / 1000).toFixed(1)}s → ${sp.fps.toFixed(2)} fps（${perFrame.toFixed(0)} ms/帧，含编码）`);
-  log(`  抽到的子帧分布 ${seed}`);
-  log(`  预估：${total} 帧（${(to - from).toFixed(1)}s @${fps}fps）约 ${mins.toFixed(1)} 分钟`);
+  //
+  // 「成片档」的分辨率以任务自己声明的 scale 为准：草稿档会话里 info.scale 是 0.5，
+  // 问不出成片的 scale（config scale 2 + --draft 时尤其）。
+  let configScale = null;
+  try {
+    configScale = parseTaskMeta({ id: task, cfgText: readFileSync(path.join(ROOT, 'tasks', task, 'task.config.mjs'), 'utf8') }).scale;
+  } catch { /* 读不到就走下面的兜底 */ }
+  if (!configScale) configScale = Math.abs(info.scale - DRAFT_SCALE) < 1e-9 ? 1 : info.scale;
+  const tiers = planTiers({ configScale, scale: info.scale, samples });
+
+  log(`\n[--dry-run] 按档预估：每档整片均匀取 10 个时刻各渲一帧测速…`);
+  const rows = [];
+  for (const t of tiers) {
+    if (!t.current) continue;
+    log(`  · 测 ${t.label}（${info.pw}×${info.ph}，samples=${samples}）…`);
+    const sp = await measureSpeed({ info, from, to, fps, samples, shutter });
+    rows.push({ ...t, sp, pw: info.pw, ph: info.ph });
+  }
+  for (const t of tiers) {
+    if (t.current) continue;
+    const rec = { ...t, sp: null, error: null };
+    rows.push(rec);
+    log(`  · 测 ${t.label}（另起一个短会话，按那一档的参数）…`);
+    try {
+      await closeSession();
+      await openSession({ task, scale: t.scale, only: opt('only', undefined) });
+      rec.pw = session.info.pw; rec.ph = session.info.ph;
+      rec.sp = await measureSpeed({ info: session.info, from, to, fps, samples: String(t.samples), shutter });
+    } catch (e) { rec.error = String(e?.message ?? e).split('\n')[0].slice(0, 140); }
+  }
+
+  // 打表按档位顺序（草稿 → 成片 → 本次），不按测速先后 —— 方向感交给「← 本次参数」标记
+  rows.sort((a, b) => tiers.findIndex((t) => t.id === a.id) - tiers.findIndex((t) => t.id === b.id));
+  log('');
+  for (const r of rows) {
+    if (r.error) { log(`  ${r.label}  （没测成：${r.error} —— 这一档没有读数，别拿另一档按比例硬推）`); continue; }
+    const enc = r.id === 'draft' ? DRAFT_ENCODE_MS : encMs;   // 540p 的编码开销约是 1080p 的一半
+    const est = estimateTier({ seconds: to - from, fps, perFrameMs: r.sp.perFrame, encodeMs: enc });
+    log(`  ${r.label}  ${r.pw}×${r.ph}  samples=${r.samples}  ${r.sp.fps.toFixed(2)} fps（${est.perFrameMs.toFixed(0)} ms/帧 含编码）→ ${est.frames} 帧约 ${est.minutes.toFixed(1)} 分钟${r.current ? ' ← 本次参数' : ''}`);
+    const hist = [...r.sp.hist.entries()].sort((a, b) => a[0] - b[0]);
+    if (hist.length && !(hist.length === 1 && hist[0][0] === 1)) {
+      log(`      子帧分布 ${hist.map(([k, v]) => `${k}子帧:${v}`).join('  ')}`);
+    }
+  }
   log(`  段数 ${info.timeline.length}；${flag('segments') || opt('segments', null) ? '分块渲染（已渲好的块会跳过）' : '未分块（中断要重来，长片子建议加 --segments）'}`);
-  if (mins > 20) log(`  ⚠ 超过 20 分钟：建议 --segments 分块（可断点续渲）、先 --samples 8 压一压，或缩短${label}`);
-  if (flag('json')) log(JSON.stringify({ total, perFrameMs: perFrame, minutes: mins, measureFps: sp.fps }));
+  const curRow = rows.find((r) => r.current && r.sp);
+  const curEst = curRow && estimateTier({ seconds: to - from, fps, perFrameMs: curRow.sp.perFrame, encodeMs: curRow.id === 'draft' ? DRAFT_ENCODE_MS : encMs });
+  if (curEst && curEst.minutes > 20) log(`  ⚠ 本次参数超过 20 分钟：建议 --segments 分块（可断点续渲）、先 --samples 8 压一压，或缩短${label}`);
+  if (flag('json')) {
+    log(JSON.stringify({
+      total,
+      perFrameMs: curEst?.perFrameMs ?? null,
+      minutes: curEst?.minutes ?? null,
+      measureFps: curRow?.sp.fps ?? null,
+      tiers: rows.map((r) => {
+        const base = { id: r.id, label: r.label, scale: r.scale, samples: r.samples, current: r.current, pw: r.pw ?? null, ph: r.ph ?? null };
+        if (r.error) return { ...base, error: r.error };
+        const est = estimateTier({ seconds: to - from, fps, perFrameMs: r.sp.perFrame, encodeMs: r.id === 'draft' ? DRAFT_ENCODE_MS : encMs });
+        return { ...base, measureFps: r.sp.fps, renderMsPerFrame: r.sp.perFrame, perFrameMs: est.perFrameMs, frames: est.frames, minutes: est.minutes };
+      }),
+    }));
+  }
   return true;
 }
 
@@ -4749,11 +4938,30 @@ async function renderSegments({ task, info, out, from, to, fps, samples, shutter
    *   · 渲染参数（fps / samples / shutter / scale / vcodec / crf …）变了 ⇒ 整批重渲
    *     （混合出来的片子自己都不自洽，这是 P1-1 的结论，不改）；
    *   · 只有 `tasks/` 下的场景改了 ⇒ 逐块比签名，只重渲**签名变了**的那几块；
-   *   · `src/` 下的引擎改了 ⇒ 引擎签名进每一块的签名 ⇒ 整批失效（保守且正确）。
+   *   · `src/` 下的**引擎地基**（core / style / app / timeline / public）改了 ⇒ 整批失效；
+   *   · `src/kit/` `src/shots/` 这些**通用件**改了 ⇒ **只重渲真正用到它的块**
+   *     （2026-10-31 细化：以前是"改一行引擎注释也整片重渲"）。
    */
   const force = flag('force');
-  const engineSig = engineSignature();
+  const eng = engineAtoms();
   const sceneIndex = sceneFileIndex(path.join(ROOT, 'tasks', task), ROOT);
+  /**
+   * 每个场景文件**传递依赖**到的引擎通用件（按真实 import 图算）。
+   *
+   * 只把**场景文件**作为收窄入口。
+   *
+   * `task.config.mjs`（时间线配置）与 `src/timeline.js`（构建器）**不参与块级收窄**：
+   * 它们的内容由"段参数 / 时间边界"和地基全局签名决定；把它们也当收窄入口会得到
+   * "判不出字面量"的误报（它们确实不写 shot('x')），进而让每一块都退回全部引擎件。
+   */
+  const sceneEntries = sceneIndex.all
+    .filter((rel) => !/task\.config\.mjs$/.test(rel))
+    .map((rel) => path.join(ROOT, rel));
+  const entryDeps = entryEngineDeps(sceneEntries, ROOT);
+  for (const rel of entryDeps.unresolved) {
+    if (!sceneIndex.all.includes(rel) && !(sceneIndex.shared ?? []).includes(rel)) continue;
+    warn(`  ⚠ ${rel} 里有静态解析不了的 import ⇒ 含它的块按"全部引擎件"判重渲（保守）`);
+  }
   /**
    * 字幕表（task.narration）的绝对路径 —— 进块签名用。
    * 为什么现算：改字幕不会动任何场景文件，块签名不变就会整批复用，
@@ -4803,8 +5011,9 @@ async function renderSegments({ task, info, out, from, to, fps, samples, shutter
     // 块的 key 用**时间边界**：时间线一改（段变长/挪位），对得上号的块才会复用
     const key = `${c.from.toFixed(2)}-${c.to.toFixed(2)}`;
     const sig = blockSignature({
-      root: ROOT, engineSig, paramsText: man.fp.text, timeline: info.timeline,
+      root: ROOT, engineSig: eng.global, paramsText: man.fp.text, timeline: info.timeline,
       index: sceneIndex, from: c.from, to: c.to,
+      engineAtoms: eng.atoms, engineDeps: entryDeps.deps,
       // 字幕改了就重渲：字幕层是引擎画的（task.narration → 每帧文字），不是 ffmpeg 烧的
       narrationFile,
     });
@@ -5132,12 +5341,30 @@ async function cmdVideo(short = false) {
 
     // --dry-run：只测速 + 给预估，不出片（长片子开渲之前先看一眼值不值得）
     if (flag('dry-run')) {
-      await printEstimate({ info, from, to, fps, samples, shutter, label: '时长' });
+      await printEstimate({ task, info, from, to, fps, samples, shutter, label: '时长' });
       return;
     }
 
     // --parallel N：切片并行渲染 + 自己拼（P2-1）
     if (opt('parallel', null)) {
+      // BACKLOG 1-24①：下面这些开关只属于单进程推流（--idle/--keep-raw）或 --segments 的
+      // 分块复用（--segments/--force），--only 还会平移时间轴让子进程的 --from/--to 对不上。
+      // 以前同时给出会被**静默丢掉**（这个分支排在 --segments 之前，后者根本走不到）——
+      // 用户以为生效了，实际整片照渲。现在显式给出即报错；只给 --parallel 时一个字不变。
+      const conflicts = conflictingParallelFlags(rest);
+      if (conflicts.length) {
+        die(
+          `这些开关在 --parallel 模式不生效：${conflicts.map((f) => `--${f}`).join(' ')}
+` +
+          `  · --parallel 把片子切片交给独立子进程（各自起 Vite + Chrome、按整片时间 --from/--to 切）；
+` +
+          `    --segments/--force 是另一条分块复用的路，--idle/--keep-raw 只属于单进程推流，
+` +
+          `    --only 会平移时间轴 —— 子进程按整片时间切块，两边对不上。
+` +
+          `  要用它们就分两次跑：先单进程 / --segments 出这一版，再单独跑 --parallel。`,
+        );
+      }
       await renderParallel({ task, info, out, from, to, fps, samples, shutter, audioFile, withAudio });
       return;
     }
@@ -5492,6 +5719,20 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
   const bump = (why) => { lastProgressAt = Date.now(); progressWhy = why; };
 
   /**
+   * 帧停滞心跳（复盘 §2：中途卡死 12 分钟没人知）。它和下面的"没进展"看门狗是**两回事**：
+   * 看门狗看四信号（帧 / 页面 sent / 排水 / 文件变大），防的是"整个系统死了"；
+   * 这里只看**帧有没有到** —— 帧停在半路（页面崩了 / WS 断了）时四信号也可能被
+   * 偶发的排水续命，用户却 12 分钟看不到一行新帧。判据与文案在
+   * scripts/lib/render-guard.mjs（tools/test-cli-hardening.mjs 离线测）。
+   */
+  const stallWatch = createFrameStallWatch({
+    warn: (s) => warn(`\n  ${s}`),
+    chunk: typeof chunk === 'string' ? chunk : '',
+    total,
+    startAt: t0,
+  });
+
+  /**
    * ffmpeg 的 stdin 出错（EPIPE）要**吞掉**，不能让进程崩在栈上。
    *
    * 场景：编码器提前退出（参数不认 / 编码器不存在），我们这边还在写帧 —— 写管道必然 EPIPE。
@@ -5530,7 +5771,7 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
   /** @type {() => void} */
   let finish = () => {};
   const doneP = new Promise((resolve) => {
-    finish = () => { if (!finished) { finished = true; resolve(undefined); } };
+    finish = () => { if (!finished) { finished = true; stallWatch.stop(); resolve(undefined); } };
   });
 
   /**
@@ -5618,6 +5859,7 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
       frames++;
       consecErrFrames = 0;
       bump(`收到第 ${frames} 帧`);
+      stallWatch.onFrame(frames, total, Date.now());
       try {
         // msg 可能是 Buffer 也可能是裸 ArrayBuffer，统一成 ArrayBuffer 再取帧头
         const ab = msg instanceof ArrayBuffer
@@ -5693,6 +5935,10 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
   const idleLimit = Number(opt('idle', '300'));
   const watchdog = setInterval(async () => {
     if (finished) { clearInterval(watchdog); return; }
+    // 帧停滞心跳：与下面的"没进展"判据独立 —— 就算排水/文件增长一直给看门狗续命，
+    // 帧停在半路也该喊出来。背压中（ffBlocked）不算停滞：页面按设计停在等 ack，
+    // 帧都堆在 ffmpeg 的 stdin 缓冲里，这时候喊"渲染可能卡死"会把人引偏（真死由四信号判）。
+    if (!ffBlocked) stallWatch.check(Date.now());
     const idle = (Date.now() - lastProgressAt) / 1000;
     if (idle < idleLimit) return;
 
@@ -6792,11 +7038,22 @@ function cmdNote() {
  *   · 各自起自己的私有 Vite 与 Chrome（互不干扰）；
  *   · 各自的产物都要过 ffprobe 守门（某一段失败就整体失败，已渲好的段保留）。
  *
- * ⚠ 并行度不要超过物理核数：每个子进程都要跑一个无头 Chrome。
+ * ⚠ 并行度不要超过物理核数：每个子进程都要跑一个无头 Chrome ——
+ * 现在由 `planParallelConcurrency()`（scripts/lib/render-guard.mjs）按
+ * `min(cpu-2, 内存/3GiB, 块数)` 夹在 [2..8]；`--parallel N` 的 N 主要决定切块粒度。
  */
 async function renderParallel({ task, info, out, from, to, fps, samples, shutter, audioFile, withAudio }) {
   const t0 = Date.now();
-  const n = Math.max(2, Math.min(8, Number(opt('parallel', '2'))));
+  // BACKLOG 1-24① 后半：并发度不再拍脑袋夹 [2..8]，按机器资源收窄 ——
+  // 每个子进程一个无头 Chrome，超卖只会把内存/显存挤爆（资源性失败）。
+  // requested 的 N 决定切块粒度（切多少段），真正同时跑的进程数由 min(cpu-2, 内存/3GiB, 块数) 定。
+  const { n, capCpu, capMem, capChunks } = planParallelConcurrency({
+    cpus: availableParallelism(),
+    memoryGiB: totalmem() / 2 ** 30,
+    // requested 的 N 也决定切块数（min(N, floor(片长))）：不传的话长片会被压成 2 块
+    chunks: planParallelChunks({ from, to, requested: Number(opt('parallel', '2')) }),
+  });
+  log(`并发度 ${n}（按 cpu-2 / 内存/3GiB / 块数 取小）`);
   const target = Math.max(1, (to - from) / n);
   const dir = path.join(path.dirname(out), `${path.basename(out, '.mp4')}.par`);
   rmSync(dir, { recursive: true, force: true });
@@ -6839,7 +7096,12 @@ async function renderParallel({ task, info, out, from, to, fps, samples, shutter
     args.push('--scan-nf', String(resolveScanNf()));
     if (flag('nf-stop')) args.push('--nf-stop');
     const fd = openSync(logFile, 'w');
-    const p = spawn(process.execPath, args, { cwd: ROOT, stdio: ['ignore', fd, fd] });
+    // E-1：子进程与父进程渲的是同一个任务、同一把锁 —— 父进程已经持锁，
+    // 子进程必须跳过（ANIM_RENDER_LOCK_SKIP=1），否则一开跑就自己 die 自己。
+    const p = spawn(process.execPath, args, {
+      cwd: ROOT, stdio: ['ignore', fd, fd],
+      env: { ...process.env, ANIM_RENDER_LOCK_SKIP: '1' },
+    });
     children.add(p);
     p.on('close', (code) => {
       children.delete(p);
@@ -6881,7 +7143,7 @@ async function renderParallel({ task, info, out, from, to, fps, samples, shutter
       `    · 输入性（已知原因、确定性）—— 段名/参数写错、场景在某个时刻抛异常、时间线不合法。\n` +
       `      重跑不会有不同结果；先 node scripts/anim.mjs check <任务> 点名段与时刻，再改。\n` +
       `    · 资源性（可能是瞬时）—— 并发把内存/显存挤爆、磁盘满、GPU 掉线、被外部中断。\n` +
-      `      先降并发再跑：--parallel ${Math.max(1, Math.floor(n / 2))}（并发度上限应按 物理核数-2 与 内存/3GiB 取小）。\n` +
+      `      先降并发再跑：--parallel ${Math.max(1, Math.floor(n / 2))}（并发度按 cpu-2 / 内存/3GiB / 块数 取小，见上面的并发度日志）。\n` +
       `  每段的完整输出在 ${path.relative(ROOT, dir)}/p*.log —— 先看第一个失败段的日志尾部，不要直接重跑。`,
     );
   }
@@ -7865,4 +8127,9 @@ export {
   notesSummary,
   formatNoteLines,
   isProtectedOutFile,
+  // CLI 渲染硬化（BACKLOG 1-24① / 复盘 §2 心跳 / E-1 渲染锁）：纯函数在 scripts/lib/render-guard.mjs，
+  // 这里转手导出 —— 测试与总控从同一个入口拿（tools/test-cli-hardening.mjs 直接 import lib，两边都对得上）
+  conflictingParallelFlags,
+  planParallelConcurrency,
+  planParallelChunks,
 };

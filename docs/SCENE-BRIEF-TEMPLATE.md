@@ -451,7 +451,7 @@ Build scenes for ONE film: <任务名>. Nothing else.
 ### 11.1 为什么有这一节
 
 每支片子的第一步是"选题 + 想结构"，也是最容易卡住的一步（约束：周末两天要做 2 支，见
-[HANDOFF-directions.md](HANDOFF-directions.md)）。目标是把作者的动作压到两个：
+[HANDOFF-directions.md](history/HANDOFF-directions.md)）。目标是把作者的动作压到两个：
 **从 [`tasks/_ideas.md`](../tasks/_ideas.md) 抽一行** → **审一份 brief**。
 
 ### 11.2 直接照抄的指令（把 `<选题>` 换成池子里的那一行）

@@ -240,6 +240,7 @@ export default {
 | `setXform(o)` | **声明场景级变换**（见 §3.5）。不调用 = 这一帧不做变换 |
 | `util` | `util.js` 的全部导出（`clamp/lerp/ease/prog/keys/rng/hash2/...`）。**别只记得那几个**：`hsv(h,s,v)` 造**线性**色（除 `P.*` 外唯一的程序化配色入口）、`spring(elapsed,…)` 解析弹簧、`hit/pulse/pingPong/cycle` 周期脉冲、`pointAtLength/polylineLengths` 沿路径、`noise1/2/3`+`fbm1/2` 确定性噪声、`rngArray` 预算随机、`remap/invLerp/rot2/mixColor/scaleColor`、`pad/timecode/bar` |
 | `rng` | `util.rng` 的便捷引用 |
+| `renderShot(id, t2, o)` | **段间引用**（1-15）：把另一段在 `t2`（**整片时间**）的画面贴进当前帧。`o = { x, y, w, h, opacity }`（逻辑像素 rect，默认整幅）。实现 = `Engine.renderShotAt`（专用 RT、1 子帧、递归保护当场抛）；**每次调用是一次完整的单段渲染**，子帧路径下每个子帧各渲一遍。夹具 `tasks/_ref-lab` |
 | `clear(color)` | 便捷：`gl.clear(ctx.out, color)`，默认 `[0,0,0]` |
 
 注意：**`engine.text` / `engine.type` 是 HUD 专用的**，多段重叠（转场）时它们的画布会被互相擦掉，场景里一律用 `ctx.text` / `ctx.type`。每个时间线条目都有自己独立的 `Layer2D`（`item._layer`），内存按段数线性增长（1080p 一层约 8MB）。
@@ -530,6 +531,76 @@ render(ctx) {
   ⚠ 掩码型转场（wipe/iris/pixel/dissolve）**不要**再叠全局淡出：两个 fade 相乘会让中段发灰。
 - 与 `victimRatio` **正交**：两个都给就都生效（模式决定"长什么样"，比例决定"旧的走多快"）。
 - `docs/MOTION.md` §3.6 有每种的画面描述与选型建议；夹具 `tasks/_trans-lab`。
+
+### 3.7.7 相机接力 relay：`src/core/relay.js`（BACKLOG 1-12）
+
+交叠期不再是"旧帧被甩走"（§3.7.6 的 `push`），而是**一台相机**从 A 段的 home 位姿
+一路飞到 B 段的 home 位姿，**画面内容在换手窗里 mixTo 换手**。机制四步：
+
+1. **探**：引擎每个子帧对前后两段各调一次 `relayPose(ctx)`，拿两侧此刻的 home 位姿
+   （`engine.js` 的 `_probeRelayPose` —— 探针 ctx 只有 `f`/`W`/`H`/`P`/`params` 只读字段）。
+2. **混**：`blendPose(a, b, e)` 把两个位姿混成一个（`e` 先过运动曲线 `MOVES`）。
+3. **drive**：混合位姿经 `poseToCamera3()` 换回 camera3 形状，交给两段各自的相机
+   （`ctx.relay.pose`；`makeThreeShot` 还会直接 `setCamera`）。
+4. **换手**：`relayHandover(tin, window)` 给出内容权重，`comp.mixTo(under, out, k)`
+   在换手窗里交叉 —— 旧内容被相机"带走"的过程中退场。
+
+**Pose 契约**（字段名不许改）：
+
+```
+Pose = { look: [x,y,z], dist, yaw, pitch, fov, roll }
+```
+
+`yaw`/`pitch`/`fov` 单位是**度**，`roll` 是**弧度**；`yaw = 0` 朝 −z、增大朝 +x，
+`pitch` 向上为正。`fwd = [sin(yaw)·cos(pitch), sin(pitch), −cos(yaw)·cos(pitch)]`，
+`pos = look − fwd·dist`。⚠ `Pose` 与 `camera3()` 的入参 `{pos,target,fov,roll}`
+**恰好同形不同义**（`look` = 看向哪、`pos` = 站在哪）—— `poseFromCamera3()` /
+`poseToCamera3()` 互逆负责换算，别把 Pose 直接塞给 `camera3()`。
+
+混合规则（`blendPose`）：look 三轴直线插值；`dist` 与 `tan(fov/2)` 走**几何插值**
+`exp(lerp(log a, log b))`（推近匀速，样式同 `zoomLerp`）；yaw 走**最短路径**线性
+（170° → −170° 从 180° 那边过）；`pitch`/`roll` 线性。
+
+**场景接入三种写法**：
+
+```js
+// ① 手写 camera3 场景 —— 一行接入（src/kit/index.js 的 relayPose3）：
+render(ctx) {
+  const cam = camera3({ ...relayPose3(ctx, myHome), H });   // myHome = 本段 home 机位
+  …
+}
+//    并在场景对象上声明探针（t 的纯函数，返回 camera3 形状）：
+relayPose(ctx) { return { pos, target, fov, roll }; }        // 只许读 f.t / params
+
+// ② 同上（手写场景）—— relayPose 声明本身，是 relay 成立的前提；没有它引擎会
+//    点名回落 push（见下面的边界）。
+
+// ③ makeThreeShot —— spec.cameraPose(ctx)（t 的纯函数）；不写则回读当前相机状态
+//    （roll 恒 0）。交叠期引擎把混合位姿 setCamera 进来，update 刚跑过的位姿被覆盖。
+```
+
+时间线声明：`cut(scene, { overlap: 1.2, transition: 'relay', transitionOpts: { move: 'glide', handover: [0.35, 0.65] } })`
+（配置档节点同理）。`transitionOpts.move` ∈ `MOVES`（`glide` = inOutSine 缓入缓出 /
+`whip` = p^2.4 甩鞭；未知名**当场抛**，`resolveRelayMove`）；`handover` 是换手窗，
+默认 `HANDOVER_GLIDE = [0.35, 0.65]`（交叠进度 35% 前是 A、65% 后是 B，中间 smoothstep）。
+
+**v1 边界（刻意不做）**：
+
+* 文字层跟随所属段一起在换手窗内 crossfade —— 不做"文字整段交接"；
+* 三段以上重叠时最深一层**回落 push 并警告**（relay 只在两段交叠生效）；
+* post 参数不逐字段插值 —— 交叠期用 B 段的 post；
+* ortho ↔ perspective 过渡不做（引擎全是透视）。
+
+**回落 push 的条件**（引擎**不静默**，`ctx.warnings` 点名哪一段缺什么）：
+任一侧没有 `relayPose()`、三段以上重叠、或 `under` 缺失 —— 声明了 `transition: 'relay'`
+但条件不满足时按 push 走；relay 成立时**绝不**再进 §3.7.6 的 push/mix 分支
+（`makeShot`/`makeThreeShot` 默认 `handlesTransition: true`，`openFrame` 的 relay
+跳过分支保证交叠期只铺背景、不甩上一帧 —— 两条路不会叠加成双重转场）。
+
+**确定性**：`relayPose` / `cameraPose` 是 **t 的纯函数**、每子帧**现探现算绝不缓存**
+（memo 会把动态飞行冻成"两台静态相机之间的插值"，画面不报错、check 照样绿）。
+零 GPU 纯函数层 `src/core/relay.js` 可离线单测：`node tools/test-relay.mjs`。
+夹具 `tasks/_relay-lab`（camera3 对 glide + push 对照组 + Three.js 对 whip）。
 
 ---
 
@@ -1194,7 +1265,7 @@ export default {
 
 | 类别 | 键 | 落点 |
 |---|---|---|
-| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` | 与 `cut(scene, {…})` 的第二参数同义；`worldPass: true` 等价于 `world: 'auto'` |
+| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` | 与 `cut(scene, {…})` 的第二参数同义；`worldPass: true` 等价于 `world: 'auto'`；`transition` 默认 `push`，可选 `wipe` / `iris` / `glitch` / `pixel` / `dissolve` / `mix` / `none`（§3.7.6） |
 | **模板参数** | **其余所有键** | `shot(type, { ...其余键, ...params })`（显式写在 `params` 里的优先）；`id != null` 时也一并传给模板 |
 
 - `id` 不写 → `scene.id`（模板自己的默认段名，例如 `'chart'`）；重名仍然自动加 `_2`。
@@ -1297,7 +1368,8 @@ result = mean(render(subT) for each subT)
 ```
 
 `fixedOffsets(n)` 给等距居中的 `u`：`u[i] = (i + 0.5)/n - 0.5`。
-自适应用 `ternaryOffsets(levels)`：先 8 个等距，之后每一级把每个间隔三等分、在两侧各插一个新样本，排序后仍是等距居中序列。
+自适应用 `ternaryOffsets(levels)`：返回**层级序**的数组 —— 前 8 个就是整窗 8 点等距网格（与 `fixedOffsets(8)` 同一组数），之后每一级补插新点，使**每一级的前缀恰好是那一档的整窗等距居中网格**（梯子按前缀消费这条数组，见下；排序后的集合仍是等距居中序列）。
+⚠ 这一条曾是 1-72 的病灶：旧实现把 216 点均匀网格按下标连续排布，梯子取"前 8 个"时 8 个子帧全挤在快门窗口左缘 1/27 的细条里 —— 帧内跳变的帧整帧采到跳变前的内容，前半与后半相等被判"静止"，峰值整帧丢失且不报错（回归：`tools/test-sampling.mjs` ②b）。
 
 ### 11.2 收敛判据
 
@@ -1332,12 +1404,43 @@ result = mean(render(subT) for each subT)
 
 单段的 `maxSamples` 只能**收紧**：`maxSamples = min(全局上限, 段上的 maxSamples)`，再 `max(8, ...)`。
 
+
 ### 11.5 拖影有台阶怎么调
 
 1. 先看是不是**噪声随时间连续变化**（shader 里用了 `t` 直接播种的噪声）：改成 `hash12(FRAG_PX + f.seed)` 之类按帧固定。
 2. 调大 `--samples` 或调小 `--tol`（1.0 左右）。
 3. 还不行就调小 `--shutter`（拖影短了，台阶自然不明显）。
 4. `preview` 恒为 1 子帧，所以预览里的拖影一定会比成片「硬」——这是正常现象，不要用预览判断模糊质量。
+
+### 11.6 子像素抖动：多子帧的超采样（2026-10-31）
+
+`render(t)` 走多子帧时，**每个子帧会把整帧平移一个亚像素位置再栅格化**，累加后就是
+**4× 超采样**。这是填充面、`shader` 背景、`raymarch` 边缘变干净的主要来源，而**渲染时间一分不多**
+（这些子帧本来就要渲）。
+
+```
+JITTER_GRID = [(0.125,-0.375), (-0.375,-0.125), (0.375,0.125), (-0.125,0.375)]   // 单位：像素
+jitterOffset(i) = JITTER_GRID[i % 4]
+```
+
+**为什么以前没有**：在这之前，静止画面的 8 个子帧是同一时刻、同一位置渲 8 次 —— 平均等于同一张图，
+多子帧只贡献了运动模糊。引擎注释里那句「逐像素 SDF + 多子帧」实现上只兑现了前半句。
+
+**三条约束**（写错不报错，只是没效果或者突然慢 27 倍，`tools/test-sampling.mjs` 钉着）：
+
+| 约束 | 为什么 |
+|---|---|
+| 均值必须是 0 | 否则整帧内容被平移半个像素（1080p 上看得出） |
+| 全部落在 ±0.5 像素内 | 超过就变成「重影」而不是「亚像素采样」 |
+| **周期必须是 4** | 第一级判据是「前 4 帧 vs 后 4 帧」，两半的抖动序列必须逐位相同，否则静止画面也判成「有运动」⇒ 一路加到 216 子帧 |
+
+**哪些 pass 不吃抖动**：凡是「把已有图像重新采样一遍」的 pass 一律 `jitter: false` ——
+合成器 / 拷贝 / 转场混合 / `ctx.setXform` / 仪器视图 / `three-bridge` / `liquidWarp` / post 整条链。
+它们的输入已经是抖过的内容，再抖一次等于又平移一次，多个 pass 叠起来就是「越描越糊」。
+默认 `true`：场景自己 `new Pass(...)` 的背景、`world`、`raymarch` **应该**参与。
+
+**例外**：子帧数不是 4 的倍数时（`--samples 2` / `6` 这类定长档）自动关掉抖动 ——
+只取前 k 个网格点时均值不为 0。自适应档位 8·3^L（8/24/72/216）全是 4 的倍数，不受影响。
 
 ---
 
@@ -1361,7 +1464,7 @@ result = mean(render(subT) for each subT)
 | `shake <task>` | **抖动体检**：整片 `post.shake` 的幅度 / 逐帧变化量 ⇒「平滑手持」还是「逐帧白噪声（60fps 下是振动）」+ 收尾有没有"停住了还在晃"；有问题退出码 1 | `--from 0`、`--to 全片`、`--batch 240`、`--json` |
 | `still <task>` | 出单帧 PNG（agent 看图用） | `-t 1`（逗号分隔多个时刻）、`-o/--out out/<task>/stills`、`--samples 1`、`--shutter 0.5`、`--scale`、`--only` |
 | `sheet <task>` | 接触表：一张图里 `n` 帧 | `--from 0`、`--to 10`、`-n 12`、`--cols 4`、`--cell 480`、`-o`、`--samples 1`、`--shutter 0.5`、`--only` |
-| `video <task>` | 逐帧渲染 + ffmpeg 出 mp4（带音轨） | `--from 0`、`--to` 全片、`--fps` 任务值、`--samples auto`、`--shutter 0.5`、`--scale`、`--segments`（**不带值时 10**；N = 目标块时长/秒，默认不分块）、`--force`、`--idle 300`、`--dry-run`、`--parallel N`（把片子切 N 段并行渲染再自己拼，**不带值 = 2**；每段一个无头 Chrome，别超物理核数。⚠ 瓶颈搬到"传输"之后已不是首选：4 进程 720 帧 6.1 fps < 单进程 7.5 fps）、`--gpu auto\|high`、`--crf 16`（无音轨 20）、`--preset slow`（无音轨 veryfast）、`--vcodec libx264`、`--x264 aq-mode=3`、`--noaudio`、`--inflight 4`、`-o out/<task>/<task>.mp4`、`--only` |
+| `video <task>` | 逐帧渲染 + ffmpeg 出 mp4（带音轨） | `--from 0`、`--to` 全片、`--fps` 任务值、`--samples auto`、`--shutter 0.5`、`--scale`、`--segments`（**不带值时 10**；N = 目标块时长/秒，默认不分块）、`--force`、`--idle 300`、`--dry-run`（C-1：草稿档/成片档各测 10 帧，分别给分钟数；非常规参数另列「本次参数」）、`--parallel N`（把片子切 N 段并行渲染再自己拼，**不带值 = 2**；每段一个无头 Chrome，别超物理核数。⚠ 瓶颈搬到"传输"之后已不是首选：4 进程 720 帧 6.1 fps < 单进程 7.5 fps）、`--gpu auto\|high`、`--crf 16`（无音轨 20）、`--preset slow`（无音轨 veryfast）、`--vcodec libx264`、`--x264 aq-mode=3`、`--noaudio`、`--inflight 4`、`-o out/<task>/<task>.mp4`、`--only` |
 | `shot <task>` | 无音轨短预览 mp4（快） | 同 `video`，但 `--to from+4`、`--samples 8`、`--crf 20`、`--preset veryfast`，输出 `shot_<from>-<to>.mp4` |
 | `perf <task>` | 性能测量（每帧 ms 的 avg/p50/p95/max + 子帧分布） | `--from 0`、`--to from+5`、`--samples 1`、`--shutter 0.5`、`--encode 8`（估算编码开销 ms）、`--only` |
 | `gpu` | 打印 GPU / WebGL 能力（renderer、vendor、浮点 RT 支持、maxTex） | `--headed` |
@@ -1648,10 +1751,10 @@ export default shot('chart', {
   唯一来源，所以"文档里写的默认值"与"代码实际用的默认值"不可能对不上。
 - **参数名写错会抛错**，不静默忽略：`shot('chart', { value: [...] })`（少个 `s`）会点名
   「没有参数 "value"」并列出可用参数；未知模板名抛 `未知的镜头模板 "xxx"`。
-- 查询方式：`node scripts/anim.mjs shots`（列全部 23 个）、`node scripts/anim.mjs shots chart`（某个模板的全部参数与默认值）；
+- 查询方式：`node scripts/anim.mjs shots`（列全部 25 个）、`node scripts/anim.mjs shots chart`（某个模板的全部参数与默认值）；
   **机器可读**的那一份是 `node scripts/anim.mjs shots --json`（字段契约见 §14.9）。
 
-### 14.2 23 个模板
+### 14.2 25 个模板
 
 | 名字 | 画什么 | 参数（默认值） |
 |---|---|---|
@@ -1678,6 +1781,8 @@ export default shot('chart', {
 | `lockup` | 署名定版：环/菱形/方块标记画出来 + 字标 + 副标 + 从中间展开的分隔线 + 署名行，停住不压黑 | `id` `mark`（`'ring'`）`kicker` `name` `tagline` `meta` `footer` |
 | `timeline` | 横向事件轴：轴从左画到右，笔尖路过的事件节点依次弹出（外圈+信号色中心点+短刻度），事件名上下交替淡入 | `id` `kicker` `title` `events`（4 个名字）`footer` |
 | `radial` | 径向分布：中心呼吸核 + 一圈轮辐（节点/名字/沿辐条的读数条）+ 外圈慢转的缺口环 | `id` `kicker` `title` `nodes`（5 个）`weights`（读数条 0..1）`footer` |
+| `pixel` | 像素风：4–8 色调色板 + 整块栅格 + Bayer 抖出来的渐变 + 12fps 台阶的精灵队列；中文标题走引擎文字层，最后与图一起压进同一栅格（1-67） | `id` `kicker` `title` `sub` `footer` `palette`（`'gameboy'`；nes / amber / pico / bit1 或自给色表）`cell`（`8`）`crawl`（`'bot'`） |
+| `handwrite` | 手写讲解：白板 / 纸感，一笔一笔按弧长生长（落笔细、行笔粗、收笔细），每 2 帧重描；标题用手写体栈（1-69） | `id` `kicker` `title` `sub` `footer` `mode`（`'whiteboard'` / `'paper'`）`seed`（`3`）`boil`（`1.4`，0 = 一笔画完） |
 
 `values` / `headline` 这类数组参数的**元素个数决定画面**（柱子数、两行大字），不是随便塞几个都行。
 
@@ -1700,7 +1805,7 @@ export default shot('chart', {
 
 ### 14.4 每个模板都自己铺满整帧（`whip` 是转场）
 
-- **23 个模板都自己画整帧背景**（`gl.clear(ctx.out, …)` 或自带的全屏 `Pass`），所以一个模板镜头就是**一段完整的画面**，
+- **25 个模板都自己画整帧背景**（`gl.clear(ctx.out, …)` 或自带的全屏 `Pass`），所以一个模板镜头就是**一段完整的画面**，
   不要在同一个 `cut` 里把两个模板叠起来。
 - `whip` 用 `ctx.under`（上一段的成帧）做甩镜，所以**必须**在时间线上给它交叠与转场声明：
 
@@ -1722,7 +1827,7 @@ export default shot('chart', {
 | 交付什么 | **画面本身**（柱子、字、背景、post 全在里面） | **骨架**：`handlesTransition`、共享背景、交叠期把上一帧甩走、`cameraPost(f.t, …)` |
 | 你写什么 | `shot('chart', { 参数 })` | `draw(ctx, { k, dx, dy, enter })` 里的前景代码 |
 | 背景 | 模板自己铺 | `makeShot` 铺（或 `cut(shot, { world: 'auto' })` 让引擎铺） |
-| 什么时候用 | 23 个常见镜头之一 | 要有新视觉，但又不想自己记那四件容易漏的事 |
+| 什么时候用 | 25 个常见镜头之一 | 要有新视觉，但又不想自己记那四件容易漏的事 |
 
 **不要指望把模板塞进 `makeShot().draw()`**：模板的 `render` 会自己 `gl.clear(ctx.out, …)` / 画全屏 Pass，
 覆盖掉 `makeShot` 铺的背景。要用模板就用模板，要自己画就用 `makeShot`，一段里二选一。
@@ -1788,7 +1893,7 @@ export default {
 （都来自 `listShots()`，§14.1）以固定字段名打出来：
 
 ```sh
-node scripts/anim.mjs shots --json          # 23 个模板
+node scripts/anim.mjs shots --json          # 25 个模板
 node scripts/anim.mjs shots chart --json    # 只给一个模板（同样是这个形状，count = 1）
 ```
 
@@ -1849,10 +1954,10 @@ node scripts/anim.mjs shots chart --json    # 只给一个模板（同样是这�
 
 三条**读法**（与字段名一样是契约的一部分）：
 
-1. **`required: true` ⟺ 缺默认值**，不代表"画面离不开它"。当前 23 个模板的每一个参数都有默认值 ⇒
+1. **`required: true` ⟺ 缺默认值**，不代表"画面离不开它"。当前 25 个模板的每一个参数都有默认值 ⇒
    全是 `false`：省掉任何参数都不会报错，画面就是模板自带的那一段。
 2. **缺字段 ≠ `false` / 空**：`requires` 与 `outputs` 是 **1-21 补上的声明式 spec**
-   （`src/shots/*.js` 的 `xxxShot.spec`）—— 现在 23 个模板都有了。**没有 spec 的模板，这两个键
+   （`src/shots/*.js` 的 `xxxShot.spec`）—— 现在 25 个模板都有了。**没有 spec 的模板，这两个键
    根本不出现**，读到"没有这个键"要理解成**"还没声明过"**，不能当成"不需要"。
    1-21 只加字段、没改任何已有字段名 ⇒ `schema` 仍是 `anim.shots/1`，老的读者不会坏。
    （`required` 已经按同一条规矩设计：模板哪天去掉某个参数的默认值，它自动变成 `true`，
@@ -1968,14 +2073,14 @@ seq([ cut(a, { dur: 4 }), cut(b, { dur: 3, overlap: 0.5 }), par(1.0, [cut(c, {du
 
 // 镜头库（A 档，§14）：一行一个整镜头；参数写错会抛错
 import { shot, SHOTS, listShots } from '../../src/shots/index.js';
-export default shot('chart', { values: [0.3, 0.7, 0.95], title: '成绩' });   // 23 个：title chart kinetic whip outro wave pulse grid quote counter compare bigtype scan device lineart morph layers isometric cel liquid lockup timeline radial
+export default shot('chart', { values: [0.3, 0.7, 0.95], title: '成绩' });   // 25 个：title chart kinetic whip outro wave pulse grid quote counter compare bigtype scan device lineart morph layers isometric cel liquid lockup timeline radial pixel handwrite
 export default shot('wave', { id: 'intro' });                               // id 覆盖段名（wave/pulse/grid 需要音乐）
 
 // 配置档（B 档，§9.7 / §14.8）：时间线里直接写模板；任务可以没有 scenes/、整个文件没有任何 import
 timeline: [ { type: 'title', title: '标题', dur: { beat: 8 } },
             { type: 'chart', values: [0.3, 0.7, 0.95], dur: 5, id: 'bars' },
             { type: 'outro', dur: 3 } ]                                     // 数组、seq([...]) 都行
-// 时间线字段 = type id dur at overlap params post maxSamples handlesTransition note world worldPass
+// 时间线字段 = type id dur at overlap params post maxSamples handlesTransition note world worldPass focus carry transition
 // 其余所有键都是模板参数 → shot(type, {…})（写错就抛，并列出可用参数）
 
 // 第 3 种 3D（真网格，§3.8 / docs/THREE.md）：Three.js 镜头，与 makeShot 同形状

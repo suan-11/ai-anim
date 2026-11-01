@@ -49,14 +49,14 @@ function t(name, fn) {
 
 /* ═══════════════ 1. 模式表本身 ═══════════════ */
 
-t('TRANSITION_MODES 覆盖 8 个模式（3 个老 + 5 个新），没有重复、都是非空字符串', () => {
+t('TRANSITION_MODES 覆盖 9 个模式（3 个老 + 5 个新 + relay），没有重复、都是非空字符串', () => {
   assert.ok(Array.isArray(TRANSITION_MODES));
   assert.equal(new Set(TRANSITION_MODES).size, TRANSITION_MODES.length, '有重复的模式名');
   for (const m of TRANSITION_MODES) {
     assert.equal(typeof m, 'string');
     assert.ok(m.length > 0);
   }
-  const expected = ['dissolve', 'glitch', 'iris', 'mix', 'none', 'pixel', 'push', 'wipe'];
+  const expected = ['dissolve', 'glitch', 'iris', 'mix', 'none', 'pixel', 'push', 'relay', 'wipe'];
   assert.deepEqual([...TRANSITION_MODES].sort(), expected);
 });
 
@@ -72,9 +72,10 @@ t('每个模式要么有一支 shader、要么明确不走 Pass —— 两边不
   }
 });
 
-t('mix 与 none 不走 Pass（各有各的实现：compositor.mixTo / 什么都不做）', () => {
+t('mix / none / relay 不走 Pass（各有各的实现：compositor.mixTo / 什么都不做 / engine 的 relay 分支）', () => {
   assert.equal(isPassTransition('mix'), false);
   assert.equal(isPassTransition('none'), false);
+  assert.equal(isPassTransition('relay'), false);
   for (const m of ['push', 'wipe', 'iris', 'glitch', 'pixel', 'dissolve']) {
     assert.equal(isPassTransition(m), true, m + ' 应该走 Pass');
   }

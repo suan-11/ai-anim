@@ -1,12 +1,15 @@
 # HANDOFF · 方向与路线：把 anim 当「一个人的内容工厂」（2026-10-25）
 
+> **📦 已归档（2026-11-01）**：原在 `docs/HANDOFF-directions.md`，方向已定案、四阶段路线已基本落地（销账见 BACKLOG §0 与 §1.F），移入 `docs/history/`。
+> 归档目录的索引见 [`README.md`](./README.md)；活的待办一律以 [`../BACKLOG.md`](../BACKLOG.md) 为准 —— 别把本文的"留给下一步"当成待办，那是**当时**的状态。
+
 > **【一次性交接文档】** 假设读者看不到产生它的对话。本文记录 **2026-10-25 这一轮的方向结论**：
 > 项目定位、外部证据、路线分期、判据，以及**还没拍板的三件事**。
-> **待办仍然只以 [`BACKLOG.md`](BACKLOG.md) 为准**（本轮新增落在 §0 的 P-6/P-7 与 §1.F），
+> **待办仍然只以 [`BACKLOG.md`](../BACKLOG.md) 为准**（本轮新增落在 §0 的 P-6/P-7 与 §1.F），
 > 本文负责"为什么这么做、怎么算做完"。
 >
 > 关联：[HANDOFF-spectrum-friction.md](HANDOFF-spectrum-friction.md)（用法摩擦）、
-> [PERF.md](PERF.md)（渲染实测）、[BACKLOG.md §0](BACKLOG.md)（拍板区）。
+> [PERF.md](../PERF.md)（渲染实测）、[BACKLOG.md §0](../BACKLOG.md)（拍板区）。
 
 ---
 
@@ -63,10 +66,10 @@
 |---|---|---|
 | `spectrum` 75.83s / 60fps = 4550 帧 | 实测分块总 **1859.5s ≈ 31 分钟**（`maxSamples: 8` ⇒ 2.45 fps） | [HANDOFF-spectrum-friction.md](HANDOFF-spectrum-friction.md) §0 |
 | 1–3 分钟片子（3600–10800 帧） | 约 **24–73 分钟/支** | 同上换算 |
-| 独显 `--gpu high` | 填充重的段实测 **2.15×** | [PERF.md](PERF.md) §2 |
+| 独显 `--gpu high` | 填充重的段实测 **2.15×** | [PERF.md](../PERF.md) §2 |
 | `--scale` | 只接受 **1..4**，**没有草稿/半分辨率档** | `scripts/anim.mjs:910` |
 | `fps` | 默认 **60**，是任务字段（可改 30） | `src/tasks.js:21` |
-| 块级复用 | `--segments` 能跳"已渲好的块"，但**判断不了哪块变了** ⇒ 改一段要重渲整块 | [BACKLOG P-3](BACKLOG.md) |
+| 块级复用 | `--segments` 能跳"已渲好的块"，但**判断不了哪块变了** ⇒ 改一段要重渲整块 | [BACKLOG P-3](../BACKLOG.md) |
 
 ---
 
@@ -232,7 +235,7 @@ export const TOKENS = {
 | **P-7** | 竖屏的优先级 | **提前**（W4–W5） | 插在 tokens（1-46）之后、块级重渲（1-45）之前；草稿档也要能出竖屏比例 |
 | **P-8** | 模板扩张要不要"拆 Opus 案例" | **可以拆，好的就学** | 1-48 的做法定为"从案例里提取配方 → 用 anim 的 API 重写"；纪律：只学手法，不抄素材/文案/代码 |
 
-> 现在没有待拍板项。下一件要作者决策的事会在 [BACKLOG.md](BACKLOG.md) §0 出现。
+> 现在没有待拍板项。下一件要作者决策的事会在 [BACKLOG.md](../BACKLOG.md) §0 出现。
 
 ---
 
@@ -289,9 +292,9 @@ node scripts/anim.mjs video <任务B> --segments 10 --gpu high
 
 | 文档 | 讲什么 |
 |---|---|
-| [BACKLOG.md](BACKLOG.md) | **唯一待办清单**（本轮新增：§0 的 P-6/P-7、§1.F 的 1-43 ~ 1-55） |
+| [BACKLOG.md](../BACKLOG.md) | **唯一待办清单**（本轮新增：§0 的 P-6/P-7、§1.F 的 1-43 ~ 1-55） |
 | [HANDOFF-spectrum-friction.md](HANDOFF-spectrum-friction.md) | 《把信号拆开》那一轮的用法摩擦（P-3/P-4/P-5 的来源） |
-| [PERF.md](PERF.md) | 渲染实测与瓶颈 |
-| [MOTION.md](MOTION.md) | 运动规则表（token 的 `motion` 组要在这里对齐上限） |
-| [STYLE.md](STYLE.md) | 风格包（token 的落点） |
-| [LAYOUT.md](LAYOUT.md) | 版面守门（竖屏要重新标定的地方） |
+| [PERF.md](../PERF.md) | 渲染实测与瓶颈 |
+| [MOTION.md](../MOTION.md) | 运动规则表（token 的 `motion` 组要在这里对齐上限） |
+| [STYLE.md](../STYLE.md) | 风格包（token 的落点） |
+| [LAYOUT.md](../LAYOUT.md) | 版面守门（竖屏要重新标定的地方） |

@@ -92,6 +92,8 @@
 | `没有铁律违规（Math.random / Date.now / performance.now / new Date / 逐帧累积 / 按帧抖帧）`<br>`tools/scene-harness.mjs:1502` | 离线跑场的静态扫描干净 | 无事。这条比 `check` 的扫描多覆盖"逐帧累积"和"按帧抖帧"两类 |
 | `Math.floor(t*60) 按帧抖帧 —— …逐帧抖动要用 f.idx；手持感用 shakeSmooth(f.t, amp)`<br>`tools/scene-harness.mjs:175` | 出现 `Math.floor(…*60)` | 按提示换写法；见 `AGENTS.md` §4 铁律表 |
 | `逐帧累积状态（this.x += …）—— …把位置写成时间的函数：x = f(t - birth)`<br>`tools/scene-harness.mjs:176` | 出现 `this.xxx +=` | 把位置写成**时间的函数**（可任意 seek）；`AGENTS.md` §4 |
+| `⚠ 旁白表 <路径> 加载失败（<原因>）—— ctx.narration 会是空的：字幕 / dur:{vo} / 卡点全部不工作`<br>`scripts/anim.mjs` `cmdCheck` 1.05 段（判定：`scripts/lib/narration-error.mjs`） | `task.config.mjs` 配了 `narration: '<路径>'`，但那个文件**不存在 / 不是合法 JSON**。以前只在页面启动时 console.warn 一句就滚没了——成片照常渲、check 照样绿，作者根本不知道 `ctx.narration` 是空的（A-2）。注意：**注释里的示例路径不算**（先剥行注释再匹配） | 文件该有 → 跑 `anim say` 生成它，或确认路径拼写；暂时不要 → 把 `narration` 这一行先删掉。`--strict` 下这条进 errs（退出码 1） |
+| `⚠ lines: begin() 之前又画了 N 条（上一次 flush 之后）—— 没进画面`<br>`src/core/gl.js` `LineBatch._push`（汇总进 `gl.paint.orphanLines`，engine 转 warnings） | **flush() 之后、下一次 begin() 之前**调了 `lines.seg()/fillRect()/...`：数据写进缓冲也永远不会被上传（被下一次 begin 归零覆盖）。以前静默不生效、画面错在哪都不知道（D-1） | 要画就重新 `lines.begin()`；没打算画的删掉那几行。每次渲染只报一次（warnings 数组去重） |
 
 ### 1.3 时间线 / 配置档：写错就抛
 
@@ -99,7 +101,7 @@
 |---|---|---|
 | `tasks/<任务>/task.config.mjs 的时间线不合法：`<br>`src/tasks.js:173` | 时间线构建失败的最外层包装（带文件名） | 读它下面那几行——真正的判据在 `src/timeline.js` |
 | `timeline[i] 这一段（type: "…"）取不到镜头模板：`<br>`src/timeline.js:79` | 配置档节点写错（模板名或参数名） | 报错里就列了可用模板 / 可用参数；`node scripts/anim.mjs shots <名字>` 查参数与默认值。`AGENTS.md` §3.2 |
-| `未知的镜头模板 "x"。可用的：title / chart / …（看参数：node scripts/anim.mjs shots <名字>）`<br>`src/shots/index.js:86` | 模板名拼错 | 照行内命令查；只有 23 个模板（`src/shots/`） |
+| `未知的镜头模板 "x"。可用的：title / chart / …（看参数：node scripts/anim.mjs shots <名字>）`<br>`src/shots/index.js:86` | 模板名拼错 | 照行内命令查；只有 25 个模板（`src/shots/`） |
 | `镜头模板 "x" 没有参数 "y"（大概是拼错了）。可用参数：…`<br>`src/shots/index.js:95` | 参数名拼错（`value` vs `values`） | 照可用参数改；**这是刻意的抛错，不是静默吃默认值**（见 `src/shots/index.js:22`） |
 | `时间线里不能混写「配置档节点」和「已经展开好的段」`<br>`src/timeline.js:265` | 同时写了 `{ type: 'chart', … }` 和手搓的 `{ id, scene, start, end }` | 统一成一种写法：都写配置档，或者都写 `cut()` / `seq()` |
 | `你是不是忘了调 cut()？`<br>`src/timeline.js:324` | 时间线里塞了一个既不是 `cut()/seq()/par()` 返回值、也不是配置档节点、又没有时长的对象 | 补 `cut(scene, { dur })` |
@@ -135,8 +137,8 @@
 | `⚠ 渲染停滞：Xs 没有任何进展（已收到 n/N）`<br>`scripts/anim.mjs:3428` | 真卡住：页面崩了 / WebSocket 断了 / 渲染期间改了文件 | 看紧跟的"页面推流状态 / 已连接客户端 / ffmpeg 退出码"三行；按提示先排除 HMR 重载 |
 | `✓ out/… N 帧（ffprobe 复核 M 帧），用时 Xs`<br>`scripts/anim.mjs:3080` | 出片成功，且 CLI **自己**用 ffprobe 复核过 | 想再确认一遍：`node scripts/anim.mjs verify <任务>`（`AGENTS.md` §10.4） |
 | `子帧分布 8子帧:12  24子帧:200 …`<br>`scripts/anim.mjs:3081` | 运动模糊实际吃到的子帧数分布 | 拖影有台阶 → 调小 `--tol`，或调小 `--shutter`（`AGENTS.md` §8 末行） |
-| `[--dry-run] 先测速：整片均匀取 10 个时刻…` / `预估：N 帧（Xs @60fps）约 M 分钟`<br>`scripts/anim.mjs:2607` `:2614` | 只测速不出片 | 开渲之前先看这个数；`--samples 8` 压一压、或切段 |
-| `⚠ 超过 20 分钟：建议 --segments 分块（可断点续渲）…`<br>`scripts/anim.mjs:2616` | 预估超过 20 分钟 | 照做：`node scripts/anim.mjs video <任务> --segments 10` |
+| `[--dry-run] 按档预估：每档整片均匀取 10 个时刻…` / `草稿档/成片档 … N 帧约 M 分钟`（C-1 起两档都给，`← 本次参数` 标记手上这版）<br>`scripts/anim.mjs` 的 `printEstimate` | 只测速不出片 | 开渲之前先看这个数；`--samples 8` 压一压、或切段。某档「没测成」时只有另一档的读数，**别按比例硬推** |
+| `⚠ 本次参数超过 20 分钟：建议 --segments 分块（可断点续渲）…`<br>`scripts/anim.mjs` 的 `printEstimate` | 本次参数预估超过 20 分钟 | 照做：`node scripts/anim.mjs video <任务> --segments 10` |
 | `⚠ 抖动看着像"振动"而不是手持（…）`<br>`scripts/anim.mjs:2865`（`cmdVideo` 收尾守门） | 出片收尾时抖动判据不通过（判据同 `anim shake`） | 见 §1.8；**不影响文件合格与否，产物保留**（`:2888`） |
 | `并行渲染有 N/M 段失败`<br>`scripts/anim.mjs:4075`（`--parallel`） | 并行路径里有段挂了 | 已渲好的段保留在 `out/<任务>/_parallel/`；修完重跑，日志逐段在各自目录 |
 | `逐帧数出 N 帧，期望 M 帧` / `并行拼接后的产物不合格：` / `并行拼接后的时间戳不合格：`<br>`scripts/anim.mjs` 的 `--parallel` 守门（都走 `gateFailureLines()`；时间戳那条还带 `hint: 'stitch'`） | 拼接路径的帧数与时间戳守门（**帧数对但时间戳漂了同样是废品**） | 分类头会说 `已知原因（确定性）：拼接 / 封装这一步出错，画面本身没问题（各块都已经单独通过守门）。`，并直接点名两种典型签名：尾部被切（`-af apad` 与 `-shortest` 没成对）/ 帧距不齐（concat 少 `-copyts`）。见 `docs/PERF.md` |

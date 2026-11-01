@@ -195,9 +195,14 @@ export function victimSpan(enterDur = 1, ratio = VICTIM_RATIO_DEFAULT) {
  * | 'glitch' | 横向切片错位 + RGB 分离 | 冲击、故障、数据感 |
  * | 'pixel' | 像素块溶解 | 数字化、降采样、回忆 |
  * | 'dissolve' | 噪声阈值溶解（不是等比混合） | 梦境、时间流逝 |
+ * | 'relay' | 相机接力：位姿混合 + 交叠窗换手，由 engine composite 拦截，不走 transitionPass | 相邻两段都声明了 relayPose（手写 camera3 / makeThreeShot）的镜头之间 |
  */
 export const TRANSITION_MODES = /** @type {const} */ ([
   'push', 'mix', 'none', 'wipe', 'iris', 'glitch', 'pixel', 'dissolve',
+  // 相机接力（BACKLOG 1-12）：位姿混合 + 交叠窗换手，由 engine composite 的 relay 分支
+  // 拦截（见 src/core/relay.js），不走 transitionPass —— 所以没有 shader、
+  // isPassTransition('relay') 为 false（与 'mix' / 'none' 同一类）。
+  'relay',
 ]);
 
 const PASS_MODES = new Set(['push', 'wipe', 'iris', 'glitch', 'pixel', 'dissolve']);
@@ -297,7 +302,7 @@ export function transitionPass(gl, opts = {}) {
   const fadeAt = opts.fadeAt ?? (collision ? collision.fadeAt : transitionFadeAt(mode));
   const pass = /** @type {Pass & { collision: ReturnType<typeof planCollision> | null, mode: string }} */ (
     new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt },
-      { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true }));
+      { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true, jitter: false }));   // 重采样已有内容：不吃抖动
   /** 这一笔用的是哪一套比例（没传 `victimRatio` 时是 `null` = 老行为） */
   pass.collision = collision;
   /** 这一笔是哪一种转场（`'push'` = 老路径，源码与从前逐字符相同） */

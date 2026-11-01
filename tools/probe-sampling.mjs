@@ -2,7 +2,7 @@
 /**
  * 自适应子帧采样的量具：**每一帧到底用了几个子帧、误差是多少、cap 起了多大作用**。
  *
- * 为什么需要它：`docs/HANDOFF-spectrum-friction.md` §1 记过一件事 —— 一支"画面主体
+ * 为什么需要它：`docs/history/HANDOFF-spectrum-friction.md` §1 记过一件事 —— 一支"画面主体
  * 是静止图表"的片子，出片实测 0.9 fps（4550 帧要 85 分钟），作者只能在段上写
  * `maxSamples: 8` 压到 2.5 fps。而引擎**从头到尾没有告诉过任何人**它为什么一路加子帧：
  * `lastErrors` 只在 `anim determinism` 的调试输出里露过一次，`perf` 又只量

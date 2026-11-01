@@ -54,11 +54,21 @@ npm run dev                                     # 浏览器里实时预览（空
 
 出图落在 `out/<任务名>/`。**渲染完立刻用 Read 打开那些 PNG 看** —— 这是唯一可靠的验证方式。
 
+**做整支片子时先出草稿、后出成片**：先用 `still` 看画面，再跑
+`node scripts/anim.mjs video <任务> --draft --segments 10`，把草稿路径交给用户并停下等反馈。
+改稿仍走「单帧/短段 → 整支草稿」；**只有用户明确说「定稿 / 出正式版 / 全渲染」这类话，
+才去掉 `--draft` 跑正式成片**。用户没看过草稿或只说「继续做 / 再改一下」≠ 同意全渲染。
+长片先 `video <任务> --dry-run` 看两档分钟数，但**别拿它代替草稿给用户看**。
+
 > **前置条件**：**Chrome**（`playwright-core` 走 `channel: 'chrome'`）+ **ffmpeg / ffprobe**（PATH 里，或
 > `ANIM_FFMPEG` / `ANIM_FFPROBE`）。CLI 自己起私有 Vite 并 spawn 无头 Chrome，用管道读回帧 ——
 > **受限沙箱（只允许写工作区那档）会 `spawn EPERM`**，报错点在 `openSession`，看不出是权限问题。
 > PowerShell 里**别用管道接原生程序输出**（`| Select-Object` 会以"命名管道"为由被拒）—— 直接跑。
-> 沙箱里推仓库：用 Windows 自带 OpenSSH，`git -c core.sshCommand='C:/Windows/System32/OpenSSH/ssh.exe' push origin HEAD`；
+> 沙箱里推仓库：**用 Git 自带的 ssh，不是系统那个** —— 系统 `C:/Windows/System32/OpenSSH/ssh.exe`
+> 在本机实测**返回 255 且毫无输出**（连 `ssh -V` 都是），看不出原因，别在那里浪费时间。
+> 能用的是 `C:/Program Files/Git/usr/bin/ssh.exe`（`ssh -T git@github.com` 会说 "Hi suan-11!"）；
+> ⚠ **路径有空格，必须加引号**（不加会被拆成 `C:/Program`，报 "No such file or directory"）：
+> `git -c core.sshCommand='"C:/Program Files/Git/usr/bin/ssh.exe"' push origin HEAD`；
 > 预提交钩子（sh 脚本）起不来时用 `--no-verify`，但**手动跑一遍钩子里的三项自检**。
 > ⚠ **仓库搬过一次家**（`NekoHome-Studio/ai-anim` → `suan-11/ai-anim`）：GitHub 会重定向所以老远端照样能推，
 > 但每次打一行 `Please use the new location`。`git remote set-url origin git@github.com:suan-11/ai-anim.git` 一次就干净了。
@@ -112,8 +122,8 @@ export default {
 `task.config.mjs` + `scenes/title.js` + `scenes/shapes.js` + `audio/`；改这两个场景文件就能出片，
 **不需要动 `src/` 里的引擎**（除非确实要加底层能力）。
 
-> **要写多少代码？** 常见镜头是**一行**——A 档镜头库 `src/shots/` 有 23 个参数化模板
-> （`title` `chart` `kinetic` `whip` `outro` `wave` `pulse` `grid` `quote` `counter` `compare` `bigtype` `scan` `device` `lineart` `morph` `layers` `isometric` `cel` `liquid` `lockup` `timeline` `radial`），
+> **要写多少代码？** 常见镜头是**一行**——A 档镜头库 `src/shots/` 有 25 个参数化模板
+> （`title` `chart` `kinetic` `whip` `outro` `wave` `pulse` `grid` `quote` `counter` `compare` `bigtype` `scan` `device` `lineart` `morph` `layers` `isometric` `cel` `liquid` `lockup` `timeline` `radial` `pixel` `handwrite`），
 > 场景文件退化成「取模板 + 给参数」：
 >
 > ```js
@@ -209,7 +219,7 @@ export default {
 
 | 类别 | 键 | 说明 |
 |---|---|---|
-| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6） |
+| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` `transitionOpts` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切 / `relay` 相机接力（相机从上一段位姿飞向本段、内容在交叠窗换手；`transitionOpts` 定曲线与换手窗，两种写法见 `docs/ENGINE.md` §3.7.7）；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6） |
 | **模板参数** | **其余所有键** | 原样交给 `shot(type, { … })`；也可以显式写在 `params: { … }` 里（`params` 优先）。**没有必需参数**，每个都有默认值 |
 
 三条硬边界：
@@ -228,7 +238,7 @@ export default {
     镜头模板 "chart" 没有参数 "value"（大概是拼错了）。可用参数：id / values / title / sub / footer / peak
   ```
 
-**什么时候必须回去写场景**：模板只有这 23 个，参数只能调它们**本来就有的画面**。要新视觉
+**什么时候必须回去写场景**：模板只有这 25 个，参数只能调它们**本来就有的画面**。要新视觉
 （raymarch 晶格、燃烧的引线、某支片子特有的母题）就回 §3 手写场景 / §3.5 的 `makeShot`；
 要自己掌控转场与背景时同理。**别为了"纯配置"把模板撑成万能 DSL。**
 
@@ -278,10 +288,12 @@ export default makeShot('chart', {
 | 整行淡入 | `fade(f.lt, delay)` → `{ alpha: [0,1], t, staggerDur }` |
 | 面板 / 眉标 / 页脚 / 准星 / 标记 | `panel` `kicker` `footer` `reticle` `marker` |
 | 填充矩形（一条批） | `lines.fillRect(x, y, w, h, [r,g,b,a])` |
-| **填充面**（圆 / 多边形 / 扇环 / 带洞） | `lines.fillCircle` · `fillPoly(pts)` · `fillPoly([outer, inner])`（带洞）· `fillSector(cx,cy,r0,r1,a0,a1)`。⚠ 角度 0=右、π/2=**下**；先填充后描边（`COOKBOOK` §17） |
+| **填充面**（圆 / 多边形 / 扇环 / 带洞） | `lines.fillCircle` · `fillPoly(pts)` · `fillPoly([outer, inner])`（带洞）· `fillSector(cx,cy,r0,r1,a0,a1)`。⚠ 角度 0=右、π/2=**下**；先填充后描边（`COOKBOOK` §17）。**别为了「更平滑」把 `step` 压到 0.25** —— 竖向平滑由多子帧亚像素抖动负责（`ENGINE` §11.6），压小只换来一堆条数 |
 | **换成像方式**（半调 / 字符画 / 1-bit / 热成像 / CRT / 雕版 / **多方向排线**） | `instrumented(ctx, { mode, cell }, (target) => {…})`（`src/kit/views.js`）。⚠ 整帧（含文字）先画进离屏目标再换，且必须最后一步（`COOKBOOK` §16）。**要真「刻痕」用 `woodcut`**（按明暗加方向；`engrave` 只有一个方向）—— 它的 `cell` 有 **22px 下限**，低于会被夹住并写 warning（§16.4） |
 | **像素风**（调色板 / 块栅格 / 抖动 / 12fps 台阶） | `paletteOf` `pixelText` `drawSprite` `pixelGradient` `snapTime`（`src/kit/pixel.js`），整镜头用 `shot('pixel', {…})`。⚠ 三条写错不报错：抖动阈值按**块**坐标取；精灵 / 像素字落在整块上；台阶用 `f.t` 不用 `f.lt`（`COOKBOOK` §19） |
 | **手绘笔迹** | `strokePath` / `strokeArc` / `inkOn`（`src/kit/stroke.js`），整镜头用 `shot('handwrite', {…})`。⚠ 轮廓法在**曲率半径 < 半宽**处必然自交（偶奇规则填成针孔）—— `drawStroke` 的 auto 会自动退到胶囊链；笔迹**不许半透明**（要用 `inkOn(P.c, 0.9, paper)`，§20.1） |
+| **相机接力**（段间镜头飞过去、内容换手） | 时间线写 `transition: 'relay'`；camera3 场景 `camera3({ ...relayPose3(ctx, home), H })` 一行接入（写之前读 `docs/ENGINE.md` §3.7.7） |
+| **零状态 GPU 粒子** | `makeParticles(ctx, { count, preset: 'sparks'|'orbit'|'drift' })`（`src/kit/particles.js`，1-14）。位置 = f(index, t) 的纯函数，无 CPU 上传；加法混合（信号色发光那档）。⚠ 不参与引擎亚像素抖动；预设名写错当场抛 |
 | **整片换介质**（默认 off） | 风格包字段 `view: 'halftone'` 或 `{ mode, cell, passes, misreg }`（写错当场抛）；`passes: 2..4` = N 版套印，整片生效、字幕仍清晰（`COOKBOOK` §16.1–16.2） |
 | **像「胶片放出来的」** | `return { weave: 0.5, flicker: 0.25, scratch: 0.2 }`（默认全 0 = 逐像素不变，全由 `t` 驱动；`COOKBOOK` §16.3） |
 | **剪纸 / 纸艺层叠** | `paperShape({x,y,w,h,seed})` → `paperStack(lines, layers, { pan, parallax })`（`src/kit/paper.js`）。⚠ 三条**出图才看得见**的比例：撕边幅度 = **边长 × 1.5–3%**（12px 在 2000px 的纸上就是直线）；白芯只浅 **7%**（35% ⇒ 雪白高光带）；投影**不透明**（半透明会在扫描行之间出条纹）。撕边在 `setup` 里算一次（只吃 seed，不吃 t）。见 `docs/MOTION.md` §3.7 |
@@ -309,7 +321,7 @@ export default makeShot('chart', {
 | 一帧多段共存时共用 `engine.text` | 每段场景有自己的 `ctx.text`，别用引擎的 | 一律用 `ctx.text` / `ctx.type` |
 | 声明了 `handlesTransition` 却不铺整帧背景 | 那一段的底是**纯黑**（只有 grain 和暗角），而且不报错 —— fidus 那次 9 段里 8 段这样 | 写 `cut(shot, { world: 'auto' })` 让引擎铺；或自己画一次全屏 Pass；`check` 会报出来 |
 
-`f` 上已经给你准备好了：`t`（整片时间）、`lt`（段内时间）、`p`（段内进度）、`idx`（帧号）、`seed`、`beat` / `bar` / `beatPhase`、`a`（音频特征快照）、`tin` / `tout`、`start` / `end`。
+`f` 上已经给你准备好了：`t`（整片时间）、`dt`（本帧步长；子帧路径=子帧间距）、`lt`（段内时间）、`p`（段内进度）、`idx`（帧号）、`seed`、`beat` / `bar` / `beatPhase`、`a`（音频特征快照）、`tin` / `tout`、`start` / `end`。
 
 > **`tin` / `tout` 的准确含义**（容易误解）：
 > `tin` = 与上一段重叠时，**本段入场进度**（0→1）。
@@ -544,8 +556,8 @@ node scripts/anim.mjs shot  <任务> --from 0 --to 6 --samples 4   # 短预览 m
 # 出片
 node scripts/anim.mjs video <任务>                       # 1080p60 + 自动运动模糊 + 音轨
 node scripts/anim.mjs video <任务> --segments 10         # 分块：>30 秒的片子**默认就加**
-node scripts/anim.mjs video <任务> --dry-run             # 测速 + 预估（⚠ 它量的是 samples=1，不是成片的 auto）
-node scripts/anim.mjs video <任务> --draft               # 960×540 + samples=1，**只审节奏，不是成片**
+node scripts/anim.mjs video <任务> --dry-run             # 按档预估：草稿 / 成片各测 10 帧，两行分钟数
+node scripts/anim.mjs video <任务> --draft --segments 10 # 草稿审片：960×540 + samples=1，改稿可复用块
 node scripts/anim.mjs queue a b --segments 10 --gpu high # 睡前排队：顺序跑（并行实测更慢）、失败不中断后续
 
 # 验收（verify 管"画面是不是这一版"，qa 管"这份文件有没有黑闪/冻结/静音"）
@@ -566,8 +578,10 @@ node scripts/anim.mjs shake <任务> [--from 0 --to 48]      # 抖动是"平滑�
 node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再定：填充重的片子差 2×
 ```
 
-**分块渲染（`--segments`）两条必知**：切点只落在段边界、避开转场；**块级判断**（BACKLOG 1-45）——
-只改 `tasks/` 下的场景 ⇒ 只重渲它所在那块，改了 `src/` 或渲染参数 ⇒ 整批重渲。
+**分块渲染（`--segments`）三条必知**：切点只落在段边界、避开转场；**块级判断**（BACKLOG 1-45）——
+只改 `tasks/` 下的场景 ⇒ 只重渲它所在那块；改 `src/core` `src/style` `src/app.js` `src/timeline.js` 或 `public/`
+（**引擎地基**）⇒ 整批重渲；改 `src/kit` `src/shots` 这类**通用件** ⇒ 只重渲**真正 import 到它**的块
+（按 import 图收窄，含 `import { makeShot }` 只跟那一条、`shot('chart')` 只跟 chart 模板）；渲染参数变了 ⇒ 整批。
 ⚠ 长时间单进程推流**会中途卡死**（实测 1260/4550 帧处 12 分钟无进度而进程还在）—— 分块每块重启浏览器，天然规避。
 
 **出片速度**（本机实测、1080p60、`samples=1`）：7.5 fps，raymarch 类加 `--gpu high` 再翻倍；
@@ -634,7 +648,7 @@ node scripts/anim.mjs check <任务>
 | 要改什么 | 去哪 |
 |---|---|
 | 渲染一帧 / 合成 / 后处理 / 自适应运动模糊 | `src/core/`（先读 `docs/ENGINE.md`） |
-| 镜头模板（A 档，23 个） | `src/shots/`；参数：`node scripts/anim.mjs shots [名字]` |
+| 镜头模板（A 档，25 个） | `src/shots/`；参数：`node scripts/anim.mjs shots [名字]` |
 | 写镜头的骨架与元件 | `src/kit/`（`index.js` 是统一出口：`makeShot` `makeWorldKit` `panel` …） |
 | 时间线 DSL、任务加载、配置档节点判定 | `src/timeline.js`、`src/tasks.js` |
 | 风格包 | `src/style/`（见 `docs/STYLE.md`） |
@@ -650,7 +664,7 @@ node scripts/anim.mjs check <任务>
 | `docs/ENGINE.md` | 引擎规格（`src/` 的地基；**改引擎之前读**） |
 | `docs/COOKBOOK.md` | 常见效果怎么做 —— 按「画面要什么」找做法 |
 | `docs/MOTIFS.md` | **母题库**`src/kit/motifs/`：拆方波 / 8×8 DCT / 波形+游标 —— 同一件事只写一次 |
-| `docs/shots/` | **镜头卡索引**（按叙事功能分组，23 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
+| `docs/shots/` | **镜头卡索引**（按叙事功能分组，25 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
 | `docs/CONFIG-ONLY.md` | 零代码出片（B 档，§3.2 的完整版） |
 | `docs/STYLE.md` | 风格包与反审美疲劳（相邻两片换脸是**建议**：风格由内容决定） |
 | `docs/CAPTIONS.md` | 字幕层与信息分工（画面只放标注） |
@@ -658,7 +672,7 @@ node scripts/anim.mjs check <任务>
 | `docs/LAYOUT.md` | 版面纪律与「版面守门」（一屏一个主体） |
 | `docs/MOTION.md` | 运动规则表（什么时候用哪个、数值上限、证据分级） |
 | `docs/NARRATION.md` | 旁白 / 口播这一层（A/B/C 三档） |
-| `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（20 提交 / 311 文件，按引擎·工作台·模板·风格·判据·流程分块） |
+| `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（37 提交 / 381 文件，按引擎·工作台·模板·风格·判据·流程分块） |
 | `docs/SFX.md` | 音效层：从 SoundDino 取（授权/配额/记账）、`anim` 侧的接入缺口 |
 | `docs/THREE.md` | 第 3 种 3D：Three.js 镜头 |
 | `docs/DIAGNOSIS.md` | 输出词 → 含义 → 修法（**看到不认识的诊断词就查**） |

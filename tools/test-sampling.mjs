@@ -8,7 +8,7 @@
  * 为什么值得单开一个文件：这一层以前整个活在 `Engine.render()` 的循环里，正确性**只能靠
  * 出片速度反推**。于是三个 bug 同时存在了很久：误差读数恒为 0（8bit/浮点格式不匹配）、
  * 新一组的均值权重差 2 倍、子帧位置外推出快门窗口。三条都不报错，只是让整条引擎的
- * 运动模糊**从来没有按设计工作过**（`docs/HANDOFF-spectrum-friction.md` §1）。
+ * 运动模糊**从来没有按设计工作过**（`docs/history/HANDOFF-spectrum-friction.md` §1）。
  *
  * 退出码：0 = 全通过 · 1 = 有断言失败。
  */
@@ -17,6 +17,7 @@ import {
   BASE_SAMPLES, MAX_SAMPLES, DEFAULT_TOL, ERROR_QUANTILE,
   fixedOffsets, ternaryOffsets, snapMaxSamples, levelsFor,
   quantileFromHist, samplingVerdict, describeSampling, SAMPLE_REASONS,
+  JITTER_GRID, JITTER_PERIOD, NO_JITTER, jitterOffset,
 } from '../src/core/sampling.js';
 
 let pass = 0;
@@ -46,11 +47,43 @@ console.log('\n② 子帧位置：等距、居中、**全部落在快门窗口�
 for (const L of [0, 1, 2, 3]) {
   const u = ternaryOffsets(L);
   const n = BASE_SAMPLES * 3 ** L;
-  check(`${n} 子帧：数量与首尾`, u.length === n && u[0] > -0.5 && u[u.length - 1] < 0.5,
-    `首 ${u[0].toFixed(4)} 尾 ${u[u.length - 1].toFixed(4)}`);
-  const gaps = u.slice(1).map((v, i) => v - u[i]);
-  check(`${n} 子帧：等距`, gaps.every((g) => near(g, gaps[0], 1e-9)), `间距 ${gaps[0].toFixed(6)}`);
-  check(`${n} 子帧：以帧时刻为中心（左右对称）`, near(u[0], -u[u.length - 1], 1e-12));
+  // 1-72：数组本身是**层级序**（先粗后细），逐位等距的是**排序后**的集合
+  const s = [...u].sort((p, q) => p - q);
+  check(`${n} 子帧：数量与首尾`, u.length === n && Math.min(...u) > -0.5 && Math.max(...u) < 0.5,
+    `首 ${Math.min(...u).toFixed(4)} 尾 ${Math.max(...u).toFixed(4)}`);
+  const gaps = s.slice(1).map((v, i) => v - s[i]);
+  check(`${n} 子帧：排序后等距`, gaps.every((g) => near(g, gaps[0], 1e-9)), `间距 ${gaps[0].toFixed(6)}`);
+  check(`${n} 子帧：以帧时刻为中心（左右对称）`, near(Math.min(...u), -Math.max(...u), 1e-12));
+}
+
+// 【1-72 回归】梯子按**连续前缀**消费（0..8 → 8..24 → …），所以每一级的前缀必须
+// 就是那一档的均匀网格 —— 否则"第一级 8 子帧"会挤在窗口左缘的细条里，
+// 跳变帧整帧采到跳变前的内容、两半相等被判"静止"、峰值整帧丢失。
+// 实测（_d72-lab，title 段 t=4.0 的 flash 脉冲）：修前 auto 输出 YAVG 49.2（= 平台真值），
+// 同帧 --samples 24 是 89.6。隔离会话同样复现 ⇒ 与跨帧状态无关，是采样窗几何错误。
+console.log('\n②b 【1-72】梯子前缀 = 整窗均匀网格（层级序，不是均匀序的连续前缀）');
+{
+  const full = ternaryOffsets(3); // 216
+  const u0 = full.slice(0, BASE_SAMPLES);
+  check('216 序列的前 8 个（第一级）覆盖快门窗口（修前是左缘 1/27 细条）',
+    Math.min(...u0) <= -0.4 && Math.max(...u0) >= 0.4,
+    `实际 [${Math.min(...u0).toFixed(4)}, ${Math.max(...u0).toFixed(4)}]`);
+  check('第一级就是 8 点均匀网格（与 fixedOffsets 同一组数）',
+    fixedOffsets(BASE_SAMPLES).every((v, i) => near(v, u0[i], 1e-12)));
+  for (const L of [0, 1, 2, 3]) {
+    const total = BASE_SAMPLES * 3 ** L;
+    const prefix = full.slice(0, total);
+    const uni = Array.from({ length: total }, (_, j) => (j + 0.5) / total - 0.5);
+    const hit = uni.every((v) => prefix.some((w) => Math.abs(v - w) < 1e-9));
+    check(`前 ${total} 个 = ${total} 点均匀网格（"并进总和"的均值守恒靠它）`, hit);
+  }
+  // 引擎第一级把 8 个子帧拆成两半判"静止"（前半进 newRT、后半进 sumRT）——
+  // 这条判据合法的前提：前半 = 窗口左半、后半 = 窗口右半。
+  const half = BASE_SAMPLES >> 1;
+  const a = full.slice(0, half), b = full.slice(half, BASE_SAMPLES);
+  check('第一级前半 = 窗口左半、后半 = 窗口右半（两半判"静止"才合法）',
+    Math.max(...a) < 0 && Math.min(...b) > 0,
+    `前半 [${Math.min(...a).toFixed(3)},${Math.max(...a).toFixed(3)}] 后半 [${Math.min(...b).toFixed(3)},${Math.max(...b).toFixed(3)}]`);
 }
 // 嵌套：上一级的每个位置必须**仍在**下一级里（并总和的均值守恒靠它）
 for (const L of [0, 1, 2]) {
@@ -116,7 +149,41 @@ check('没有误差时不许装作有', describeSampling({ samples: 8, reason: '
 check('静止（第一级就停）', describeSampling({ samples: 8, reason: 'static', err: 0 }).includes('静止'));
 check('理由词表包含 static（机器读者依赖它）', SAMPLE_REASONS.includes('static'));
 
-console.log('\n⑥ 常量与文档里写的一致（改它们要同时改 ENGINE.md §11 与 AGENTS.md §7）');
+console.log('\n⑥ 子像素抖动（多子帧超采样）—— 三条约束各自可断言');
+{
+  // ① 均值 0：否则整帧内容会平移（半个像素在 1080p 上看得见）
+  let sx = 0; let sy = 0;
+  for (const [x, y] of JITTER_GRID) { sx += x; sy += y; }
+  check('抖动网格的均值必须是 0', near(sx, 0) && near(sy, 0), `(${sx}, ${sy})`);
+  // ② 全部落在 ±0.5 像素内：超过就变"重影"而不是"亚像素采样"
+  check('每个偏移都在 ±0.5 像素内',
+    JITTER_GRID.every(([x, y]) => Math.abs(x) <= 0.5 && Math.abs(y) <= 0.5),
+    JSON.stringify(JITTER_GRID));
+  // ③ 周期 4：第一级判据是"前 4 帧 vs 后 4 帧"，两半的抖动序列必须逐位相同，
+  //    否则静止画面会被判成"有运动"、一路加到 216 子帧（慢 27 倍，且没人看得出是这条引起的）
+  check('抖动周期 = 4（与"前半 4 / 后半 4"的判据对齐）', JITTER_PERIOD === 4);
+  check('JITTER_PERIOD 就是网格长度', JITTER_PERIOD === JITTER_GRID.length);
+  const half = BASE_SAMPLES >> 1;
+  let seqSame = true;
+  for (let i = 0; i < half; i++) {
+    const a = jitterOffset(i);
+    const b = jitterOffset(half + i);
+    if (a[0] !== b[0] || a[1] !== b[1]) seqSame = false;
+  }
+  check('前 4 个子帧与后 4 个子帧的抖动序列逐位相同（静止帧才判得出 static）', seqSame);
+  let seqSame2 = true;
+  for (let i = 0; i < BASE_SAMPLES; i++) {
+    const a = jitterOffset(i);
+    const b = jitterOffset(i + BASE_SAMPLES);
+    if (a[0] !== b[0] || a[1] !== b[1]) seqSame2 = false;
+  }
+  check('相邻两级之间抖动序列也对齐', seqSame2);
+  check('负数/非整数下标被规整（不许越界）',
+    Array.isArray(jitterOffset(-1)) && Array.isArray(jitterOffset(3.7)) && jitterOffset(2.4)[0] === jitterOffset(2)[0]);
+  check('不抖的是一个零向量（单子帧路径用）', NO_JITTER[0] === 0 && NO_JITTER[1] === 0);
+}
+
+console.log('\n⑦ 常量与文档里写的一致（改它们要同时改 ENGINE.md §11 与 AGENTS.md §7）');
 check('BASE_SAMPLES = 8', BASE_SAMPLES === 8);
 check('MAX_SAMPLES = 216', MAX_SAMPLES === 216);
 check('DEFAULT_TOL = 2.5（显示空间 0..255）', DEFAULT_TOL === 2.5);

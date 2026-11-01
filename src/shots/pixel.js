@@ -275,7 +275,7 @@ export function pixelShot(opts = {}) {
         const pass = this.down || (this.down = new Pass(gl, /* glsl */ `
           uniform sampler2D src;
           void main() { fragColor = vec4(texture(src, vUv).rgb, 1.0); }`,
-        { src: { value: null } }, { key: 'shot_pixel_down', blend: false }));
+        { src: { value: null } }, { key: 'shot_pixel_down', blend: false, jitter: false }));
         pass.u.src.value = ctx.out;
         pass.render(gl, small, 0, 1 / 60);
         buf = gl.readPixels(small, 'srgb', { copy: true });

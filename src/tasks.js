@@ -83,7 +83,7 @@ export function normalizeAudio(audio) {
 }
 
 /** 载入某个任务的配置。 */
-export async function loadTask(name, { music = null, variant = null } = {}) {
+export async function loadTask(name, { music = null, variant = null, narrationData = undefined } = {}) {
   // 允许任务名里带引号/斜杠之类的意外输入，直接拒绝比默默跑挂好
   if (!/^[\w.-]+$/.test(name)) throw new Error(`任务名不合法：${name}`);
   const key = Object.keys(configs).find((k) => nameOfKey(k) === name);
@@ -146,11 +146,13 @@ export async function loadTask(name, { music = null, variant = null } = {}) {
   if (spec.narration && typeof spec.narration !== 'string') {
     spec.narrationData = makeNarration(spec.narration, { duration: spec.duration });
   } else if (typeof spec.narration === 'string') {
-    // 从文件来：`src/app.js` 会 fetch 那个 JSON 再调一次 makeNarration
+    // 从文件来：调用方（src/app.js）把表 fetch 好从 `narrationData` 注入进来
     //（浏览器里才拿得到任务目录的 URL，这里不做 fetch）。
-    // ⚠ `dur: { vo: id }` 因此**不能**与"旁白表放在外部 json 里"同时用 ——
-    //   时间线在页面启动时就构建好了，那时还没有表。这种情况会在 build 时抛错并说清楚。
-    spec.narrationData = null;
+    // 1-8（2026-10-31）：注入通道落地 —— app.js 在 loadTask **之前**就把表 fetch 好，
+    // 两次 loadTask 都带上。于是 `dur: { vo: id }` 与"旁白表放在外部 json 里"可以同时用了
+    //（build() 在本函数内发生，那时表已经在）。没注入（老调用方 / 表还没取到）时保持原行为：
+    // narrationData 为 null，build 时 dur:{vo} 会抛错并说清楚原因。
+    spec.narrationData = narrationData ?? null;
   }
   if (spec.narrationData?.warnings?.length) {
     for (const w of spec.narrationData.warnings) console.warn(`[旁白] ${w}`);

@@ -143,7 +143,33 @@ async function boot() {
   // "音乐按变体加载、时间线按原配置"的错位。
   const variantName = q.get('variant') || null;
   if (variantName) console.info('[variant] 使用变体 "' + variantName + '"');
-  const preTask = await loadTask(taskName, { variant: variantName });
+  // 1-8（2026-10-31）：外挂旁白表在**第一次 loadTask 之前**取好 —— build() 发生在 loadTask 内部，
+  // 表必须在那时就在位，`dur: { vo: id }` 才能与"旁白表放在外部 json 里"同时用。
+  // 失败是软的（记下原因，A-2 的 check 会点名）：没有表时行为与从前完全一致。
+  /** @type {any} */
+  let narrationPreload = null;
+  /** @type {{ file: string, message: string } | null} */
+  let narrationError = null;
+  {
+    // 先要任务目录 —— preTask 还没取，先拿一次"裸"配置只为读 narration 路径与变体。
+    // 裸取用同一 loadTask（不带 music/narration，代价只是一次模块缓存命中）。
+    const pre = await loadTask(taskName, { variant: variantName });
+    if (typeof pre.narration === 'string') {
+      const file = pre.narration;
+      try {
+        // 任务目录此时还算不出来（taskBase 在下面才定义）——自己算：相对 tasks/<名>/ 解析
+        const base = new URL(`tasks/${taskName}/`, location.href);
+        const url = new URL(file.replace(/^\.\//, ''), base).href;
+        const j = await (await fetch(url)).json();
+        const { makeNarration } = await import('./core/narration.js');
+        narrationPreload = makeNarration(j, { duration: pre.duration });
+      } catch (err) {
+        narrationError = { file, message: err && err.message ? String(err.message) : String(err) };
+        console.warn(`[旁白] 读不到 ${file}（${narrationError.message}）—— ctx.narration 会是空的`);
+      }
+    }
+  }
+  const preTask = await loadTask(taskName, { variant: variantName, narrationData: narrationPreload });
   /**
    * 任务里的路径（audio / lyrics / analysis）都是**相对任务目录**的：
    * './audio/x.mp3' 指的是 tasks/<任务>/audio/x.mp3。
@@ -164,24 +190,35 @@ async function boot() {
     });
   }
 
-  const task = await loadTask(taskName, { music, variant: variantName });
+  const task = await loadTask(taskName, { music, variant: variantName, narrationData: narrationPreload });
   /**
    * 旁白表可以从**文件**来（`narration: './narration.json'`）。
    * 与 `lyrics` 同一个套路：JSON 是外部脚本（TTS 量长那一步）产出的，任务目录里相对路径引用。
    * 加载失败只警告、不致命 —— 没有旁白表时 `ctx.narration` 是个安全的空实现。
    */
-  if (typeof preTask.narration === 'string') {
-    const url = taskUrl(preTask.narration);
-    try {
-      const j = await (await fetch(url)).json();
-      const { makeNarration } = await import('./core/narration.js');
-      task.narrationData = makeNarration(j, { duration: task.duration });
-      for (const w of task.narrationData?.warnings ?? []) console.warn(`[旁白] ${w}`);
-    } catch (err) {
-      console.warn(`[旁白] 读不到 ${preTask.narration}（${err && err.message}）—— ctx.narration 会是空的`);
+  if (typeof preTask.narration === 'string' && narrationPreload) {
+    // 1-8：表已在 loadTask 里生效（task.narrationData 已有），这里只做警告转发
+    for (const w of task.narrationData?.warnings ?? []) console.warn(`[旁白] ${w}`);
+  } else if (typeof preTask.narration === 'string' && !task.narrationData) {
+    // 兜底：调用方没注入（预览/dev 直开且上面取失败了）——保持旧路径，失败要可见（A-2）
+    if (!narrationError) {
+      try {
+        const url = taskUrl(preTask.narration);
+        const j = await (await fetch(url)).json();
+        const { makeNarration } = await import('./core/narration.js');
+        task.narrationData = makeNarration(j, { duration: task.duration });
+        for (const w of task.narrationData?.warnings ?? []) console.warn(`[旁白] ${w}`);
+      } catch (err) {
+        narrationError = { file: preTask.narration, message: err && err.message ? String(err.message) : String(err) };
+        console.warn(`[旁白] 读不到 ${preTask.narration}（${narrationError.message}）—— ctx.narration 会是空的`);
+        task.narrationData = null;
+      }
+    } else {
       task.narrationData = null;
     }
   }
+  // A-2：加载失败要可见 —— 标记挂在 task 上，CLI 的 check 直接读它（不依赖浏览器回传）
+  if (narrationError) task.narrationError = narrationError;
   /**
    * 分辨率倍率：1 = 1080p，2 = 真 4K。**也接受 0.5 / 0.25**（草稿档 `--draft` 用它，BACKLOG 1-44）：
    * 半分辨率渲染，GPU 填充只有 1/4，用来审节奏与信息密度；**不是成片**。
@@ -558,7 +595,7 @@ const api = {
       seeked: true,
     });
     // 自适应采样的**结论**跟着回来：子帧数只是结果，"为什么停在这里"才是有用的信息
-    // （docs/HANDOFF-spectrum-friction.md §1 抱怨的正是"引擎从不解释自己"）。
+    // （docs/history/HANDOFF-spectrum-friction.md §1 抱怨的正是"引擎从不解释自己"）。
     return {
       samples: r.samples, errors: r.errors,
       reason: engine.lastSampleReason, maxSamples: engine.lastMaxSamples,

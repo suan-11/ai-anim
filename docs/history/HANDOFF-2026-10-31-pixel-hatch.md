@@ -1,8 +1,11 @@
 # HANDOFF · 2026-10-31 晚 · 像素精灵 + 多方向排线
 
+> **📦 已归档（2026-11-01）**：原在 `docs/HANDOFF-2026-10-31-pixel-hatch.md`，像素精灵 + 多方向排线已落地，移入 `docs/history/`。
+> 归档目录的索引见 [`README.md`](./README.md)；活的待办一律以 [`../BACKLOG.md`](../BACKLOG.md) 为准 —— 别把本文的"留给下一步"当成待办，那是**当时**的状态。
+
 > **自包含的一次性交接文档**：假设读者看不到产生它的会话。
 > 上一份是同一天的 [HANDOFF-2026-10-31.md](HANDOFF-2026-10-31.md)（AGENTS 瘦身 / 参数化转场 / 纸艺层叠）。
-> 活的待办只以 [BACKLOG.md](BACKLOG.md) 为准。
+> 活的待办只以 [BACKLOG.md](../BACKLOG.md) 为准。
 
 ---
 
@@ -129,7 +132,7 @@ node scripts/anim.mjs still _hatch-lab-eng -t 1
 
 ## 4. 还没做（下一个会话从这里接）
 
-> 与 [REFERENCE-style-pack-capability.md](REFERENCE-style-pack-capability.md) §3 缺口表同源，**按复用度排序**。
+> 与 [REFERENCE-style-pack-capability.md](../REFERENCE-style-pack-capability.md) §3 缺口表同源，**按复用度排序**。
 > 上一轮做完第 5 行，这一轮做完第 9 / 10 行，**第 6 / 7 行仍未做**（它们是表里剩下复用度最高的两条）。
 
 | 能力 | 覆盖条数 | 代价 | 备注 |
@@ -164,10 +167,10 @@ node scripts/anim.mjs still _hatch-lab-eng -t 1
 | 文档 | 讲什么 |
 |---|---|
 | [HANDOFF-2026-10-31.md](HANDOFF-2026-10-31.md) | 同一天的上一轮：AGENTS 瘦身 / 参数化转场 / 纸艺层叠 |
-| [BACKLOG.md](BACKLOG.md) | 活待办。本轮收账：**1-67**、**1-68** |
-| [COOKBOOK.md](COOKBOOK.md) | **§19** 像素风（四件事 + 五条出图才看得见的）/ **§16.4** 多方向排线（五条纪律） |
-| [MOTION.md](MOTION.md) | **§3.8** 像素风的运动：台阶、逐字揭晓、为什么不平滑 |
-| [REFERENCE-style-pack-capability.md](REFERENCE-style-pack-capability.md) | §3 能力缺口表（第 9 / 10 行已收） |
+| [BACKLOG.md](../BACKLOG.md) | 活待办。本轮收账：**1-67**、**1-68** |
+| [COOKBOOK.md](../COOKBOOK.md) | **§19** 像素风（四件事 + 五条出图才看得见的）/ **§16.4** 多方向排线（五条纪律） |
+| [MOTION.md](../MOTION.md) | **§3.8** 像素风的运动：台阶、逐字揭晓、为什么不平滑 |
+| [REFERENCE-style-pack-capability.md](../REFERENCE-style-pack-capability.md) | §3 能力缺口表（第 9 / 10 行已收） |
 | `src/kit/pixel.js` / `src/shots/pixel.js` | 像素层的实现与整镜头模板 |
 | `src/kit/views.js`（`m == 8` 分支） | 多方向排线的 shader |
 

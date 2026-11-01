@@ -25,6 +25,8 @@ import { SILENT } from './audio.js';
 import * as U from './util.js';
 // 交叠期的默认转场（甩镜）。`transitions.js` 只依赖 gl/util，不会再反向依赖 engine —— 无环。
 import { transitionPass, cameraDir, resolveTransitionMode } from './trans.js';
+// 相机接力（BACKLOG 1-12）：位姿混合 + 换手窗（纯函数层，src/core/relay.js）
+import { blendPose, poseFromCamera3, poseToCamera3, relayHandover, resolveRelayMove, HANDOVER_GLIDE } from './relay.js';
 // 画幅适配（竖屏，BACKLOG 1-52）：栅格与字号阶梯要按实际 W/H 换一套。
 // 依赖方向是 core → style 的唯一一处，且只用一个纯函数（`style/index.js` 不反向 import 引擎）。
 import { fitStyleToFrame } from '../style/index.js';
@@ -36,6 +38,7 @@ import {
   BASE_SAMPLES, MAX_SAMPLES, DEFAULT_TOL,
   fixedOffsets, ternaryOffsets, levelsFor, snapMaxSamples,
   quantileFromHist, samplingVerdict,
+  jitterOffset, NO_JITTER, JITTER_PERIOD,
 } from './sampling.js';
 
 /** @typedef {import('./post.js').PostParams} PostParams */
@@ -143,7 +146,7 @@ export class Engine {
      * `readPixels(RGBA, UNSIGNED_BYTE)` 读它 —— WebGL2 对 RGBA16F + UNSIGNED_BYTE 抛
      * `INVALID_OPERATION`，缓冲原样不动（全 0）⇒ 误差恒为 0 ⇒ 自适应采样**从来没起过作用**
      * 每一帧都在第 1 级"收敛"。这个 bug 不报错、只少画拖影，活了很久
-     * （`docs/HANDOFF-spectrum-friction.md` §1 把它误判成"静止画面上不收敛"）。
+     * （`docs/history/HANDOFF-spectrum-friction.md` §1 把它误判成"静止画面上不收敛"）。
      * 见 `tools/probe-sampling.mjs` 与 `tools/test-sampling.mjs`。
      */
     this.errRT = new RT(this.gl, Math.ceil(this.gl.pw / 16), Math.ceil(this.gl.ph / 16), { float: false, nearest: true });
@@ -159,7 +162,7 @@ export class Engine {
     /**
      * 上一帧**为什么**停在这个子帧数上（`'tol'` 收敛 / `'stall'` 停滞熔断 / `'cap'` 到上限 /
      * `'more'` 还在加 / `null` 没走自适应）。`video` 收尾与 `perf` 会打出来 ——
-     * 作者以前只能靠"实测帧率反推"，因为引擎从不解释自己（`docs/HANDOFF-spectrum-friction.md` §1）。
+     * 作者以前只能靠"实测帧率反推"，因为引擎从不解释自己（`docs/history/HANDOFF-spectrum-friction.md` §1）。
      */
     this.lastSampleReason = null;
     /** 上一帧判定时的误差（0..1，显示空间；`NaN` = 第一级就到上限，没量过） */
@@ -385,7 +388,84 @@ export class Engine {
     return { problems, gaps: cover };
   }
 
+  /* ---------------------------------------------------------- 段间引用（BACKLOG 1-15） */
+
+  /**
+   * 把**任意另一段**在**任意时刻**的画面渲到一张专用 RT 上（画中画 / 闪回 / 记忆墙）。
+   *
+   * 确定性上是安全的：每一帧本来就是 t 的纯函数，"重画任意时刻"与"画当前时刻"是同一件事。
+   * 成本是一次完整的单段渲染（world + 场景 + 文字层，**1 个子帧**、不走自适应）——
+   * 场景侧每个渲染子帧各调一次就是正确的运动模糊，但没有必要给它再做嵌套展开。
+   *
+   * 递归保护：被引用的段自己再调 `renderShotAt`（或 `ctx.renderShot`）直接抛 ——
+   * 引用环没有合法语义，宁可当场崩也不要静默画出一帧错的东西。
+   *
+   * @param {string} id 段 id（时间线里 `cut(scene, { id })` 的那个）
+   * @param {number} t **整片时间**（不是段内时间——与"这一帧在 t 时刻长什么样"同一口径）
+   * @returns {RT} 专用 RT（下次调用会复用同一张，所以只够画一次进当前帧；要留就自己拷）
+   */
+  renderShotAt(id, t) {
+    if (this._refDepth) throw new Error(`renderShotAt("${id}")：段间引用不允许嵌套（被引用的段自己又在引用别的段）`);
+    const item = this.timeline.find((i) => i.id === id);
+    if (!item) {
+      throw new Error(`renderShotAt：没有 id 为 "${id}" 的段。可用：${this.timeline.map((i) => i.id).join(', ')}`);
+    }
+    const scene = item._scene;
+    if (!scene) throw new Error(`renderShotAt("${id}")：这一段的场景还没加载成功（setup 失败或 --only 把它排除了）`);
+    const rt = this.refRT ?? (this.refRT = new RT(this.gl, this.gl.pw, this.gl.ph));
+    this.gl.clear(rt, [0, 0, 0]);
+    this._refDepth = 1;
+    try {
+      const ctx = this._ctxFor(item, t, Math.floor(t * this.fps), { out: rt, dt: 1 / this.fps, tin: 1, tout: 0 });
+      ctx.world = resolveWorld(this, item);
+      this.gl.beginPaint(rt, item._layer);
+      if (ctx.world && item.world !== false) {
+        try { ctx.world.render(this.gl, rt, t, 1 / this.fps); } catch (err) { this.errors.push(`[${item.id}] 引用渲染的共享背景出错: ${fmtErr(err)}`); }
+      }
+      try {
+        scene.render(ctx);
+      } catch (err) {
+        // 引用渲染里场景抛错：记入 errors（不进 renderErrors —— 它不是这一帧的主画面），画错帧卡片
+        const msg = fmtErr(err);
+        this.errors.push(`[${item.id}] 被 renderShotAt 引用渲染时出错: ${msg}`);
+        this.gl.clear(rt, [0.12, 0, 0]);
+        this._errorCard(rt, item, item.id, t, Math.floor(t * this.fps), `被引用渲染出错: ${msg}`);
+      }
+      if (item._layer?._uploaded) this.comp.draw(this.gl, item._layer, rt, { premult: false });
+    } finally {
+      this._refDepth = 0;
+    }
+    return rt;
+  }
+
   /* ------------------------------------------------------------ 帧上下文 */
+
+  /**
+   * **相机接力（BACKLOG 1-12）：向一段探它的 home 位姿。**
+   *
+   * 走 relay 的前提是**两侧都声明了 `relayPose(ctx)`**（手写 camera3 场景自己写，
+   * `makeThreeShot` 由 `spec.cameraPose` 或相机回读提供）。探针 ctx 只有
+   * `f: { t, lt, p, idx }`、`W`、`H`、`P`、`params` 这些**只读**字段 ——
+   * `relayPose` 的契约是**只许读 `f.t`（整片时间）与 `params`**，且必须是 `t` 的
+   * 纯函数（确定性铁律；`lt` = t − start 一并给着，免得场景作者顺手写它时拿到 undefined）。
+   *
+   * ⚠ **现探现算，绝不缓存**：`relayPose` 是 t 的纯函数，位姿随 t 漂移 —— 每个子帧、
+   * 每次调用都重新探（纯查表级计算，每子帧两次是可接受的成本）。探针结果**不做**
+   * 任何以帧号 / 时间为 key 的 memo，否则交叠窗的飞行会冻成"两台静态相机之间的插值"。
+   *
+   * @param {any} item 段对象（要探的那一段）
+   * @param {number} t 整片时间
+   * @param {number} idx 帧号（只透传给探针 ctx，不参与任何缓存）
+   * @returns {any} Pose（src/core/relay.js 的契约）—— 段没有 relayPose 时返回 null
+   */
+  _probeRelayPose(item, t, idx) {
+    const scene = item?._scene;
+    if (!scene || typeof scene.relayPose !== 'function') return null;
+    return scene.relayPose({
+      f: { t, lt: t - item.start, p: U.sat((t - item.start) / Math.max(1e-6, item.end - item.start)), idx },
+      W: this.gl.w, H: this.gl.h, P: this.P, params: item.params ?? {},
+    });
+  }
 
   _ctxFor(item, t, idx, extras = {}) {
     const f = {
@@ -406,6 +486,23 @@ export class Engine {
       under: extras.under ?? null,
       a: this.music.at ? this.music.at(t) : {},
       params: item.params ?? {},
+      /**
+       * 段间引用（BACKLOG 1-15）：把另一段在 t2 的画面贴进当前画面。
+       * @param {string} refId 段 id @param {number} refT **整片时间**
+       * @param {{ x?: number, y?: number, w?: number, h?: number, opacity?: number }} [o]
+       *        rect 用逻辑像素（默认整幅）；opacity 默认 1。
+       */
+      renderShot: (refId, refT, o = {}) => {
+        const src = this.renderShotAt(refId, refT);
+        const w = o.w ?? this.gl.w, h = o.h ?? this.gl.h;
+        // comp.draw 的 rect 是 [x, y, w, h]（目标区域，逻辑像素）—— gl.js :1085
+        this.comp.draw(this.gl, src, extras.out, {
+          premult: false,
+          mode: 'normal',
+          opacity: o.opacity ?? 1,
+          rect: [o.x ?? 0, o.y ?? 0, w, h],
+        });
+      },
       /** 口播查询接口（`docs/NARRATION.md` A 档）：`f.narration.at(t)` / `.current(t)` … */
       narration: this.narration,
     };
@@ -416,6 +513,8 @@ export class Engine {
     const ctx = {
       f, gl: this.gl, out: extras.out, under: f.under,
       comp: this.comp, P: this.P,
+      // 段间引用（BACKLOG 1-15）：场景侧 ctx.renderShot(id, t, { rect, opacity })
+      renderShot: f.renderShot,
       // 这一段自己的 2D 图层与排版工具（画文字/图形都用它，别用 engine.text）
       text: item._layer ?? this.hud2d, type: (item._layer ?? this.hud2d).type,
       lines: this.lines, music: this.music, lyrics: this.lyrics,
@@ -499,10 +598,53 @@ export class Engine {
 
       // 场景必须整帧覆盖 out；先清一遍兜底（场景忘了画就是纯黑，肉眼可见地错）
       this.gl.clear(rt, [0, 0, 0]);
+      // ── 相机接力（BACKLOG 1-12）探针：声明了 transition: 'relay' 且两侧都有 relayPose
+      //    才探。relayPose 是 t 的纯函数、位姿随 t 漂移 —— **每个子帧用当前 t 现探现算**，
+      //    绝不跨 t 记忆化（帧号 memo 会把动态飞行冻成"两台静态相机之间的插值"：
+      //    画面不报错、check 照样绿，但活镜头飞向死目标）。每子帧两次纯查表级调用是
+      //    可接受的成本。探针必须在场景 render 之前跑：场景靠 ctx.relay.pose drive
+      //    自己的相机（makeThreeShot / camera3 场景同一条协议）。
+      //    形状契约：场景的 relayPose 返回 **camera3 形状** {pos,target,fov,roll}（与
+      //    relayPose3 的 home 同形）；引擎用 poseFromCamera3 换算成 Pose 参与混合，
+      //    混合完再用 poseToCamera3 转回 camera3 形状交给场景消费。
+      let relayPose = null;          // Pose（blendPose 的产物，诊断/工具读 item._relayPose 拿它）
+      let relayFrom = null;
+      let relayTo = null;
+      let relayHandoverK = null;
+      const wantsRelay = (item.transition ?? item._scene?.transition) === 'relay';
+      if (wantsRelay && k > 0 && scene && prev?._scene
+          && typeof prev._scene.relayPose === 'function'
+          && typeof scene.relayPose === 'function') {
+        const rawA = this._probeRelayPose(prev, t, idx);
+        const rawB = this._probeRelayPose(item, t, idx);
+        // 只在 k === 1（两段交叠）生效；三段以上重叠 ⇒ 最深那层回落 push（下面统一处理并警告）。
+        if (rawA && rawB && k === 1) {
+          // 段级声明（cut() / 配置档节点的 transitionOpts）> 场景对象上的声明 > 默认。
+          const opts = item.transitionOpts ?? scene.transitionOpts ?? {};
+          relayFrom = prev.id;
+          relayTo = item.id;
+          // e 的形状：本段入场进度被运动曲线重映射（glide = 恒定角速度缓入缓出，whip = 甩鞭）。
+          relayPose = blendPose(
+            poseFromCamera3(rawA),
+            poseFromCamera3(rawB),
+            resolveRelayMove(opts.move, '段 "' + item.id + '" 的 transitionOpts.move')(tin),
+          );
+          relayHandoverK = relayHandover(tin, opts.handover ?? HANDOVER_GLIDE);
+        }
+      }
+      item._relayPose = relayPose;   // 每子帧都是本帧的新值（诊断/工具可读；换手用下面的局部值）
       const ctx = this._ctxFor(item, t, idx, { out: rt, dt: subDt, tin, tout, under: k > 0 ? under : null, seeked });
       // 共享背景（一等地基，见 load() 的注释）：声明了 world 的段由引擎先铺底，
       // 场景只管前景。'auto' = task.worldPass；对象 = 这一段专用；false = 本段自己负责。
       ctx.world = resolveWorld(this, item);
+      /**
+       * **相机接力的位姿与换手**（ctx.relay，BACKLOG 1-12）：relay 段在交叠期拿到
+       * `{ pose, k, from, to }` —— pose = 本子帧的混合位姿（**camera3 形状**
+       * `{pos,target,fov,roll}`，setCamera / `camera3({...relayPose3(ctx, home), H})`
+       * 直接吃）、k = 交叠进度 tin。非 relay 段恒 null：场景侧
+       * `ctx.relay?.pose ?? 自己的相机` 的写法零影响、零开销。
+       */
+      ctx.relay = relayPose ? { pose: poseToCamera3(relayPose), k: tin, from: relayFrom, to: relayTo } : null;
       // `skipScene` 只给 `check` 的背景守门用（worldAudit）：只跑背景、不跑场景，
       // 这样「这一段到底铺了底没有」是可测的，而不是靠作者记得调用。
       if (skipScene) {
@@ -598,6 +740,11 @@ export class Engine {
       }
       // 记下这一段的绘制情况，给 `check` 的背景守门用（worldAudit）
       item._lastPaint = this.gl.paint;
+      // D-1：begin 之前画、被丢弃的线段 —— 每段每帧最多警告一条（warnings.includes 去重）
+      if (this.gl.paint?.orphanLines && Array.isArray(ctx.warnings)) {
+        const msg = `lines: begin() 之前又画了 ${this.gl.paint.orphanLines} 条（上一次 flush 之后）—— 没进画面`;
+        if (!ctx.warnings.includes(msg)) ctx.warnings.push(msg);
+      }
       this.gl.paint = null;
 
       // 变换整张前景（含它自己的文字图层）——用一张外部目标做，绝不「读自己写自己」
@@ -643,7 +790,47 @@ export class Engine {
         item.transition ?? item._scene?.transition,
         `段 "${item.id}" 的 transition`,
       );
-      if (k > 0 && !scene.handlesTransition && under) {
+      /**
+       * **交叠期的转场分支优先级**（读这段代码先看这里）：
+       *
+       *   ① `relay`（相机接力，BACKLOG 1-12）—— **独立分支，放在 push/mix 之前**：
+       *      换手 mixTo **不挂在** `!scene.handlesTransition` 那个 guard 里 ——
+       *      `makeShot` / `makeThreeShot` 默认 `handlesTransition: true`，挂进去的话
+       *      3D 接力对会静默变成"相机在飞、内容在切点硬跳"，不报错、check 也绿。
+       *      relay 的语义本来就是"引擎接管换手、场景只出画面"；
+       *      `handlesTransition: true` 的场景由 world.js openFrame 的 relay 跳过配合
+       *      （交叠期不把上一帧甩走，只铺背景）。relay 成立时**绝不**再进 ② 的
+       *      push/mix 分支（否则甩一遍 + 混一遍 = 双重转场）。
+       *   ② push / mix / none（老三样）—— `k > 0 && !scene.handlesTransition && under`，
+       *      一行逻辑都没动。relay 条件不满足（任一侧缺 relayPose / 三段以上重叠 /
+       *      under 缺失）时完整走这条回落：`handlesTransition: true` 的场景照旧由它
+       *      自己的 openFrame 把上一帧甩走 —— 那是现状，别破坏。
+       */
+      let relayed = false;
+      if (transMode === 'relay') {
+        if (k > 0 && relayPose && relayHandoverK != null && under) {
+          // 换手：alpha = 换手进度（0 = 上一段、1 = 本段）。mixTo 的 k 方向已核实
+          // （gl.js compositor_mix：fragColor = mix(texture(a), texture(b), k)），
+          // 与上面 'mix' 分支的既有用法（a = under、b = outTex、k = tin）同形状。
+          this.comp.mixTo(this.gl, under, outTex, relayHandoverK, this.mixRT);
+          outTex = this.mixRT;
+          relayed = true;
+        } else if (k > 0 && under) {
+          // relay 声明了但条件不满足 ⇒ **不静默**：点名哪一段缺 relayPose / 是三层重叠，
+          // 然后按 push 走（下面 ②）。
+          // ⚠ 判"为什么回落"不能看 relayPose（探针块的 k===1 守卫会把三段重叠时的
+          //    位姿也置空，两种情况它都是 null ⇒ 那个三元永远说"缺位姿"）—— 看深度 k：
+          //    k > 1 = 三段以上重叠；k === 1 才是真的缺 relayPose。
+          const why = k > 1
+            ? '三段以上重叠：relay 只在两段交叠生效，最深一层（"' + item.id + '"）回落 push'
+            : '相机接力缺位姿：段 "' + (prev?.id ?? '?') + '" 与 "' + item.id
+              + '" 至少一侧没有 relayPose()（手写 camera3 场景要在场景对象上声明，'
+              + 'makeThreeShot 自动有）—— "' + item.id + '" 回落 push';
+          if (!ctx.warnings.includes(why)) ctx.warnings.push(why);
+        }
+        // k === 0 / under 缺失：没有交叠语义，什么都不做（与 'mix' 在同一位置的老行为一致）。
+      }
+      if (!relayed && k > 0 && !scene.handlesTransition && under) {
         if (transMode === 'mix') {
           this.comp.mixTo(this.gl, under, outTex, tin, this.mixRT);
           outTex = this.mixRT;
@@ -744,6 +931,10 @@ export class Engine {
    */
   render(t, opts = {}) {
     const gl = this.gl;
+    // 抖动的默认态是"不抖"：单子帧路径（草稿 / 预览 / 探针）拿到的必须是**没抖过的**那一帧，
+    // 否则同一时刻渲两次会因为上一次遗留的偏移而不同（这类"跨帧依赖"最难查）。
+    gl.jitter[0] = NO_JITTER[0];
+    gl.jitter[1] = NO_JITTER[1];
     const idx = Math.floor(t * this.fps + 1e-6);
     const shutter = opts.shutter ?? 0.5;
     const preview = opts.preview ?? false;
@@ -797,6 +988,17 @@ export class Engine {
 
       const levels = adaptive ? levelsFor(maxSamples) : 0;
       const offsets = adaptive ? ternaryOffsets(levels) : fixedOffsets(/** @type {number} */ (wanted));
+      /**
+       * 抖动只在"子帧数是抖动周期整数倍"时开。
+       *
+       * 为什么：`JITTER_GRID` 的 4 个位置均值是 0，但**只取前 k 个**时均值不是 0 ——
+       * `samples: 2` 的平均偏移是 -0.125px，整帧内容会被平移零点几个像素（1080p 上看得出，
+       * 而且只在多子帧路径上出现，单帧预览一切正常）。
+       * 自适应档位是 8·3^L（8/24/72/216），全部是 4 的倍数 ⇒ 不受影响；
+       * 定长档（`--samples 2` / `6` 这类）不是 4 的倍数时干脆不抖 —— 少一次超采样，
+       * 好过画面莫名平移。
+       */
+      const jitterOn = adaptive || offsets.length % JITTER_PERIOD === 0;
       const step = (1 / this.fps) * shutter;
       const acc = this._accumPass();
 
@@ -805,11 +1007,37 @@ export class Engine {
       this._nearest = Infinity;
       let done = 0;
 
-      /** 渲染 offsets[from..to) 并累加（加性混合）到 target。 */
+      /**
+       * 渲染 offsets[from..to) 并累加（加性混合）到 target。
+       *
+       * ## 子像素抖动（2026-10-31）：这才是"多子帧 AA"真正生效的地方
+       *
+       * 在这之前，静止画面的 8 个子帧是**同一时刻、同一位置**渲染 8 次 ⇒ 平均 = 同一张图，
+       * 多子帧只贡献运动模糊。引擎注释里那句"逐像素 SDF + 多子帧"实现上只兑现了前半句。
+       *
+       * 现在每个子帧按 `jitterOffset(i)` 把**整帧**平移一个亚像素位置再栅格化，累加后就是
+       * **4× 超采样**：填充面的 2px 台阶、shader 背景的高频纹样、raymarch 的硬边都一次性变干净，
+       * 而**渲染时间一分不多**（这些子帧本来就要渲）。
+       *
+       * 两条纪律（都与 `src/core/sampling.js` 的 `JITTER_GRID` 绑在一起）：
+       *   · 周期 4 = 第一级判据"前半 4 帧 vs 后半 4 帧"的粒度 —— 两半抖动序列逐位相同，
+       *     静止画面才仍然判得出"静止"（否则一路加到 216 子帧，实测会慢 27 倍）；
+       *   · 偏移在 `composite()` 之前设、之后立刻归零 —— 累加 pass / 后处理**绝不能**吃到抖动
+       *     （它们是重采样已有图像，再抖一次就是把画面又平移一次）。
+       */
       const addSamples = (from, to, target) => {
         for (let i = from; i < to; i++) {
           const subT = Math.max(0, t + step * offsets[i]);
-          const r = this.composite(subT, idx, step, opts.seeked && i === 0);
+          const j = jitterOn ? jitterOffset(i) : NO_JITTER;
+          this.gl.jitter[0] = j[0];
+          this.gl.jitter[1] = j[1];
+          let r;
+          try {
+            r = this.composite(subT, idx, step, opts.seeked && i === 0);
+          } finally {
+            this.gl.jitter[0] = NO_JITTER[0];
+            this.gl.jitter[1] = NO_JITTER[1];
+          }
           // 非有限值扫描只扫**第一个子帧**：池里的 RT 下一步就会被后面的子帧覆盖，
           // 而累加 pass 会把 NaN/Inf 丢掉（`bad ? vec3(0.0) : c`）—— 只有这里还看得见它们。
           if (scanNf && i === 0) this._scanFrameNonFinite(t, idx, r.tex, 0, subT);
@@ -828,7 +1056,7 @@ export class Engine {
          * 这一条是这一轮最重要的行为改动。"画面主体静止"的片子（图表、方波、格阵）以前
          * 每一帧都被迫跑 24 个子帧 —— 因为旧代码在 8 个子帧之后**无条件**进入下一级，
          * 而判据又永远读 0、于是 24 之后立刻"收敛"。作者实测 0.9 fps，唯一的办法是
-         * 逐段写 `maxSamples: 8`（`docs/HANDOFF-spectrum-friction.md` §1）。
+         * 逐段写 `maxSamples: 8`（`docs/history/HANDOFF-spectrum-friction.md` §1）。
          * 现在静止帧在**第一级**就判停：8 子帧，比原来快 3 倍，而画面**一个像素都不差**
          * （静止画面求 N 次平均 = 同一张图）。
          *
@@ -878,7 +1106,7 @@ export class Engine {
          * 症状是在**显示空间**上暗 0.73×（线性 0.5 → sRGB ≈ 0.73），而不是"看不出来"：
          * `check` 报「单子帧与多子帧亮度差了 0.73×」，而 `maxSamples: 8` 正是 HANDOFF
          * 里那个"提速旋钮"（spectrum 全片都写着它）⇒ **凡是给段写了 maxSamples: 8 的片子，
-         * 成片都比预览暗 27%**。搬运：`docs/HANDOFF-spectrum-friction.md` §1 的绕法用了它。
+         * 成片都比预览暗 27%**。搬运：`docs/history/HANDOFF-spectrum-friction.md` §1 的绕法用了它。
          *
          * 除数与累加数必须始终一致，这是 `copyOver(1/n)` 那条注释的同一条纪律。
          */
@@ -986,6 +1214,12 @@ export class Engine {
    * @returns {any} 合成后的帧（仍是 `mixRT`）
    */
   _pushTransition(outTex, under, k, t, dt, mode = 'push') {
+    // 'relay' 不该走到这里：相机接力（BACKLOG 1-12）由 composite() 的 relay 分支拦截
+    // （位姿混合 + mixTo 换手，src/core/relay.js），没有 shader。走到 = 分支优先级坏了
+    // —— 当场抛，别渲染出一帧"没人知道是什么"的画面。
+    if (mode === 'relay') {
+      throw new Error('_pushTransition: "relay" 不该走到 transitionPass（相机接力由 composite 的 relay 分支接管，没有 shader）');
+    }
     const gl = this.gl;
     const keepPaint = gl.paint;
     gl.paint = null;
@@ -1027,7 +1261,7 @@ export class Engine {
             }
           }
           fragColor = vec4(texture(src, clamp(uv, vec2(0.0), vec2(1.0))).rgb, 1.0);
-        }`, { src: { value: null }, m: [1, 0, 0, 0, 1, 0, 0, 0, 1], edge: 0 }, { key: 'engine_xform', blend: false });
+        }`, { src: { value: null }, m: [1, 0, 0, 0, 1, 0, 0, 0, 1], edge: 0 }, { key: 'engine_xform', blend: false, jitter: false });
     }
     return this._xform;
   }
@@ -1044,7 +1278,7 @@ export class Engine {
           vec3 c = texture(src, vUv).rgb;
           bool bad = any(isnan(c)) || any(greaterThan(abs(c), vec3(5e4)));
           fragColor = vec4(bad ? vec3(0.0) : c, 0.0);
-        }`, { src: { value: null } }, { key: 'engine_accum', blend: false });
+        }`, { src: { value: null } }, { key: 'engine_accum', blend: false, jitter: false });
       // 纯加法：src*1 + dst*1（alpha 不动）
       const m = this._accum.prog;
       this._accum.blend = true;
@@ -1385,6 +1619,8 @@ export class Engine {
     this.mixRT.dispose(); this.avgRT.dispose(); this.sumRT.dispose();
     this.newRT.dispose(); this.errRT.dispose(); this.outRT.dispose();
     this.xformRT.dispose();
+    // 段间引用（renderShotAt）惰性建的那张 —— 用过引用渲染的片子不补这条就漏一张 16MB 的 RT
+    this.refRT?.dispose();
     this.hudRT?.dispose();
     this.comp.sink?.dispose();
     this.comp.alt?.dispose();

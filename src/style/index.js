@@ -34,7 +34,7 @@
  * | `grid` | 版面栅格（边距、页脚线、说明条基线、**字幕保留带**） | `src/kit/` 的元件 + 字幕层 |
  * | `captions` | 字幕样式（位置/字号/底衬/折行宽度/卡拉OK） | `src/core/captions.js` |
  * | `motif` | 共享背景的母题名（`grid`/`blueprint`/`paper`/`scan`/`none`…） | `src/kit/world.js` 的 `worldPass` |
- * | `view` | **整片介质**（八种成像之一，如半调 / 字符画 / N 版套印）；默认 off | `src/core/engine.js`（合成完 → post 之前） |
+ * | `view` | **整片介质**（九种成像之一，如半调 / 字符画 / N 版套印）；默认 off | `src/core/engine.js`（合成完 → post 之前） |
  *
  * ## 两条使用纪律（`docs/STYLE.md` 展开）
  *
@@ -53,7 +53,7 @@
 import { DEFAULT_CAPTION_STYLE } from '../core/captions.js';
 import { scaleGrid } from '../core/util.js';
 import { tokensWith, scaleTokens, PORTRAIT_TYPE_SCALE } from './tokens.js';
-// 整片介质（`view`）的合法模式名与 kit 同源 —— 两处各写一份就会漂移（「八种」变成各有各的八种）
+// 整片介质（`view`）的合法模式名与 kit 同源 —— 两处各写一份就会漂移（模式数各说各话）
 import { VIEW_NAMES } from '../kit/views.js';
 
 /** 默认字体栈（与 `src/core/text.js` 的 `FAMILIES` 一致；风格包只写要覆盖的那几个）。 */
@@ -337,7 +337,7 @@ function resolveView(view) {
   if (!VIEW_NAMES.includes(spec.mode)) {
     throw new Error(
       `style.view.mode "${spec.mode}" 不存在。可用的：${VIEW_NAMES.join(' / ')}`
-      + '（八种成像的说明见 docs/COOKBOOK.md §16）',
+      + '（九种成像的说明见 docs/COOKBOOK.md §16）',
     );
   }
   return spec;
@@ -383,7 +383,7 @@ export function resolveStyle(spec = {}) {
     fonts: { ...(pack.fonts ?? {}), ...(over.fonts ?? {}) },
     post: { ...(pack.post ?? {}), ...(over.post ?? {}) },
     /**
-     * 整片介质（2026-10-30 拍板，默认 off）：把八种成像（`src/kit/views.js`）里的
+     * 整片介质（2026-10-30 拍板，默认 off）：把九种成像（`src/kit/views.js`）里的
      * 一种提成**这套风格的默认观感** —— 整片都印成半调 / 字符画 / 双版套印……
      *
      * 为什么放在风格而不是场景：它是「这一支片子是什么做的」这种介质级决定，
