@@ -209,6 +209,47 @@ export default {
       const x0 = -((t * 120) % wS);
       c.fillStyle = rgba(sig, 0.7);
       for (let x = x0; x < W; x += wS) c.fillText(strip, x, H - 84);
+    } else if (mode === 'interlude') {
+      // 空拍段（间奏）：**不是空场** —— 三样跟拍的东西填满画面
+      //   ① 中间一条随拍推进的刻度尺（每拍一格）
+      //   ② 罗马音标题缓慢横移（慢于字幕，像底噪）
+      //   ③ 左下三根能量条（kick / snare / hat）
+      const beatIdx = Math.floor(f.beat);
+      const phase = f.beatPhase;
+      lines.begin();
+      const yMid = cy;
+      lines.seg(W * 0.08, yMid, W * 0.92, yMid, 1.2, [0.5, 0.49, 0.47, 0.5]);
+      for (let i = -14; i <= 14; i++) {
+        const x = cx + i * (W * 0.028) + (1 - phase) * (W * 0.028);
+        const major = (beatIdx + i) % 4 === 0;
+        const h = major ? 22 : 10;
+        lines.seg(x, yMid - h, x, yMid + h, major ? 2 : 1, [sig[0], sig[1], sig[2], major ? 0.75 : 0.35]);
+      }
+      // 能量条
+      const bars = [['kick', sig], ['snare', [0.9, 0.85, 0.7]], ['hat', [0.35, 0.8, 1.0]]];
+      bars.forEach(([k, col], i) => {
+        const v = Math.min(1, (f.a?.[k] ?? 0) * 1.6);
+        const bw = W * 0.009;
+        const x = W * 0.09 + i * (bw * 1.9);
+        const y0 = H * 0.88;
+        const hh = Math.max(8, H * 0.2 * v);
+        lines.fillRect(x, y0 - hh, bw, hh, [col[0], col[1], col[2], 0.9]);
+      });
+      lines.flush(ctx.out);
+      // 罗马音标题慢移（一条，缓慢横穿）
+      const px4 = Math.round(pxOf * 0.26);
+      type.font({ size: px4, weight: 700, family: 'mono' });
+      const label = o.label ?? 'KATTACHI INAI NE · 分かっちゃいないね';
+      const lw = c.measureText(label).width;
+      const lx = W + 40 - ((t / total) * (W + lw + 80) + 40);
+      c.fillStyle = rgba([0.78, 0.77, 0.74], 0.55);
+      c.fillText(label, lx, yMid - pxOf * 0.9);
+      // 中间一个「间奏」小标（信号色）
+      const px5 = Math.round(pxOf * 0.18);
+      type.font({ size: px5, weight: 600, family: 'mono' });
+      const tag = 'INTERLUDE';
+      c.fillStyle = rgba(sig, 0.75);
+      c.fillText(tag, cx - c.measureText(tag).width / 2, yMid + pxOf * 0.62);
     } else {
       fillRows(INK);
     }
