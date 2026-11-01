@@ -376,7 +376,12 @@ export function assertNode(node, where = 'timeline') {
  */
 function resolveDur(v, music, fallback) {
   if (v == null) return fallback;
-  if (typeof v === 'number') return v;
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v)) {
+      throw new Error(`dur 必须是有限数（秒），收到 ${v}。NaN/±Inf 会把这一段的 end 污染成 NaN，整条时间线跟着错。`);
+    }
+    return v;
+  }
   if (typeof v === 'object' && v.beat != null) return beatTime(music, v.beat) - beatTime(music, 0);
   if (typeof v === 'object' && v.bar != null) return beatTime(music, v.bar * 4) - beatTime(music, 0);
   if (typeof v === 'object' && v.vo != null) {
@@ -392,7 +397,22 @@ function resolveDur(v, music, fallback) {
         `\n  ⚠ 别把它静默当成默认 4 秒 —— 段长错了会让整条时间线跟着错。`,
       );
     }
-    if (v.tail != null) return line.dur + Number(v.tail);
+    if (v.tail != null) {
+      const tail = Number(v.tail);
+      if (!Number.isFinite(tail)) {
+        throw new Error(
+          `dur: { vo: '${id}', tail: ${JSON.stringify(v.tail)} } 里的 tail 必须是有限数（秒）。` +
+          `  NaN 会把这一段的 end 一起污染成 NaN，整条时间线跟着错，而且报错指不到这里。`,
+        );
+      }
+      if (tail < 0) {
+        throw new Error(
+          `dur: { vo: '${id}', tail: ${tail} } 里的 tail 不能是负数 —— ${tail}s 会把段截得比旁白本身还短。` +
+          `  想截短就换普通数字 dur。`,
+        );
+      }
+      return line.dur + tail;
+    }
     return line.dur;
   }
   return fallback;

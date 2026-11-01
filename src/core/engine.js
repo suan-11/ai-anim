@@ -1501,6 +1501,8 @@ export class Engine {
     this.mixRT.dispose(); this.avgRT.dispose(); this.sumRT.dispose();
     this.newRT.dispose(); this.errRT.dispose(); this.outRT.dispose();
     this.xformRT.dispose();
+    // 段间引用（renderShotAt）惰性建的那张 —— 用过引用渲染的片子不补这条就漏一张 16MB 的 RT
+    this.refRT?.dispose();
     this.hudRT?.dispose();
     this.comp.sink?.dispose();
     this.comp.alt?.dispose();
