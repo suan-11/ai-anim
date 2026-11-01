@@ -7,7 +7,9 @@ import { seq, cut } from '../../src/timeline.js';
 import lyric from './scenes/lyric.js';
 
 const T = [
-  [14.44, 'mask', "KING", "Kanaria feat. GUMI · Cotton 翻唱"],
+  [4.2, 'mask', "KING", "Kanaria feat. GUMI · Cotton 翻唱"],
+  [4.8, 'vertical', "キング", ""],
+  [5.44, 'glitch', "KING", "Kanaria · GUMI · Cotton 翻唱"],
   [2.96, 'karaoke', "幽閉利口 逝く前に", ""],
   [2.8, 'glitch', "ユーヘイじゃ利口に難儀ダーリン", ""],
   [3.3, 'karaoke', "幽閉 ストップ 知ってないし", ""],
