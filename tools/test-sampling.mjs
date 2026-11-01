@@ -47,11 +47,43 @@ console.log('\n② 子帧位置：等距、居中、**全部落在快门窗口�
 for (const L of [0, 1, 2, 3]) {
   const u = ternaryOffsets(L);
   const n = BASE_SAMPLES * 3 ** L;
-  check(`${n} 子帧：数量与首尾`, u.length === n && u[0] > -0.5 && u[u.length - 1] < 0.5,
-    `首 ${u[0].toFixed(4)} 尾 ${u[u.length - 1].toFixed(4)}`);
-  const gaps = u.slice(1).map((v, i) => v - u[i]);
-  check(`${n} 子帧：等距`, gaps.every((g) => near(g, gaps[0], 1e-9)), `间距 ${gaps[0].toFixed(6)}`);
-  check(`${n} 子帧：以帧时刻为中心（左右对称）`, near(u[0], -u[u.length - 1], 1e-12));
+  // 1-72：数组本身是**层级序**（先粗后细），逐位等距的是**排序后**的集合
+  const s = [...u].sort((p, q) => p - q);
+  check(`${n} 子帧：数量与首尾`, u.length === n && Math.min(...u) > -0.5 && Math.max(...u) < 0.5,
+    `首 ${Math.min(...u).toFixed(4)} 尾 ${Math.max(...u).toFixed(4)}`);
+  const gaps = s.slice(1).map((v, i) => v - s[i]);
+  check(`${n} 子帧：排序后等距`, gaps.every((g) => near(g, gaps[0], 1e-9)), `间距 ${gaps[0].toFixed(6)}`);
+  check(`${n} 子帧：以帧时刻为中心（左右对称）`, near(Math.min(...u), -Math.max(...u), 1e-12));
+}
+
+// 【1-72 回归】梯子按**连续前缀**消费（0..8 → 8..24 → …），所以每一级的前缀必须
+// 就是那一档的均匀网格 —— 否则"第一级 8 子帧"会挤在窗口左缘的细条里，
+// 跳变帧整帧采到跳变前的内容、两半相等被判"静止"、峰值整帧丢失。
+// 实测（_d72-lab，title 段 t=4.0 的 flash 脉冲）：修前 auto 输出 YAVG 49.2（= 平台真值），
+// 同帧 --samples 24 是 89.6。隔离会话同样复现 ⇒ 与跨帧状态无关，是采样窗几何错误。
+console.log('\n②b 【1-72】梯子前缀 = 整窗均匀网格（层级序，不是均匀序的连续前缀）');
+{
+  const full = ternaryOffsets(3); // 216
+  const u0 = full.slice(0, BASE_SAMPLES);
+  check('216 序列的前 8 个（第一级）覆盖快门窗口（修前是左缘 1/27 细条）',
+    Math.min(...u0) <= -0.4 && Math.max(...u0) >= 0.4,
+    `实际 [${Math.min(...u0).toFixed(4)}, ${Math.max(...u0).toFixed(4)}]`);
+  check('第一级就是 8 点均匀网格（与 fixedOffsets 同一组数）',
+    fixedOffsets(BASE_SAMPLES).every((v, i) => near(v, u0[i], 1e-12)));
+  for (const L of [0, 1, 2, 3]) {
+    const total = BASE_SAMPLES * 3 ** L;
+    const prefix = full.slice(0, total);
+    const uni = Array.from({ length: total }, (_, j) => (j + 0.5) / total - 0.5);
+    const hit = uni.every((v) => prefix.some((w) => Math.abs(v - w) < 1e-9));
+    check(`前 ${total} 个 = ${total} 点均匀网格（"并进总和"的均值守恒靠它）`, hit);
+  }
+  // 引擎第一级把 8 个子帧拆成两半判"静止"（前半进 newRT、后半进 sumRT）——
+  // 这条判据合法的前提：前半 = 窗口左半、后半 = 窗口右半。
+  const half = BASE_SAMPLES >> 1;
+  const a = full.slice(0, half), b = full.slice(half, BASE_SAMPLES);
+  check('第一级前半 = 窗口左半、后半 = 窗口右半（两半判"静止"才合法）',
+    Math.max(...a) < 0 && Math.min(...b) > 0,
+    `前半 [${Math.min(...a).toFixed(3)},${Math.max(...a).toFixed(3)}] 后半 [${Math.min(...b).toFixed(3)},${Math.max(...b).toFixed(3)}]`);
 }
 // 嵌套：上一级的每个位置必须**仍在**下一级里（并总和的均值守恒靠它）
 for (const L of [0, 1, 2]) {

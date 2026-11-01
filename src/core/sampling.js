@@ -74,13 +74,33 @@ export function fixedOffsets(n) {
  * 现在直接生成均匀网格：基位 `j = 3i+1` 恰好就是 8 个基样本 —— 集合关系可以断言
  * （`tools/test-sampling.mjs`）。
  *
- * @param {number} levels @returns {number[]} 升序，全部落在 (-0.5, 0.5)
+ * ⚠⚠【1-72，2026-11-01】返回值是**层级序**（先粗后细），不是均匀网格的字典序：
+ * 引擎按**连续前缀**消费（0..8 → 8..24 → …），所以每一级的前缀必须就是那一档的
+ * 整窗均匀网格（tools/test-sampling.mjs ②b 钉着这条）。
+ *
+ * @param {number} levels @returns {number[]} 层级序（同级内按位置升序），全部落在 (-0.5, 0.5)
  */
 export function ternaryOffsets(levels) {
   const total = BASE_SAMPLES * 3 ** Math.max(0, Math.round(levels));
-  const u = new Array(total);
-  for (let j = 0; j < total; j++) u[j] = (j + 0.5) / total - 0.5;
-  return u;
+  // 最细一级的均匀网格（j = 它在网格里的下标）
+  const byJ = new Array(total);
+  for (let j = 0; j < total; j++) byJ[j] = (j + 0.5) / total - 0.5;
+  // 【1-72】返回**层级序**：粗级在前、逐级补插新点。
+  // 第 L 级的点满足 j ≡ (3^L-1)/2 (mod 3^L)：L=levels 那层正好是 8 点基样本
+  // （值 = (i+0.5)/8-0.5），mod 9 那层夹在它们中间……最细一层填满剩下的格子。
+  // 于是**任意前缀 0..BASE·3^k 都是 k 档的整窗均匀网格** —— 引擎的梯子按连续前缀
+  // 消费这个数组（0..8 → 8..24 → …），旧实现按 j 连续排布，第一级 8 个点全挤在
+  // 窗口左缘 1/27 的细条里：帧内跳变的帧整帧采到跳变前的内容，两半相等被判
+  // "静止"，峰值整帧丢失且不报错（夹具 _d72-lab：auto 49.2 vs samples 24 的 89.6）。
+  const out = [];
+  const taken = new Uint8Array(total);   // 粗层的点在细层里会再次出现 —— 只补新点
+  for (let L = Math.max(0, Math.round(levels)); L >= 0; L--) {
+    const mod = 3 ** L;
+    for (let j = (mod - 1) / 2; j < total; j += mod) {
+      if (!taken[j]) { taken[j] = 1; out.push(byJ[j]); }
+    }
+  }
+  return out;
 }
 
 /**
