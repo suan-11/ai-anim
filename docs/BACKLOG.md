@@ -177,6 +177,22 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 >
 > ⚠ 本轮**改了一处已交付的可视行为**：`crt` 成像的亮度补偿 1.55 裸乘会把浅底画面打成 20%+ 死白
 > （`check _style-view-lab` 当场红），改成亮部软肩；`_view-lab` 基线已按流程 `--accept --note`。
+>
+> **2026-11-01 · 待办拍板（用户逐条拍板，量化当场做完）**：
+> **主线 = 1-12 相机接力 relay**（先只对 `makeThreeShot` / `camera3` 生效）；P-1 / P-2 / 1-7ⓑ 本轮不做、**保留不关门**。
+> **内容能力三条立项**（都排在 1-12 之后）：1-30 B-roll、1-56 绿幕/透明导出、多语言旁白。
+> **小额两条排进**：1-1（先做 `blocks.js` 夹具任务再接 `check`）、1-33（`anim cuts` A/B 实测三条运动上限）。
+> **1-31 / 1-32 已量化**（数字记在各自行）：1-31 即时染红面 **0**（15 个用纯数字 `values` 的任务全都没有 FACTS.md，lint 本来就安静跳过）⇒ 建议
+>
+> **2026-11-01 · 1-12 相机接力 relay 落地**（两个子代理并行 + 主会话 GPU 验证）：`src/core/relay.js` 纯函数层
+> （poseFromCamera3/poseToCamera3 互逆 ≤1e-9、blendPose 几何插值+yaw 最短路径+端点精确还原、relayHandover smoothstep、MOVES glide/whip）+
+> engine composite **独立 relay 分支**（每子帧现探现算两侧 relayPose → blendPose → 两段相机 drive → mixTo 在换手窗 [.35,.65] 换手；
+> 在 push/mix guard **之前**、不受 handlesTransition 约束；缺 relayPose / 三段以上重叠 ⇒ 去重警告回落 push）+
+> transitionOpts 四接（TIMELINE_KEYS/configToCut/cut/build）+ openFrame relay 跳甩 + makeThreeShot relayPose/drive + kit 导出 relayPose3。
+> `transition: 'relay'` 成为第 9 种转场模式（不走 transitionPass）。验证：test-relay **37 项**、regress-all --ci **66/66**、
+> `check _relay-lab` 全绿、交叠窗出图：接力缝网格背景逐像素连续、相机在两机位间滑移；push 对照缝出现拖影甩动（对照成立）；
+> whip 缝 25.15s 自动吃到 72 子帧（自适应识别快运动）。夹具 `tasks/_relay-lab`（6 段三组）、文档 ENGINE §3.7.7 / MOTION §3.6 / CONFIG-ONLY / COOKBOOK §8。
+> **交接单**（设计取舍的"为什么"与验收读数）：[history/HANDOFF-2026-11-01-relay.md](history/HANDOFF-2026-11-01-relay.md)。纳入判据①；1-32 显示位 **3 处** ⇒ 建议改口径。两条都待动 lint 时顺手做。
 
 ---
 
@@ -184,13 +200,13 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 
 | # | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
-| 1-1 | **`check` 增加几何自检**：随机取几个"已知应该可见"的面，验证"被铺的面 = 朝镜头的面" | 这类"不报错但画面全错"的几何 bug 目前**只能靠眼睛**（`facesToward` 反向那次出图核对了 20+ 帧才定位到）。判据可以先做成纯 JS 的（`tools/test-blocks.mjs` 已有正反用例可复用）。<br>⚠ **2026-10-10 核正：先解决「假覆盖」再动手** —— 今天**没有任何 `tasks/` 引用 `src/kit/blocks.js`**（老任务各自带一份私有拷贝），所以直接把它接进 `check` 会做出一个**永远绿**的检查（在现有任务集上不可能被触发）。要么先迁一个任务过来用 kit，要么专门做一个夹具任务 —— 否则这条等于没做 | [`history/IMPROVEMENTS-4-5.md`](history/IMPROVEMENTS-4-5.md) 第四轮 §6 **F**（⬜ 未做） |
+| 1-1 | **`check` 增加几何自检**：随机取几个"已知应该可见"的面，验证"被铺的面 = 朝镜头的面" | 这类"不报错但画面全错"的几何 bug 目前**只能靠眼睛**（`facesToward` 反向那次出图核对了 20+ 帧才定位到）。判据可以先做成纯 JS 的（`tools/test-blocks.mjs` 已有正反用例可复用）。<br>⚠ **2026-10-10 核正：先解决「假覆盖」再动手** —— 今天**没有任何 `tasks/` 引用 `src/kit/blocks.js`**（老任务各自带一份私有拷贝），所以直接把它接进 `check` 会做出一个**永远绿**的检查（在现有任务集上不可能被触发）。要么先迁一个任务过来用 kit，要么专门做一个夹具任务 —— 否则这条等于没做。**2026-11-01 拍板：做 —— 先做 `blocks.js` 夹具任务，再接 `check`** | [`history/IMPROVEMENTS-4-5.md`](history/IMPROVEMENTS-4-5.md) 第四轮 §6 **F**（⬜ 未做） |
 | 1-7 | **渲染提速的下一刀（2026-10-17 重估；ⓐ 已落地，剩 ⓑ/ⓒ）** | **ⓐ R8/RG8 回读已做（2026-10-17，0-8）**：`readNV12()` 的 Y/UV 平面改成 R8/RG8 直接回读，总回读 **10.37 → 3.11MB/帧**、紧凑化循环删除；实测 `_calib` 720 帧 **47.8s → 44.5s（15.1 → 16.2 fps，1.07×；三次 44.3–44.6s）**，`probe-r8` / `probe-nv12` / `verify` / `hashes` 全绿（PERF.md §5.2/§5.4a/§5.6）。**剩下**：ⓑ **WebCodecs**（浏览器内编码 38.7ms/帧、传输 3.11MB→27KB（314×），粗算 81→47ms = 1.7×，PERF.md §5.4b 已实测可行未落地；代价：放弃 CRF、`--segments`/音轨/`verify` 全要适配编码分片 + `-c copy` 封装）；ⓒ 渲染侧本身（独显 `--gpu high` 对填充重段已实测 2.15×，这个已经能用）。旧②「GPU 编码 8bit 回读」与旧③「PBO」仍关（只值 1.5% / 6%） | [`PERF.md`](PERF.md) §5.2/§5.3/§5.4/§5.6 · `src/core/gl.js` 的 `RT.format` / `readNV12` |
 | ~~1-8~~ | **已完成（2026-10-31）**：注入通道 —— `loadTask()` 新增 `narrationData` 参数；`src/app.js` 在**第一次 loadTask 之前**就把外挂旁白表 fetch 好（URL 自己算，不依赖后面才定义的 taskUrl），两次 loadTask 都带上。于是 build() 时表已在位：`dur: { vo: id }` 与"旁白表放在外部 json 里"**可以同时用了**（Node 直测：build({dur:{vo}}, {narration}) 段长 3.2/2.6 精确）。失败是软的：没注入时保持原行为（build 时抛错并说清原因），A-2 的 `task.narrationError` 标记让 check 点名 | 原行：外部 json 是页面启动后才 fetch 的 | 2026-10-31 |
-| 1-31 | **`lint-fabricated-numbers` 判据 ③ 的假阴性：`values: [0.3, 0.7, 0.95]` 这种纯数字数组元素两边都不认**（判据 ① 只认字面量数字、③ 只认算出来的） | 本仓库的图表任务**全是这个写法** ⇒ 那串数**实际上没人验**（子代理 2026-10-16 实测：6 个有事实表的任务 194 个显示位里，`values` 元素一个都没被两条判据覆盖）。要做就得把 `values` 的元素纳进判据 ①（代价：所有图表任务染红，得逐个登记进 FACTS.md）；**先想清楚要不要**，别顺手加。另两条同类假阴性：裸变量实参 `type.write(cnt, …)`、跨文件流向 | 子代理报告（2026-10-16）· `tools/lint-fabricated-numbers.mjs` 文件头的诚实清单 |
-| 1-32 | **`String(cnt).padStart(2, '0')` 里的补零字符 `'0'` 被当成显示位字面量**（判据 ① 的假阳性） | 它其实是**格式参数**，不是画面上的数字。消掉要改判据 ① 的"实参里任意字面量"口径，会动**所有任务**的条数（本轮没做：夹具里刻意留着并登记了一行 `0`）。⚠ 改之前先量一遍"会影响几个任务、几条" | 同上 |
+| 1-31 | **`lint-fabricated-numbers` 判据 ③ 的假阴性：`values: [0.3, 0.7, 0.95]` 这种纯数字数组元素两边都不认**（判据 ① 只认字面量数字、③ 只认算出来的） | 本仓库的图表任务**全是这个写法** ⇒ 那串数**实际上没人验**（子代理 2026-10-16 实测：6 个有事实表的任务 194 个显示位里，`values` 元素一个都没被两条判据覆盖）。要做就得把 `values` 的元素纳进判据 ①（代价：所有图表任务染红，得逐个登记进 FACTS.md）；**先想清楚要不要**，别顺手加。另两条同类假阴性：裸变量实参 `type.write(cnt, …)`、跨文件流向。<br>**2026-11-01 已量化**：全仓纯数字 `values` = **15 个任务 / 17 组 / 100 个数**（nuomi7–15 全部、7 个 `_lab` 夹具、example-config-only、_style-sampler），**没有一个有 FACTS.md** ⇒ lint 本来就安静跳过，**纳入判据①的即时染红面 = 0**；真正收益是堵住未来「有 FACTS 的图表任务」没人验的洞。**建议纳入**，动 lint 时顺手做 | 子代理报告（2026-10-16）· `tools/lint-fabricated-numbers.mjs` 文件头的诚实清单 |
+| 1-32 | **`String(cnt).padStart(2, '0')` 里的补零字符 `'0'` 被当成显示位字面量**（判据 ① 的假阳性） | 它其实是**格式参数**，不是画面上的数字。消掉要改判据 ① 的"实参里任意字面量"口径，会动**所有任务**的条数（本轮没做：夹具里刻意留着并登记了一行 `0`）。<br>**2026-11-01 已量化**：显示位共 **3 处**（`nekohome-intro-ja/cards.js:389`、`nekoclicker-intro/packflash.js:59`、`promo/_world.js:547`）+ 非显示位 1 处（`nekoclicker-intro/sticker.js:8`，文件名参数不进 `type.write`、本来就不咬）⇒ 影响面很小，**建议改口径**（padStart 的填充字符参数不算显示位实参），动 lint 时顺手做。⚠ 改之前先量一遍"会影响几个任务、几条" | 同上 |
 | ~~1-72~~ | **已完成（2026-11-01，diagnose 全流程）**：自适应梯子的**采样窗几何错误**，不是原猜的跨帧状态残留。`ternaryOffsets` 把 216 点均匀网格**按下标连续排布**，而引擎梯子按**连续前缀**消费（0..8 → 8..24 → …）⇒ "第一级 8 子帧"实际挤在快门窗口**左缘 1/27 的细条**（[-0.498,-0.435]）里：帧内跳变（拍点 flash / 快速运动）的帧整帧采到跳变前的内容、前半与后半相等被判 `static`、峰值整帧丢失且不报错。**三条原观测全部反转**：① 亮度 48.3/89.7 的分界不是子帧数而是"帧内容是否在帧内跳变"（`samples 1` 推流同样丢帧，只是 auto 多丢一帧）；② "连续路径"是红鲱鱼 —— 隔离 `still --samples auto` 同样复现（原记录没复现是因为 `_ref-lab` 的 refa 是 **outro** 段、静态画面分辨不出，需 title 段的拍点脉冲才显形）；③ `post` 取自"最靠近 +0.125 的子帧"，窗口偏移让 flash 等**时间变化 post 一并冻结在窗口左缘** —— 这才是「亮度减半」的精确机制（flash 0.06 在近黑画面上翻倍亮度）。**修法**：`ternaryOffsets` 改**层级序**（粗级在前、逐级补插新点、去重），任意前缀 = 那一档的整窗均匀网格；回归 `tools/test-sampling.mjs` ②b **7 项**（66 项全绿），`regress-all --ci` **65/65**，`hashes demo` / `beat --baseline` 各 11/11 max 0（单子帧路径逐像素不变），`check demo` 双路径逐段一致，真 GPU 复现帧 48.2 → 89.4（与单子帧参照 89.66 差 ≤0.3） | 修在 `src/core/sampling.js`；文档 `docs/ENGINE.md` §11.1 已同步 | 2026-11-01 |
-| 1-33 | **1-27 留下的一半：三条运动上限接进守门**<br>**①错峰跨度：已完成（2026-10-26）** —— `tools/lint-motion-caps.mjs` 从源码字面量算 `items × stagger`（判据与 `waterfallOver()` 同口径 0.5s），`anim check` 每次都跑：默认 warn、`--strict` 进 errs、没有可判对象进 skipped；读不出元素个数（简写 / 函数参数）记 **unchecked** 而不是通过。验证 `tools/test-motion-caps.mjs` 27 项 + 夹具 `tasks/_motion-lab`<br>**②辉光峰值：已完成（2026-10-26）** —— 只认**显式声明** `halo: { peak: 0.62 }`（或 `halo: 0.62`），峰值 > 0.45 即报；不扫裸 `alpha`（分不清辉光与正文淡入，假阳性会淹掉真命中）。没有 halo 的场景**不算「没验」**（设计上没做辉光）<br>**③碰撞式转场 40–50%：已完成（2026-10-26）** —— `src/core/trans.js` 出 `VICTIM_RATIO_RANGE = [0.40, 0.50]` / `VICTIM_RATIO_DEFAULT`（区间中点，由常量算出）/ `planCollision({ enterDur, ratio })`（越界夹回 + 非空说明；`enterDur ≤ 0` ⇒ victimDur 0 + degenerate；NaN / ±Inf 当场抛）/ `victimSpan()`；`transitionPass(gl, { victimRatio })` 把比例喂 uniform `fadeAt`，**不传则行为逐像素不变**（Pass 源码与 HEAD 逐字节相同，773 B）。`src/kit/index.js` 与 `kit/world.js` 都已转发。验证 `tools/test-transition-collision.mjs` **30 项**（含 120 组扫描恒落 [40%,50%]、说明带原值/区间/出处）<br>⚠ 三条上限的数值本身仍是**外部经验值**（`docs/MOTION.md` §0），要变成我方实测得拿一段 `anim cuts` 做 A/B | — |
+| 1-33 | **1-27 留下的一半：三条运动上限接进守门**<br>**①错峰跨度：已完成（2026-10-26）** —— `tools/lint-motion-caps.mjs` 从源码字面量算 `items × stagger`（判据与 `waterfallOver()` 同口径 0.5s），`anim check` 每次都跑：默认 warn、`--strict` 进 errs、没有可判对象进 skipped；读不出元素个数（简写 / 函数参数）记 **unchecked** 而不是通过。验证 `tools/test-motion-caps.mjs` 27 项 + 夹具 `tasks/_motion-lab`<br>**②辉光峰值：已完成（2026-10-26）** —— 只认**显式声明** `halo: { peak: 0.62 }`（或 `halo: 0.62`），峰值 > 0.45 即报；不扫裸 `alpha`（分不清辉光与正文淡入，假阳性会淹掉真命中）。没有 halo 的场景**不算「没验」**（设计上没做辉光）<br>**③碰撞式转场 40–50%：已完成（2026-10-26）** —— `src/core/trans.js` 出 `VICTIM_RATIO_RANGE = [0.40, 0.50]` / `VICTIM_RATIO_DEFAULT`（区间中点，由常量算出）/ `planCollision({ enterDur, ratio })`（越界夹回 + 非空说明；`enterDur ≤ 0` ⇒ victimDur 0 + degenerate；NaN / ±Inf 当场抛）/ `victimSpan()`；`transitionPass(gl, { victimRatio })` 把比例喂 uniform `fadeAt`，**不传则行为逐像素不变**（Pass 源码与 HEAD 逐字节相同，773 B）。`src/kit/index.js` 与 `kit/world.js` 都已转发。验证 `tools/test-transition-collision.mjs` **30 项**（含 120 组扫描恒落 [40%,50%]、说明带原值/区间/出处）<br>⚠ 三条上限的数值本身仍是**外部经验值**（`docs/MOTION.md` §0），要变成我方实测得拿一段 `anim cuts` 做 A/B（**2026-11-01 拍板：做**） | — |
 
 ### 1.A 画面能力（2026-10 拆解参考项目 `world.execute (me) ;` 之后列的，**按建议顺序**）
 
@@ -200,7 +216,7 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 | # | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
 | ~~1-11~~ | **已完成（2026-10-30）**：仪器视图 —— `src/kit/views.js`（八种成像：`halftone` 半调 / `ascii` 字符画 / `dither` 1-bit / `posterize` 分级平涂 / `thermal` 热成像 / `pixel` 像素 / `crt` 显像管 / `engrave` 雕版排线）+ `instrumented(ctx, opts, draw)` 一行式入口 + `renderCapture` / `applyView`。**踩掉三个不报错的坑**：① 字符画的字模表手写顺序不单调（`=` 10 点排在 `o` 8 点前）⇒ 中灰底被印成一片白，改成运行时按**实际着墨点数**稳定排序，并由 `tools/test-views.mjs` 钉住；② 极性写反（`dither` 的黑白、`thermal` 的底色）在深色底片上「看着还挺像」，做成显式常量 `SCREEN_POLARITY`；③ 引擎 `GLSL_COMMON` 的 `hatch()` 返回的是「暗度附加值」不是「墨覆盖率」，直接当墨用会得到整屏斜纹的反相版画 —— 排线自己写。夹具 `tasks/_view-lab`（8 段，`check --quick` 0 红、8/8 段有画面）；回归 `tools/test-views.mjs`（27 项，挂 `unit:views`）；文档 `docs/COOKBOOK.md` §16、`docs/REFERENCE-style-pack.md` | 能力清单来自用户提供的 341 条风格素材包（见 `docs/REFERENCE-style-pack.md` §3），**代码一行没抄**；对应素材包条目：L29 / O19 / E3 / L39 / K28 / X13 / L30 / L31 / O10 |
-| 1-12 | **相机接力 `relay`**：段与段之间不是"切"，而是**相机一路飞过去、内容中途换手**（对方 305 个镜头里 22% 的切点用它） | 四块：① `cam.js` 加位姿混合（look 点直线插值、朝向四元数 slerp、**画幅大小按对数插值** `exp(lerp(log a, log b))`、相机位置由 look+dist **反推**——这样是绕主体摆动而不是切角）；② `trans.js` 加 relay 转场（两段用**同一个混合位姿**各渲一遍、只交叉画面、**文字整段交接不做溶解**）；③ `kit` 加相机探针协议（镜头在设相机处登记，引擎能"只跑到相机那一步"读出位姿、再 drive 回去）；④ `timeline.js` 让 `overlap` 能声明 `relay`。**先只对 `makeThreeShot` 与 `camera3` 生效**（它们的相机是现成的现成数据），2D 段不参与 | 同上 §4 ②（对方 `src/engine/rig.js`） |
+| ~~1-12~~ | **已完成（2026-11-01）**：相机接力 `relay` —— `transition: 'relay'`（+ `transitionOpts: { move: glide|whip, handover: [a,b] }`）。机制：engine composite 每子帧探两侧场景的 relayPose（camera3 形状 `{pos,target,fov,roll}`、t 纯函数）→ `blendPose`（look 直线 / dist 与 tan(fov/2) 几何插值 / yaw 最短路径+端点精确还原）→ 两段相机各自 drive 到同一混合位姿 → 交叠窗内 `mixTo` 换手（`HANDOVER_GLIDE` [.35,.65]）。**独立分支在 push/mix guard 之前**（不受 handlesTransition 约束——makeShot/makeThreeShot 默认 true，放进那条 guard 会静默硬切）；缺 relayPose / 三段以上重叠 ⇒ 去重警告回落 push。与原计划的差异：相机探针没有做成"抛 Symbol 中断"的通用协议，而是场景对象 `relayPose(ctx)` 纯函数接口（引擎每子帧现探现算，禁止记忆化——冻结动态位姿的坑已在 test-relay 钉住）；"文字整段交接"降级为 v1 边界（文字随段 crossfade），要拆两层 RT 另立项。实现 `src/core/relay.js`（纯函数层）+ engine/trans/timeline/kit 四处接线；测试 `tools/test-relay.mjs` **37 项**（regress-all 挂 unit:relay，CI 66/66）；夹具 `tasks/_relay-lab`（6 段三组：camera3 glide / push 对照 / makeThreeShot whip）；文档 `docs/ENGINE.md` §3.7.7（新增，原 §3.8 原号原位）/ `docs/MOTION.md` §3.6 / CONFIG-ONLY / COOKBOOK §8。原四块拆解留档：① 位姿混合 → `blendPose`（几何插值与对数插值同构，pos 由 look+dist 反推，绕主体摆动成立——出图证实）；② relay 转场 → `mixTo` 换手（原文"文字整段交接"见上）；③ 探针协议 → `relayPose(ctx)` 纯函数；④ timeline → `transitionOpts` 四接（TIMELINE_KEYS/configToCut/cut/build） | 同上 §4 ②（对方 `src/engine/rig.js`） |
 | ~~1-13~~ | **已完成（2026-10-31）**：参数化转场 —— `wipe` / `iris` / `glitch` / `pixel` / `dissolve` 五种新转场，加上原有的 `push` / `mix` / `none`，共 **8 种模式**，段上写 `transition: '<名字>'` 即可。
 六支 shader 独立成 `src/core/transition-frag.js`（共用 `under`/`k`/`dir`/`push`/`blur`/`fadeAt`），`trans.js` 出模式表 `TRANSITION_MODES` + `resolveTransitionMode()`（**写错当场抛并列出可用值**）+ `transitionFadeAt()`；引擎在 `composite()` 里按模式缓存 Pass。
 **`push` 的源码与从前逐字符相同**（`test-transition-modes` 与 `test-transition-collision` 各钉一遍）；不写 `transition` = `push` = 逐像素与从前一致。
@@ -245,11 +261,11 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 
 | # | 事 | 现在能确定的 | 还不知道的 |
 |---|---|---|---|
-| 1-30 | **从已有素材里挑片段**（裁切 / 拼接真实视频段，即 B-roll 那一层） | ① 我方的**结构性优势不能弄丢**：现在是"一次编码、无接缝、字幕画在后处理之后、每帧可 seek"；② 真做素材裁切时，"预烘焙视频段拼进成片"必撞的五条硬规则已经拆出来了（字幕必须在滤镜链**最后**、逐段抽帧后无损 `-c copy` 拼、每个接缝补 30ms 音频淡入淡出、overlay 用 `setpts=PTS-STARTPTS+T/TB` 落位、母版字幕按输出时间轴偏移）——我们**已经对了三条**，不会返工；③ 必须先决定**素材段的合成层级**（在 ffmpeg 层拼好当"底"、代码镜头合成上去？还是把素材当引擎里的一张图层？）—— 前者会失去"代码镜头逐帧可 seek"的便利 | 值不值得做（用户目前是"大量可视化的科普/介绍片"，不是实拍剪辑）；观众反馈里到底缺不缺"真实画面" |
+| 1-30 | **从已有素材里挑片段**（**2026-11-01 拍板：立项要做，排在 1-12 之后**）（裁切 / 拼接真实视频段，即 B-roll 那一层） | ① 我方的**结构性优势不能弄丢**：现在是"一次编码、无接缝、字幕画在后处理之后、每帧可 seek"；② 真做素材裁切时，"预烘焙视频段拼进成片"必撞的五条硬规则已经拆出来了（字幕必须在滤镜链**最后**、逐段抽帧后无损 `-c copy` 拼、每个接缝补 30ms 音频淡入淡出、overlay 用 `setpts=PTS-STARTPTS+T/TB` 落位、母版字幕按输出时间轴偏移）——我们**已经对了三条**，不会返工；③ 必须先决定**素材段的合成层级**（在 ffmpeg 层拼好当"底"、代码镜头合成上去？还是把素材当引擎里的一张图层？）—— 前者会失去"代码镜头逐帧可 seek"的便利 | 值不值得做（用户目前是"大量可视化的科普/介绍片"，不是实拍剪辑）；观众反馈里到底缺不缺"真实画面" |
 
 > **还没做、也还没排期的一条**：**一条旁白出多语言版本**。现在 `VOICE` 一行换音色、`say`+`mix` 重跑即可；
 > 多语言要重写整份 `SCENE` 文案与 `words` —— 先等 **1-23**（`variants` + `narration.json` 可指定）落地再谈，
-> 否则会做两遍。
+> 否则会做两遍。**2026-11-01 拍板：立项要做**（前置 1-23 已落地；排在 1-12 之后）。
 
 ### 1.D 连贯 / 节奏（2026-10-17 拆解外部项目 `onetake` 之后列的，**按性价比排序**）
 
@@ -318,7 +334,7 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 | ~~1-54~~ | **已完成（2026-10-25）**：`tasks/_ideas.md` 落地（🟡候选 / 🔵在做 / 🟢已发 三档 + 一行一条的格式 + "池子少于 3 条就该补"）。判据仍是**连续 4 个周末选题环节 ≤5 分钟** —— 文件到位，效果要等 4 周后回看 | — | 同 §5 Phase 4 |
 | ~~1-55~~ | **已完成（2026-10-25）**：`docs/SCENE-BRIEF-TEMPLATE.md` **新增 §11「选题 → brief」** —— 可复制的指令（七块产出）+ 四条判据（无编造数字 / 视觉主角一个名词 / "要新写" ≤2 段 / anti-list ≥3 条）+ 与 §4/§5/§7/§8/§10 的对应表。作者的动作只剩"抽一行 + 审一份 brief" | 前提是模型弱（DeepSeek v4.1-flash / GLM-5.3）—— brief 越像规格书，出片越稳（Opus 案例的共识）。判据：一份 brief 直接喂给场景 agent，作者不需补结构性信息 | 同 §5 Phase 4 |
 
-| 1-56 | **绿幕 / 透明导出**（2026-10-26 从 `REFERENCE-jizura.md` 拆出，**不排期**）：`video --alpha` 背景层出纯色、文字层单独出一条，后期合成用 | 判据：两条轨帧数与主片一致（ffprobe 复核）；`qtrle` 或 PNG 序列两种可选。对"一个人做片子"收益中等，先登记 | [`docs/REFERENCE-jizura.md`](REFERENCE-jizura.md) §4 |
+| 1-56 | **绿幕 / 透明导出**（**2026-11-01 拍板：立项要做，排在 1-12 之后**）（2026-10-26 从 `REFERENCE-jizura.md` 拆出，**不排期**）：`video --alpha` 背景层出纯色、文字层单独出一条，后期合成用 | 判据：两条轨帧数与主片一致（ffprobe 复核）；`qtrle` 或 PNG 序列两种可选。对"一个人做片子"收益中等，先登记 | [`docs/REFERENCE-jizura.md`](REFERENCE-jizura.md) §4 |
 | ~~1-57~~ | **已完成（2026-10-26）**：字幕断行质量 —— `src/core/cjk.js` 的 `breakCaption()`（纯函数）：**行首禁则**（`，。、）」` 挂到上一行末尾）、**行尾禁则**（`「（` 推到下一行）、**不拆词**（`24fps`/`v0.9.0` 算一个单元）、**两行平衡**（不再 15+1 孤儿行）、**超长句不丢字**（缩字号 ×0.86 → 仍不行就多给一行 + `console.warn` 一次；旧实现 `rows.slice(0, maxLines)` 会静默吃掉后半句）。验证 `tools/test-cjk.mjs` **28 项**（含 `rows.join("") === 原文` 这条硬断言）；默认行为，无需配置，`maxCharsPerLine/maxLines` 照旧生效。文档 `docs/CAPTIONS.md` §3.5 | 同 §5 Phase 3 |
 ---
 

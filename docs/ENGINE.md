@@ -532,6 +532,76 @@ render(ctx) {
 - 与 `victimRatio` **正交**：两个都给就都生效（模式决定"长什么样"，比例决定"旧的走多快"）。
 - `docs/MOTION.md` §3.6 有每种的画面描述与选型建议；夹具 `tasks/_trans-lab`。
 
+### 3.7.7 相机接力 relay：`src/core/relay.js`（BACKLOG 1-12）
+
+交叠期不再是"旧帧被甩走"（§3.7.6 的 `push`），而是**一台相机**从 A 段的 home 位姿
+一路飞到 B 段的 home 位姿，**画面内容在换手窗里 mixTo 换手**。机制四步：
+
+1. **探**：引擎每个子帧对前后两段各调一次 `relayPose(ctx)`，拿两侧此刻的 home 位姿
+   （`engine.js` 的 `_probeRelayPose` —— 探针 ctx 只有 `f`/`W`/`H`/`P`/`params` 只读字段）。
+2. **混**：`blendPose(a, b, e)` 把两个位姿混成一个（`e` 先过运动曲线 `MOVES`）。
+3. **drive**：混合位姿经 `poseToCamera3()` 换回 camera3 形状，交给两段各自的相机
+   （`ctx.relay.pose`；`makeThreeShot` 还会直接 `setCamera`）。
+4. **换手**：`relayHandover(tin, window)` 给出内容权重，`comp.mixTo(under, out, k)`
+   在换手窗里交叉 —— 旧内容被相机"带走"的过程中退场。
+
+**Pose 契约**（字段名不许改）：
+
+```
+Pose = { look: [x,y,z], dist, yaw, pitch, fov, roll }
+```
+
+`yaw`/`pitch`/`fov` 单位是**度**，`roll` 是**弧度**；`yaw = 0` 朝 −z、增大朝 +x，
+`pitch` 向上为正。`fwd = [sin(yaw)·cos(pitch), sin(pitch), −cos(yaw)·cos(pitch)]`，
+`pos = look − fwd·dist`。⚠ `Pose` 与 `camera3()` 的入参 `{pos,target,fov,roll}`
+**恰好同形不同义**（`look` = 看向哪、`pos` = 站在哪）—— `poseFromCamera3()` /
+`poseToCamera3()` 互逆负责换算，别把 Pose 直接塞给 `camera3()`。
+
+混合规则（`blendPose`）：look 三轴直线插值；`dist` 与 `tan(fov/2)` 走**几何插值**
+`exp(lerp(log a, log b))`（推近匀速，样式同 `zoomLerp`）；yaw 走**最短路径**线性
+（170° → −170° 从 180° 那边过）；`pitch`/`roll` 线性。
+
+**场景接入三种写法**：
+
+```js
+// ① 手写 camera3 场景 —— 一行接入（src/kit/index.js 的 relayPose3）：
+render(ctx) {
+  const cam = camera3({ ...relayPose3(ctx, myHome), H });   // myHome = 本段 home 机位
+  …
+}
+//    并在场景对象上声明探针（t 的纯函数，返回 camera3 形状）：
+relayPose(ctx) { return { pos, target, fov, roll }; }        // 只许读 f.t / params
+
+// ② 同上（手写场景）—— relayPose 声明本身，是 relay 成立的前提；没有它引擎会
+//    点名回落 push（见下面的边界）。
+
+// ③ makeThreeShot —— spec.cameraPose(ctx)（t 的纯函数）；不写则回读当前相机状态
+//    （roll 恒 0）。交叠期引擎把混合位姿 setCamera 进来，update 刚跑过的位姿被覆盖。
+```
+
+时间线声明：`cut(scene, { overlap: 1.2, transition: 'relay', transitionOpts: { move: 'glide', handover: [0.35, 0.65] } })`
+（配置档节点同理）。`transitionOpts.move` ∈ `MOVES`（`glide` = inOutSine 缓入缓出 /
+`whip` = p^2.4 甩鞭；未知名**当场抛**，`resolveRelayMove`）；`handover` 是换手窗，
+默认 `HANDOVER_GLIDE = [0.35, 0.65]`（交叠进度 35% 前是 A、65% 后是 B，中间 smoothstep）。
+
+**v1 边界（刻意不做）**：
+
+* 文字层跟随所属段一起在换手窗内 crossfade —— 不做"文字整段交接"；
+* 三段以上重叠时最深一层**回落 push 并警告**（relay 只在两段交叠生效）；
+* post 参数不逐字段插值 —— 交叠期用 B 段的 post；
+* ortho ↔ perspective 过渡不做（引擎全是透视）。
+
+**回落 push 的条件**（引擎**不静默**，`ctx.warnings` 点名哪一段缺什么）：
+任一侧没有 `relayPose()`、三段以上重叠、或 `under` 缺失 —— 声明了 `transition: 'relay'`
+但条件不满足时按 push 走；relay 成立时**绝不**再进 §3.7.6 的 push/mix 分支
+（`makeShot`/`makeThreeShot` 默认 `handlesTransition: true`，`openFrame` 的 relay
+跳过分支保证交叠期只铺背景、不甩上一帧 —— 两条路不会叠加成双重转场）。
+
+**确定性**：`relayPose` / `cameraPose` 是 **t 的纯函数**、每子帧**现探现算绝不缓存**
+（memo 会把动态飞行冻成"两台静态相机之间的插值"，画面不报错、check 照样绿）。
+零 GPU 纯函数层 `src/core/relay.js` 可离线单测：`node tools/test-relay.mjs`。
+夹具 `tasks/_relay-lab`（camera3 对 glide + push 对照组 + Three.js 对 whip）。
+
 ---
 
 ## 3.8 第 3 种 3D：真网格（Three.js，`src/core/three-bridge.js`）

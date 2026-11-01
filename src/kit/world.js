@@ -41,6 +41,7 @@
  */
 
 import { Pass } from '../core/gl.js';
+import { sat } from '../core/util.js';
 import {
   transitionPass as coreTransitionPass, makeCameraProfile, openTransitionFrame,
   TRANSITION_MODES, resolveTransitionMode, transitionFadeAt, isPassTransition,
@@ -289,6 +290,14 @@ export function makeWorldKit(ctx, opts = {}) {
      */
     openFrame(c, bg = undefined) {
       const world = bg === undefined ? (background ?? c.world) : bg;
+      // 相机接力（BACKLOG 1-12）：ctx.relay?.pose 存在 = 引擎正在做位姿混合 + mixTo 换手，
+      // 交叠帧里"把上一帧甩走"的那一步必须跳过 —— 否则 B 段 RT 里先甩一遍、
+      // composite 再换手混一遍 = 双重转场。只铺背景并照常返回 k（enterOffset 等下游不受影响）。
+      // 背景 render 仍然要跑：relay 段的画面底还是这一层（world: 'auto' 的铺底职责不变）。
+      if (c?.relay?.pose) {
+        if (world) world.render(c.gl, c.out, c.f.t, c.f.dt);
+        return c.under ? sat(c.f.tin) : 1;
+      }
       return openTransitionFrame(c, { pass, background: world, dir: cameraDir, opts });
     },
     /** 换一层背景（例如片头/片尾要换世界）。 */

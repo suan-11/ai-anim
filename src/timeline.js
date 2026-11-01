@@ -68,6 +68,11 @@ const TIMELINE_KEYS = new Set([
   // 交叠期的转场模式（2026-10-24）：默认 push（甩镜）、显式 mix = 交叉溶解、
   // none = 不处理（硬切）。配置档节点上也能写 —— 不加进这张表它会被当成模板参数。
   'transition',
+  // 相机接力的运动曲线与换手窗（BACKLOG 1-12）：{ move, handover }（move 取 glide/whip，
+  // handover 是换手窗 [w0, w1]），只在 transition 取 relay 的段上有意义。
+  // 配置档节点上也能写 —— 不加进这张表它会被当成模板参数。
+  // ⚠ 注释里别写带单引号的词：tools/lint-doc-facts.mjs 用单引号提取器解析这张表。
+  'transitionOpts',
 ]);
 
 /**
@@ -78,7 +83,7 @@ const TIMELINE_KEYS = new Set([
  * 而不是静默吃默认值画出一张看起来正常的图（`docs/history/IMPROVEMENTS-1-3.md` 那类 bug 的通用解法）。
  */
 function configToCut(node, where) {
-  const { type, id, dur, at, overlap, params, post, maxSamples, handlesTransition, note, world, worldPass, focus, carry, transition, ...rest } = node;
+  const { type, id, dur, at, overlap, params, post, maxSamples, handlesTransition, note, world, worldPass, focus, carry, transition, transitionOpts, ...rest } = node;
   const tparams = { ...rest, ...(params ?? {}) };
   if (id != null) tparams.id = id;          // ⚠ 不能写成 tparams.id = id：undefined 会盖掉模板默认段名
   let scene;
@@ -105,6 +110,8 @@ function configToCut(node, where) {
     focus,
     carry,
     transition,
+    // 相机接力的运动曲线与换手窗（BACKLOG 1-12）：照 transition 键的同一条路径落到段上
+    transitionOpts,
   };
 }
 
@@ -144,6 +151,9 @@ export function cut(scene, opts = {}) {
     carry: opts.carry,
     // 交叠期的转场模式（2026-10-24 起默认为 'push' 甩镜）：'mix' = 交叉溶解、'none' = 硬切。
     transition: opts.transition,
+    // 相机接力（BACKLOG 1-12）：{ move?: 'glide'|'whip', handover?: [w0,w1] }，
+    // 只在 transition: 'relay' 时被 engine composite 读（不透传 = 静默丢失，与 focus 同一条教训）。
+    transitionOpts: opts.transitionOpts,
   };
 }
 
@@ -290,6 +300,9 @@ export function build(plan, music = {}) {
       // 交叠期转场模式（2026-10-24）：默认 'push'（甩镜），'mix' / 'none' 显式退回。
       // 搬到段上，`composite()` 的默认转场逻辑读它（等于把配置档节点的 transition 带到引擎）。
       transition: c.transition,
+      // 相机接力（BACKLOG 1-12）：{ move, handover } 落到段上，composite() 的 relay 分支读它
+      // —— 照 transition 键的同一条路径走（cut() / 配置档节点两种写法都到得了）。
+      transitionOpts: c.transitionOpts,
     });
     return start + dur;
   };

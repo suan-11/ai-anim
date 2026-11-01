@@ -219,7 +219,7 @@ export default {
 
 | 类别 | 键 | 说明 |
 |---|---|---|
-| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6） |
+| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` `transitionOpts` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切 / `relay` 相机接力（相机从上一段位姿飞向本段、内容在交叠窗换手；`transitionOpts` 定曲线与换手窗，两种写法见 `docs/ENGINE.md` §3.7.7）；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6） |
 | **模板参数** | **其余所有键** | 原样交给 `shot(type, { … })`；也可以显式写在 `params: { … }` 里（`params` 优先）。**没有必需参数**，每个都有默认值 |
 
 三条硬边界：
@@ -292,6 +292,7 @@ export default makeShot('chart', {
 | **换成像方式**（半调 / 字符画 / 1-bit / 热成像 / CRT / 雕版 / **多方向排线**） | `instrumented(ctx, { mode, cell }, (target) => {…})`（`src/kit/views.js`）。⚠ 整帧（含文字）先画进离屏目标再换，且必须最后一步（`COOKBOOK` §16）。**要真「刻痕」用 `woodcut`**（按明暗加方向；`engrave` 只有一个方向）—— 它的 `cell` 有 **22px 下限**，低于会被夹住并写 warning（§16.4） |
 | **像素风**（调色板 / 块栅格 / 抖动 / 12fps 台阶） | `paletteOf` `pixelText` `drawSprite` `pixelGradient` `snapTime`（`src/kit/pixel.js`），整镜头用 `shot('pixel', {…})`。⚠ 三条写错不报错：抖动阈值按**块**坐标取；精灵 / 像素字落在整块上；台阶用 `f.t` 不用 `f.lt`（`COOKBOOK` §19） |
 | **手绘笔迹** | `strokePath` / `strokeArc` / `inkOn`（`src/kit/stroke.js`），整镜头用 `shot('handwrite', {…})`。⚠ 轮廓法在**曲率半径 < 半宽**处必然自交（偶奇规则填成针孔）—— `drawStroke` 的 auto 会自动退到胶囊链；笔迹**不许半透明**（要用 `inkOn(P.c, 0.9, paper)`，§20.1） |
+| **相机接力**（段间镜头飞过去、内容换手） | 时间线写 `transition: 'relay'`；camera3 场景 `camera3({ ...relayPose3(ctx, home), H })` 一行接入（写之前读 `docs/ENGINE.md` §3.7.7） |
 | **零状态 GPU 粒子** | `makeParticles(ctx, { count, preset: 'sparks'|'orbit'|'drift' })`（`src/kit/particles.js`，1-14）。位置 = f(index, t) 的纯函数，无 CPU 上传；加法混合（信号色发光那档）。⚠ 不参与引擎亚像素抖动；预设名写错当场抛 |
 | **整片换介质**（默认 off） | 风格包字段 `view: 'halftone'` 或 `{ mode, cell, passes, misreg }`（写错当场抛）；`passes: 2..4` = N 版套印，整片生效、字幕仍清晰（`COOKBOOK` §16.1–16.2） |
 | **像「胶片放出来的」** | `return { weave: 0.5, flicker: 0.25, scratch: 0.2 }`（默认全 0 = 逐像素不变，全由 `t` 驱动；`COOKBOOK` §16.3） |

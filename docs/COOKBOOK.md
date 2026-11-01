@@ -824,6 +824,9 @@ return {
 >    `openFrame()` 每帧画**全片唯一那层背景**并把上一帧沿摄影机方向甩走，`enterOffset(f.t, k, 220)`
 >    让新内容从反方向落位，`return cameraPost(f.t, { bloom: 0.34 })` 保证摄影机不断。
 >    这四条是"不像幻灯片"的配方，缺一条就露馅（`AGENTS.md` §4.5 / `docs/ENGINE.md` §3.7.6）。
+> 4. **同一个世界的两台机位**想要"镜头飞过去内容换手"而不是"甩走"：段上写
+>    `transition: 'relay'`（相机接力，BACKLOG 1-12；场景接入与边界见 `docs/ENGINE.md` §3.7.7，
+>    夹具 `tasks/_relay-lab`）。
 
 ### 8.1 默认交叉溶解（什么都不用写）
 

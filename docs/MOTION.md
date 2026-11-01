@@ -207,7 +207,7 @@ this.wk = makeWorldKit(ctx, { victimRatio: 0.45 });
   按 40%/50% 夹过（`clamped`），观众看到的"旧内容走得太急/黏太久"就在这里。
 
 
-### 3.6 转场模式：八种切法，一个字段（BACKLOG 1-13）
+### 3.6 转场模式：九种切法，一个字段（BACKLOG 1-13 / 1-12）
 
 ```js
 // task.config.mjs 的配置档节点上（或 cut() 的 opts 上）
@@ -224,6 +224,7 @@ this.wk = makeWorldKit(ctx, { victimRatio: 0.45 });
 | `'dissolve'` | 多尺度 fbm 阈值溶解，消融边缘微微发亮 | 梦境、时间流逝 | 1 次 fbm |
 | `'mix'` | 交叉溶解（2026-10-24 之前的默认） | 两屏**都是图形**、没有成段文字 | 0 |
 | `'none'` | 硬切 | 要"断"的时候 | 0 |
+| `'relay'` | **相机接力**：一台相机在两段的 home 位姿之间飞过去（look 直线、dist 与 tan(fov/2) 几何插值、yaw 最短路径），内容在换手窗 [.35, .65] 交叉，move 走 glide / whip 两种曲线（BACKLOG 1-12） | 两段是**同一个世界的两台机位**、想要"镜头飞过去内容换手"而不是"甩走" | 每子帧多两次位姿探针（纯查表级） |
 
 **四条纪律**：
 
@@ -243,7 +244,7 @@ this.wk = makeWorldKit(ctx, { victimRatio: 0.45 });
 ⚠ 别在 shader 里重复声明 `GLSL_COMMON` 已有的东西（`vnoise` / `fbm` / `hash12` / `sat` / `luma`…）——
 GLSL 会报 `function already has a body`，而这个错在第一版 `dissolve` 上就踩过一次。
 
-**夹具**：`tasks/_trans-lab`（8 个模式各一段 A→B，`overlap: 1.2`，含 `push` / `mix` / `none` 三个对照组）。
+**夹具**：`tasks/_trans-lab`（8 个模式各一段 A→B，`overlap: 1.2`，含 `push` / `mix` / `none` 三个对照组）；relay 的机制与接入见 `docs/ENGINE.md` §3.7.7，夹具 `tasks/_relay-lab`（camera3 对 + push 对照组 + Three.js 对，含配置档 `transitionOpts: { move: glide | whip }` 写法）。
 
 ---
 

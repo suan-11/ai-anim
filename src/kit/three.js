@@ -79,7 +79,8 @@ export function makeThreeShot(id, spec = {}) {
         camCfg.fov ?? 38, ctx.W / ctx.H, camCfg.near ?? 0.1, camCfg.far ?? 400,
       );
       camera.position.set(...(camCfg.pos ?? [0, 2.2, 6]));
-      const lookTarget = new THREE.Vector3(...(camCfg.target ?? [0, 0, 0]));
+      // 挂到 this：relayPose() 回读 home 位姿时要用（接力探针，BACKLOG 1-12）
+      const lookTarget = this.lookTarget = new THREE.Vector3(...(camCfg.target ?? [0, 0, 0]));
       camera.lookAt(lookTarget);
       this.camera = camera;
       bridge.setProjectCamera(camera);
@@ -105,11 +106,38 @@ export function makeThreeShot(id, spec = {}) {
       if (spec.setup) await spec.setup.call(this, ctx, api);
     },
 
+    /**
+     * **相机接力（BACKLOG 1-12）**：把这一段的 home 位姿交给引擎探（`_probeRelayPose`）。
+     *
+     *   · `spec.cameraPose(ctx)` 存在 ⇒ 调它 —— **必须是 t 的纯函数**（确定性铁律），
+     *     返回 `{ pos, target, fov?, roll? }`（camera3 的入参形状，字段名恰好与
+     *     Pose 同形不同义，引擎内部用 `poseFromCamera3` 换算）；
+     *   · 否则 ⇒ 回读当前相机状态（position / lookTarget / fov，roll = 0 ——
+     *     Three 的相机没有独立 roll 通道，接力对里想要 roll 就写 cameraPose）。
+     *
+     * 引擎每子帧现探现算（不缓存），位姿随 t 漂移的动态飞行因此成立。
+     */
+    relayPose(ctx) {
+      if (typeof spec.cameraPose === 'function') {
+        return spec.cameraPose.call(this, ctx);
+      }
+      return {
+        pos: this.camera.position.toArray(),
+        target: this.lookTarget.toArray(),
+        fov: this.camera.fov,
+        roll: 0,
+      };
+    },
+
     render(ctx) {
       const api = this.api;
       this.bridge.setProjectCamera(this.camera);
       // ① 这一段自己的状态：只吃 t（子帧会带着略不同的 t 反复进来）
       if (spec.update) spec.update.call(this, ctx, api);
+      // ①′ 相机接力（BACKLOG 1-12）：引擎在交叠期给了混合位姿 ⇒ **drive**：
+      //    外来位姿替换自己的相机，画面照画（参考机制的 rig.drive；自己的 spec.update
+      //    刚在上面跑完，位姿最后说了算的是 relay）。
+      if (ctx.relay?.pose) api.setCamera(ctx.relay.pose);
       // ② 'over' / 'add' 要一个底：在**这一段自己的 render 里**再铺一次共享背景。
       //    为什么不能只靠 cut 上的 `world: 'auto'`：引擎铺底发生在 `gl.paint` 记账重置**之前**
       //    （`engine.js` 的 composite），于是 `check` 的背景守门看不到那一笔，会点名

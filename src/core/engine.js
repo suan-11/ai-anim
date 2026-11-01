@@ -25,6 +25,8 @@ import { SILENT } from './audio.js';
 import * as U from './util.js';
 // 交叠期的默认转场（甩镜）。`transitions.js` 只依赖 gl/util，不会再反向依赖 engine —— 无环。
 import { transitionPass, cameraDir, resolveTransitionMode } from './trans.js';
+// 相机接力（BACKLOG 1-12）：位姿混合 + 换手窗（纯函数层，src/core/relay.js）
+import { blendPose, poseFromCamera3, poseToCamera3, relayHandover, resolveRelayMove, HANDOVER_GLIDE } from './relay.js';
 // 画幅适配（竖屏，BACKLOG 1-52）：栅格与字号阶梯要按实际 W/H 换一套。
 // 依赖方向是 core → style 的唯一一处，且只用一个纯函数（`style/index.js` 不反向 import 引擎）。
 import { fitStyleToFrame } from '../style/index.js';
@@ -438,6 +440,33 @@ export class Engine {
 
   /* ------------------------------------------------------------ 帧上下文 */
 
+  /**
+   * **相机接力（BACKLOG 1-12）：向一段探它的 home 位姿。**
+   *
+   * 走 relay 的前提是**两侧都声明了 `relayPose(ctx)`**（手写 camera3 场景自己写，
+   * `makeThreeShot` 由 `spec.cameraPose` 或相机回读提供）。探针 ctx 只有
+   * `f: { t, lt, p, idx }`、`W`、`H`、`P`、`params` 这些**只读**字段 ——
+   * `relayPose` 的契约是**只许读 `f.t`（整片时间）与 `params`**，且必须是 `t` 的
+   * 纯函数（确定性铁律；`lt` = t − start 一并给着，免得场景作者顺手写它时拿到 undefined）。
+   *
+   * ⚠ **现探现算，绝不缓存**：`relayPose` 是 t 的纯函数，位姿随 t 漂移 —— 每个子帧、
+   * 每次调用都重新探（纯查表级计算，每子帧两次是可接受的成本）。探针结果**不做**
+   * 任何以帧号 / 时间为 key 的 memo，否则交叠窗的飞行会冻成"两台静态相机之间的插值"。
+   *
+   * @param {any} item 段对象（要探的那一段）
+   * @param {number} t 整片时间
+   * @param {number} idx 帧号（只透传给探针 ctx，不参与任何缓存）
+   * @returns {any} Pose（src/core/relay.js 的契约）—— 段没有 relayPose 时返回 null
+   */
+  _probeRelayPose(item, t, idx) {
+    const scene = item?._scene;
+    if (!scene || typeof scene.relayPose !== 'function') return null;
+    return scene.relayPose({
+      f: { t, lt: t - item.start, p: U.sat((t - item.start) / Math.max(1e-6, item.end - item.start)), idx },
+      W: this.gl.w, H: this.gl.h, P: this.P, params: item.params ?? {},
+    });
+  }
+
   _ctxFor(item, t, idx, extras = {}) {
     const f = {
       t,
@@ -569,10 +598,53 @@ export class Engine {
 
       // 场景必须整帧覆盖 out；先清一遍兜底（场景忘了画就是纯黑，肉眼可见地错）
       this.gl.clear(rt, [0, 0, 0]);
+      // ── 相机接力（BACKLOG 1-12）探针：声明了 transition: 'relay' 且两侧都有 relayPose
+      //    才探。relayPose 是 t 的纯函数、位姿随 t 漂移 —— **每个子帧用当前 t 现探现算**，
+      //    绝不跨 t 记忆化（帧号 memo 会把动态飞行冻成"两台静态相机之间的插值"：
+      //    画面不报错、check 照样绿，但活镜头飞向死目标）。每子帧两次纯查表级调用是
+      //    可接受的成本。探针必须在场景 render 之前跑：场景靠 ctx.relay.pose drive
+      //    自己的相机（makeThreeShot / camera3 场景同一条协议）。
+      //    形状契约：场景的 relayPose 返回 **camera3 形状** {pos,target,fov,roll}（与
+      //    relayPose3 的 home 同形）；引擎用 poseFromCamera3 换算成 Pose 参与混合，
+      //    混合完再用 poseToCamera3 转回 camera3 形状交给场景消费。
+      let relayPose = null;          // Pose（blendPose 的产物，诊断/工具读 item._relayPose 拿它）
+      let relayFrom = null;
+      let relayTo = null;
+      let relayHandoverK = null;
+      const wantsRelay = (item.transition ?? item._scene?.transition) === 'relay';
+      if (wantsRelay && k > 0 && scene && prev?._scene
+          && typeof prev._scene.relayPose === 'function'
+          && typeof scene.relayPose === 'function') {
+        const rawA = this._probeRelayPose(prev, t, idx);
+        const rawB = this._probeRelayPose(item, t, idx);
+        // 只在 k === 1（两段交叠）生效；三段以上重叠 ⇒ 最深那层回落 push（下面统一处理并警告）。
+        if (rawA && rawB && k === 1) {
+          // 段级声明（cut() / 配置档节点的 transitionOpts）> 场景对象上的声明 > 默认。
+          const opts = item.transitionOpts ?? scene.transitionOpts ?? {};
+          relayFrom = prev.id;
+          relayTo = item.id;
+          // e 的形状：本段入场进度被运动曲线重映射（glide = 恒定角速度缓入缓出，whip = 甩鞭）。
+          relayPose = blendPose(
+            poseFromCamera3(rawA),
+            poseFromCamera3(rawB),
+            resolveRelayMove(opts.move, '段 "' + item.id + '" 的 transitionOpts.move')(tin),
+          );
+          relayHandoverK = relayHandover(tin, opts.handover ?? HANDOVER_GLIDE);
+        }
+      }
+      item._relayPose = relayPose;   // 每子帧都是本帧的新值（诊断/工具可读；换手用下面的局部值）
       const ctx = this._ctxFor(item, t, idx, { out: rt, dt: subDt, tin, tout, under: k > 0 ? under : null, seeked });
       // 共享背景（一等地基，见 load() 的注释）：声明了 world 的段由引擎先铺底，
       // 场景只管前景。'auto' = task.worldPass；对象 = 这一段专用；false = 本段自己负责。
       ctx.world = resolveWorld(this, item);
+      /**
+       * **相机接力的位姿与换手**（ctx.relay，BACKLOG 1-12）：relay 段在交叠期拿到
+       * `{ pose, k, from, to }` —— pose = 本子帧的混合位姿（**camera3 形状**
+       * `{pos,target,fov,roll}`，setCamera / `camera3({...relayPose3(ctx, home), H})`
+       * 直接吃）、k = 交叠进度 tin。非 relay 段恒 null：场景侧
+       * `ctx.relay?.pose ?? 自己的相机` 的写法零影响、零开销。
+       */
+      ctx.relay = relayPose ? { pose: poseToCamera3(relayPose), k: tin, from: relayFrom, to: relayTo } : null;
       // `skipScene` 只给 `check` 的背景守门用（worldAudit）：只跑背景、不跑场景，
       // 这样「这一段到底铺了底没有」是可测的，而不是靠作者记得调用。
       if (skipScene) {
@@ -718,7 +790,47 @@ export class Engine {
         item.transition ?? item._scene?.transition,
         `段 "${item.id}" 的 transition`,
       );
-      if (k > 0 && !scene.handlesTransition && under) {
+      /**
+       * **交叠期的转场分支优先级**（读这段代码先看这里）：
+       *
+       *   ① `relay`（相机接力，BACKLOG 1-12）—— **独立分支，放在 push/mix 之前**：
+       *      换手 mixTo **不挂在** `!scene.handlesTransition` 那个 guard 里 ——
+       *      `makeShot` / `makeThreeShot` 默认 `handlesTransition: true`，挂进去的话
+       *      3D 接力对会静默变成"相机在飞、内容在切点硬跳"，不报错、check 也绿。
+       *      relay 的语义本来就是"引擎接管换手、场景只出画面"；
+       *      `handlesTransition: true` 的场景由 world.js openFrame 的 relay 跳过配合
+       *      （交叠期不把上一帧甩走，只铺背景）。relay 成立时**绝不**再进 ② 的
+       *      push/mix 分支（否则甩一遍 + 混一遍 = 双重转场）。
+       *   ② push / mix / none（老三样）—— `k > 0 && !scene.handlesTransition && under`，
+       *      一行逻辑都没动。relay 条件不满足（任一侧缺 relayPose / 三段以上重叠 /
+       *      under 缺失）时完整走这条回落：`handlesTransition: true` 的场景照旧由它
+       *      自己的 openFrame 把上一帧甩走 —— 那是现状，别破坏。
+       */
+      let relayed = false;
+      if (transMode === 'relay') {
+        if (k > 0 && relayPose && relayHandoverK != null && under) {
+          // 换手：alpha = 换手进度（0 = 上一段、1 = 本段）。mixTo 的 k 方向已核实
+          // （gl.js compositor_mix：fragColor = mix(texture(a), texture(b), k)），
+          // 与上面 'mix' 分支的既有用法（a = under、b = outTex、k = tin）同形状。
+          this.comp.mixTo(this.gl, under, outTex, relayHandoverK, this.mixRT);
+          outTex = this.mixRT;
+          relayed = true;
+        } else if (k > 0 && under) {
+          // relay 声明了但条件不满足 ⇒ **不静默**：点名哪一段缺 relayPose / 是三层重叠，
+          // 然后按 push 走（下面 ②）。
+          // ⚠ 判"为什么回落"不能看 relayPose（探针块的 k===1 守卫会把三段重叠时的
+          //    位姿也置空，两种情况它都是 null ⇒ 那个三元永远说"缺位姿"）—— 看深度 k：
+          //    k > 1 = 三段以上重叠；k === 1 才是真的缺 relayPose。
+          const why = k > 1
+            ? '三段以上重叠：relay 只在两段交叠生效，最深一层（"' + item.id + '"）回落 push'
+            : '相机接力缺位姿：段 "' + (prev?.id ?? '?') + '" 与 "' + item.id
+              + '" 至少一侧没有 relayPose()（手写 camera3 场景要在场景对象上声明，'
+              + 'makeThreeShot 自动有）—— "' + item.id + '" 回落 push';
+          if (!ctx.warnings.includes(why)) ctx.warnings.push(why);
+        }
+        // k === 0 / under 缺失：没有交叠语义，什么都不做（与 'mix' 在同一位置的老行为一致）。
+      }
+      if (!relayed && k > 0 && !scene.handlesTransition && under) {
         if (transMode === 'mix') {
           this.comp.mixTo(this.gl, under, outTex, tin, this.mixRT);
           outTex = this.mixRT;
@@ -1102,6 +1214,12 @@ export class Engine {
    * @returns {any} 合成后的帧（仍是 `mixRT`）
    */
   _pushTransition(outTex, under, k, t, dt, mode = 'push') {
+    // 'relay' 不该走到这里：相机接力（BACKLOG 1-12）由 composite() 的 relay 分支拦截
+    // （位姿混合 + mixTo 换手，src/core/relay.js），没有 shader。走到 = 分支优先级坏了
+    // —— 当场抛，别渲染出一帧"没人知道是什么"的画面。
+    if (mode === 'relay') {
+      throw new Error('_pushTransition: "relay" 不该走到 transitionPass（相机接力由 composite 的 relay 分支接管，没有 shader）');
+    }
     const gl = this.gl;
     const keepPaint = gl.paint;
     gl.paint = null;
