@@ -573,6 +573,7 @@ node scripts/anim.mjs hashes <任务> --accept --note "…"
 
 # 交付物料 / 体检
 node scripts/anim.mjs cover <任务> -t 12 --title "…" [--sub "…"] [--scale 2]   # 封面：字用**引擎那套字体**
+node scripts/anim.mjs film-html <任务>      # 一个 HTML 文件，双击就播（含音轨；量具 tools/probe-film-html.mjs）
 node scripts/anim.mjs chapters <任务> [--min 4] [--json]   # mm:ss 章节；首段必 00:00、短段并进上一章
 node scripts/anim.mjs shake <任务> [--from 0 --to 48]      # 抖动是"平滑手持"还是"逐帧振动"（有问题退出码 1）
 node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再定：填充重的片子差 2×
@@ -673,6 +674,7 @@ node scripts/anim.mjs check <任务>
 | `docs/MOTION.md` | 运动规则表（什么时候用哪个、数值上限、证据分级） |
 | `docs/NARRATION.md` | 旁白 / 口播这一层（A/B/C 三档） |
 | `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（37 提交 / 381 文件，按引擎·工作台·模板·风格·判据·流程分块） |
+| `docs/FILM-HTML.md` | **单文件播放器**（`anim film-html` → 一个 HTML，双击就播）+ OpenFilm 对照 |
 | `docs/SFX.md` | 音效层：从 SoundDino 取（授权/配额/记账）、`anim` 侧的接入缺口 |
 | `docs/THREE.md` | 第 3 种 3D：Three.js 镜头 |
 | `docs/DIAGNOSIS.md` | 输出词 → 含义 → 修法（**看到不认识的诊断词就查**） |

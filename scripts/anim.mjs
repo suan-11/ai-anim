@@ -8029,6 +8029,17 @@ async function cmdShotCards() {
   if (flag('check')) checkShotCards();
   else generateShotCards();
 }
+async function cmdFilmHtml() {
+  const task = pickTask();
+  const out = opt('out', '');
+  const args = [task];
+  if (out) args.push('--out', out);
+  if (opt('max-audio', '')) args.push('--max-audio', opt('max-audio', ''));
+  if (flag('no-audio')) args.push('--no-audio');
+  // 单文件播放器要 esbuild 打包 + 内联音轨，交给 tools/film-html.mjs（同一份逻辑，别抄两遍）
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'film-html.mjs'), ...args], { stdio: 'inherit' });
+  if (r.status !== 0) process.exitCode = r.status ?? 1;
+}
 const commands = {
   new: cmdNew,
   tasks: cmdTasks,
@@ -8060,6 +8071,7 @@ const commands = {
   perf: cmdPerf,
   shake: cmdShake,
   report: cmdReport,
+  'film-html': cmdFilmHtml,
   icons: cmdIcons,
   'shot-cards': cmdShotCards,
   assets: cmdAssets,
