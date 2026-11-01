@@ -2366,6 +2366,41 @@ async function cmdCheck() {
     }
   }
 
+
+  // 1.542) **歌词同步**：词句段首跟不跟得上人声（tools/lint-lyric-sync.mjs）。
+  //
+  // 为什么在 check 里：卡点只量「切点离拍多远」，可歌词片被观众听出来的问题是「这句字先出来/后出来」。
+  // 实测第一版 PV 按字数均摊句长 → 句首离真人声中位 366ms、最差 8.7s（前奏猜错），用户一句「没有卡点啊喂」。
+  // 判据（工具里）：中位 ≤150ms 且 p90 ≤400ms；不是歌词片时它退出码 2 → 进 skipped，不算失败。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-lyric-sync.mjs');
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '歌词同步（lyric-sync）', '工具不存在：tools/lint-lyric-sync.mjs');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, task, '--json'], { encoding: 'utf8', timeout: 60000 });
+        let j = null;
+        try { j = JSON.parse((r.stdout ?? '') + (r.stderr ?? '')); } catch { j = null; }
+        if (j && typeof j.medianMs === 'number') {
+          if (j.ok) {
+            log('  ✓ 歌词同步：' + j.lines + ' 句都在人声上（中位 ' + j.medianMs + 'ms · p90 ' + j.p90Ms + 'ms）');
+          } else {
+            warn('⚠ 歌词同步：中位 ' + j.medianMs + 'ms / p90 ' + j.p90Ms + 'ms（判据 ≤' + j.medianTol + '/' + j.p90Tol + 'ms）');
+            for (const w of (j.worst ?? []).slice(0, 3)) {
+              warn('  · ' + w.start.toFixed(2) + 's  ' + (w.dMs >= 0 ? '+' : '') + w.dMs + 'ms  ' + w.text);
+            }
+            warn('  → 句首用官方 LRC / 人声起音，别按字数均摊');
+            if (strict) staticErrs.push('[歌词同步] 中位 ' + j.medianMs + 'ms / p90 ' + j.p90Ms + 'ms 超判据');
+          }
+        } else if (r.status === 2) {
+          pushSkipped(skipped, '歌词同步（lyric-sync）', '不是歌词片或没有分析：' + firstLine((r.stdout ?? '') + (r.stderr ?? '')));
+        }
+      } catch (err) {
+        pushSkipped(skipped, '歌词同步（lyric-sync）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
   // 1.545) **事件密度**：观众每一秒有没有新东西看（tools/lint-event-density.mjs）。
   //
   // 为什么在 check 里：片子可以零报错、qa 全绿，但观众第 8 秒就走人。

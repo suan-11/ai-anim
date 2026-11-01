@@ -78,6 +78,16 @@ export async function mountFilm(o) {
     lab.textContent = fmt(t);
     seekEl.value = String(Math.round((total ? t / total : 0) * 1000));
   };
+  // 截图：评审时想指出"这一秒有问题"不用录屏。**必须在 render 之后同一个 tick 里读**，
+  // 否则 WebGL 的 drawing buffer 已经被清掉（拿到的是一张透明图）。
+  const capture = (name) => {
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (name ?? ('frame_' + t.toFixed(2) + 's')) + '.png';
+    a.click();
+    return url;
+  };
   const tick = (now) => {
     if (!playing) return;
     const dt = Math.min(0.25, (now - last) / 1000);
@@ -104,13 +114,14 @@ export async function mountFilm(o) {
     draw();
   };
   addEventListener('keydown', (e) => {
-    if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+    if (e.code === 'KeyP') { e.preventDefault(); capture(); }
+    else if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
     else if (e.code === 'ArrowRight') { t = Math.min(total, t + 1 / fps); draw(); }
     else if (e.code === 'ArrowLeft') { t = Math.max(0, t - 1 / fps); draw(); }
   });
 
   draw();
-  const api = { engine, get t() { return t; }, set t(v) { t = v; draw(); }, total, draw };
+  const api = { engine, get t() { return t; }, set t(v) { t = v; draw(); }, total, draw, capture };
   // 量具出口：tools/probe-film-html.mjs 靠它拖到指定时刻再截图
   /** @type {any} */ (globalThis).__film = api;
   return api;

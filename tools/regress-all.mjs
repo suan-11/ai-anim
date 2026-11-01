@@ -68,7 +68,8 @@ const ITEMS = [
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
   { name: 'unit:doc-facts', cmd: ['tools/lint-doc-facts.mjs'], note: 'TIMELINE_KEYS（13 个）↔ 文档键表：漏键/数字不符就红（2026-10-17 focus 漏过一次）' },
   { name: 'unit:doc-facts-selftest', cmd: ['tools/lint-doc-facts.mjs', '--selftest'], note: '上面那个守门的判据自测（7 项，含"不误吃那 3 个面"的反例）' },
-  { name: 'unit:agents-refs', cmd: ['tools/lint-agents-refs.mjs'], note: 'AGENTS.md 的章节号是外部锚点：全部 § 引用可解析（docs/history/ 的归档断链不计）' },
+      { name: 'meta:changes-fresh', cmd: ['tools/gen-changes.mjs', '--check'], note: '相对上游基线的改动清单不许过期（生成物，--check 比对磁盘）' },
+    { name: 'unit:agents-refs', cmd: ['tools/lint-agents-refs.mjs'], note: 'AGENTS.md 的章节号是外部锚点：全部 § 引用可解析（docs/history/ 的归档断链不计）' },
   { name: 'unit:agents-size', cmd: ['tools/lint-agents-size.mjs'], note: 'AGENTS.md 体积预算：超过 65536 B 会被注入器从尾部静默截断（当前余 ~10 KB）' },
   // CI 自己的守门（2026-10-30）：verify.yml 必须还在按清单跑（不是手抄），且清单没被悄悄排空。
   // 它守的不是某个功能，而是**「CI 有没有在跑东西」这件事本身** —— 上一版手抄了 4 条、
