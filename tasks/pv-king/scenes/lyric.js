@@ -298,11 +298,16 @@ export default {
     // 错误色（色差 ca）：每拍随 kick 抖一下；glitch 段更狠。
     // ⚠ post 的 ca 与 radialBlur 二选一（这里不用径向模糊），见 docs/ENGINE.md §8。
     const caBase = mode === 'glitch' ? 0.85 : mode === 'split' ? 0.45 : 0.22;
+    // 片门晃动 + 曝光闪烁 + 呼吸推近：让**每一帧都在变**（事件密度判据要的是帧间差，
+    // 白底大字静止 3 秒就成"静帧"）。三者都只吃 t，不破确定性。
     return {
       bloom: 0.26 + 0.22 * pump,
       grain: 0.028,
       vignette: 0.5,
       ca: caBase + 0.45 * pump,
+      weave: 1.6,
+      flicker: 0.18,
+      zoom: 1.028 + 0.012 * Math.sin(f.t * 0.55),
     };
   },
 };
