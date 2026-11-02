@@ -463,3 +463,26 @@ Cleo Abram / MKBHD / Fireship）逐帧反推的测量：
 [`docs/CAPTIONS.md`](./CAPTIONS.md) · [`docs/SCENE-BRIEF-TEMPLATE.md`](./SCENE-BRIEF-TEMPLATE.md) ·
 `docs/ENGINE.md` §2.2 / §3.3 / §8 / §14.4 · `docs/CONFIG-ONLY.md` · `docs/history/IMPROVEMENTS-4-5.md` §4.3 / §5 / §7 ·
 `AGENTS.md` §2 / §3 / §3.2 / §4.5 / §5 / §10。
+
+## 色系：强调色跟着 `signal` 走（2026-11-02）
+
+风格包只需要给 `signal`（唯一的高饱和强调色）；`ember` / `blood` / `acid` **缺省会跟着 `signal` 的色相一起旋转** ——
+否则「青色的风格」里会躺着默认的橙和红，一屏三四个色系，观众说不出哪里怪，只觉得**脏**。
+
+```js
+// 只写 signal：三档强调色自动同色系
+palette: { ink: '#0b1410', bone: '#e7f3e6', signal: '#3fe08a' },
+// 显式写就尊重你写的（不再旋转）
+palette: { signal: '#3fe08a', acid: '#ffe066' },
+```
+
+判据（**换风格时先跑它**）：
+
+```sh
+node tools/lint-color-family.mjs              # 全部风格包
+node tools/lint-color-family.mjs --task <任务>  # 某支片子（含任务 palette 覆盖）
+```
+
+三条硬线：**主色系加权占比 ≥55%**、**前两名合计 ≥85%**、**底与字亮度差 ≥0.25**（另：信号色与底色要拉得开）。
+权重按角色算而不是按色值个数（`signal` 1.0 / `ember` 0.5 / `blood` 0.5 / `acid` 0.2 / 中性不计）——
+按个数数会把所有正经调色板都判红。
