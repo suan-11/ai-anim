@@ -1172,12 +1172,39 @@ function ffmpegHasEncoder(name) {
  * @param {string} requested
  * @returns {string}
  */
+/**
+ * 编码器**真的能跑起来**吗 —— 列在 -encoders 里不代表这台机器能用：
+ * h264_nvenc 在没有 NVIDIA 卡的机器上照样出现在列表里，一 init 就失败、ffmpeg 打一行错退出，
+ * 表现是「只渲染了 5/N 帧」（2026-11-02 全量回归：determinism / worktree-edit 两条都挂在这）。
+ * 判据：真编一帧 64×64 黑，退出码 0 才算能跑。
+ */
+const encoderWorks = new Map();
+function ffmpegEncoderWorks(name) {
+  if (encoderWorks.has(name)) return encoderWorks.get(name);
+  let ok = false;
+  try {
+    const cmd = ffmpegCmd();
+    const r = spawnSync(cmd[0], [
+      ...cmd.slice(1), '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=64x64:d=0.1',
+      '-frames:v', '1', '-c:v', name, '-f', 'null', '-',
+    ], { encoding: 'utf8', timeout: 20000, windowsHide: true });
+    ok = r.status === 0;
+  } catch { ok = false; }
+  encoderWorks.set(name, ok);
+  return ok;
+}
+
 function pickVideoEncoder(requested) {
-  if (ffmpegHasEncoder(requested)) return requested;
+  // 先看「列没列出来」，再看「真能不能编一帧」——
+  // 后者才是这次全量回归里两条 smoke 的真正死因（h264_nvenc 有列表项、没显卡）
+  if (ffmpegHasEncoder(requested)) {
+    if (ffmpegEncoderWorks(requested)) return requested;
+    warn(`⚠ ${requested} 在这台机器上**用不了**（能列出但编不动一帧，多半是没有对应的硬件/驱动），改用兜底编码器。`);
+  }
   const chain = process.platform === 'win32'
     ? ['h264_mf', 'libopenh264']
     : ['libopenh264'];
-  const alt = chain.find((c) => c !== requested && ffmpegHasEncoder(c));
+  const alt = chain.find((c) => c !== requested && ffmpegHasEncoder(c) && ffmpegEncoderWorks(c));
   if (!alt) {
     die(`这台 ffmpeg 既没有 ${requested}，也没有可用的兜底编码器（${chain.join(' / ')}）。\n`
       + `  装一个带 libx264 的 GPL 构建（例如 winget install Gyan.FFmpeg），\n`

@@ -32,7 +32,12 @@ export function makePalette(overrides = {}) {
   // `bg` = 整帧底色（缺省 = ink）。以前底色是隐含约定：gl.clear / worldPass 用 ink，
   // 个别模板（chart 的纸面）用 bone 当底 —— 换风格时两套约定打架，看起来像"背景反色"。
   // 现在底色只有一个名字，模板一律读 P.bg。
-  const hexes = { bg: overrides.bg ?? overrides.ink ?? DEFAULT_PALETTE.ink, ...DEFAULT_PALETTE, ...overrides };
+  // ⚠ 顺序有意义：先铺默认、再盖风格覆盖，**最后**才补 bg 的缺省。
+  //   老写法把 `bg:` 放在最前面，随后被 `...DEFAULT_PALETTE` 里的 bg 盖回去 ——
+  //   于是「只改 ink 的亮底风格」（mg-bauhaus / mg-hud / mg-pixel / mg-flat-vector / mg-vhs）
+  //   画面上仍是深底，而调色板自报亮底（2026-11-02 全量回归 test-style-palette 抓到的真 bug）。
+  const hexes = { ...DEFAULT_PALETTE, ...overrides };
+  hexes.bg = overrides.bg ?? overrides.ink ?? hexes.ink ?? DEFAULT_PALETTE.ink;
   /** @type {Record<string, RGB>} */
   const linear = {};
   /** @type {Record<string, string>} */

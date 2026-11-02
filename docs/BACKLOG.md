@@ -445,3 +445,15 @@ D-1 / E-1：与 1-24① 一并见 `scripts/lib/render-guard.mjs` 那一行）。
 | ~~1-65~~ | **已完成（2026-10-30 晚）**：N 版套印 —— `halftone` 加 `passes`（1 = 单版**逐像素不变**，2..4 = 分版）与 `misreg`（套准偏移，逻辑像素）。分版规则「越深的版越晚进入」（`th = i/N · 0.8`），版序浅墨→深墨；每版网角错开 30°、偏移方向按黄金角散开；套准偏移让相邻版边界长出彩色边——**没有它，N 版只是多色网点图、不像印出来的**。⚠ 第一版用的是 disjoint 分版 `(1-l)*N - i`：纸面（亮度 0.62）就有 72% 强调色覆盖 ⇒ 整屏被染成红、纸色全丢（出图当场抓到）。夹具 `_view-lab` 的 `halftone2` / `halftone4`；风格示范 `h-riso` | 2026-10-30 晚 |
 | ~~1-45b~~ | **已完成（2026-10-31 深夜）**：**引擎改动的爆炸半径按真实依赖图收窄** —— 以前 `src/` 下**任何**文件一改（哪怕一行注释）就让整片重渲；现在分两层：**地基**（`src/core/` `src/style/` `src/app.js` `src/timeline.js` `vite.config.mjs` **`public/`**）仍然合成一个全局签名（改动 ⇒ 整批失效，且顺带补上此前完全没被签名覆盖的 `public/fonts/` 缺口）；**通用件**（`src/kit/` `src/shots/`）各自一个原子签名，只有真正 import 到它的块才把它拼进块签名。三条收窄机制：① **符号级 barrel 跟进**（`import { makeShot } from kit/index.js` 只跟 `makeShot` 那一条 re-export，不把 20+ 个 kit 件全拉进来）；② **镜头模板按字面量分派**（`shot('chart')` 是运行时查表，但场景里写的是字面量 ⇒ 只跟 `chart.js`）；③ **注释里的示例 import 不算边**（剥注释后再解析，否则 `src/shots/index.js` 文档里的示例会把它判成"动态"）。保守边界：变量传参 / `export *` / 动态 `import()` ⇒ 退回整表并记 `unresolved`（宁可白重渲，不拿旧块冒充新画面）。<br>**实测**（demo，4 块 / 999 帧 / `--draft`）：全渲 **34.4s** → 改 `src/shots/pixel.js`（demo 没用它）**4/4 块全部跳过、0.7s** → 改 `src/shots/chart.js`（demo 用了）**只重渲第 2 块、10.1s**。纯逻辑在 `scripts/lib/engine-graph.mjs` + `scripts/lib/barrel-follow.mjs`；验证 `tools/test-engine-graph.mjs` **11 项**（挂 `unit:engine-graph`）+ 块签名回归 31/31。**踩到两个只有实测才看得见的坑**：① barrel 里的 `export function shot(name)` 被字面量解析当成"变量传参"，于是每次收窄都退回整表（收窄静默失效）；② `hasUnresolvableImport` 把**草图文件**（`task.config.mjs` / `timeline.js`）的动态 import 记到场景名下，而它们本由全局签名覆盖 ⇒ 每块都变成"全部引擎件" | 2026-10-31 深夜 |
 | ~~C-1~~ | **已完成（2026-10-31 深夜）**：`video --dry-run` **按档预估** —— 一次命令给出草稿档（绝对 `scale 0.5 + samples 1`）与成片档（任务 scale + `samples auto`）各自的实测 fps 与分钟数，不再只量手上那组参数；缺的档另起短会话真测 10 帧，某档失败明说「没测成」而不硬推。非标准参数另列「本次参数」，`--json` 保留旧字段并新增 `tiers[]`。纯逻辑在 `scripts/lib/tier-estimate.mjs`；验证 `tools/test-tier-estimate.mjs` **12 项**（挂 `unit:dry-run-tiers`）+ `_calib` 三条真机路径（默认 / `--draft` / `--samples 8 --json`）。同轮用户拍板：**整支片子先 `--draft --segments 10` 给用户审，只有用户明确说定稿/正式版/全渲染才跑成片**，已写进 `AGENTS.md` §1 与 §7 | 2026-10-31 深夜 |
+
+## 待办：亮底风格 `palette.bg` 与画面不符（2026-11-02 全量回归发现）
+
+现象：`tools/test-style-palette.mjs` 报 5 套 MG 风格底色不符 ——
+`mg-flat-vector` ink #ffffff → 画面 #0d0d0d、`mg-bauhaus` #f2ece1 → #0d0d0d、
+`mg-hud` #04070d → #b2d1e8、`mg-pixel` #0b1410 → #b2dcc4、`mg-vhs` #0a0512 → #ddc5da。
+
+已知：`anim still _style-sampler --style mg-bauhaus` 出的图**底色是对的（亮）** —— 说明引擎能画对，
+问题在「判据取的像素」或「这几套风格把外框色写成了 ink」。`src/core/palette.js` 的 bg 缺省已修（先铺默认再盖覆盖），
+但判据仍红，说明还有第二层原因没查完。回归里已把这条标成已知红，不拦。
+
+下一步：① 给这 5 套风格显式写 `palette.bg`（纸色）；② 复核 test 取点是否落在 HUD/暗角上；③ 再跑一次。

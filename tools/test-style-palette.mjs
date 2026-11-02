@@ -62,12 +62,17 @@ try {
     await page.goto(`http://127.0.0.1:${PORT}/?task=${task}&style=${s}&t=${at}`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__anim?.info?.().duration > 0, { timeout: 180000 });
     const r = await page.evaluate(async (tt) => {
-      const px = await window.__anim.pixels(tt);
+      // ⚠ 必须关后处理：暗角（vignette 0.5）会把角上的底色压掉几十级，
+      //   于是「调色板 vs 画面」永远差一截 —— 判据要量的是**底色本身**，不是被暗角吃掉之后的角。
+      const px = await window.__anim.pixels(tt, { skipPost: true });
       const info = window.__anim.info();
       const W = info.pw, H = info.ph;
       // 左上角内缩 8px 取一点（避开可能的最后一列 padding）
       const idx = ((H - 1 - 8) * W + 8) * 4;
-      return { ink: window.__animPalette?.hex?.ink ?? null, rgb: [px[idx], px[idx + 1], px[idx + 2]], style: info.style };
+      // ⚠ 比的是**底色**（bg），不是 ink：`gl.clear` / worldPass 用的是 P.bg，
+  //   两套风格 bg 与 ink 不同（亮底风格尤其明显）时，比 ink 会假红。
+  const pal = window.__animPalette?.hex ?? {};
+  return { ink: pal.bg ?? pal.ink ?? null, inkRaw: pal.ink ?? null, bgRaw: pal.bg ?? null, rgb: [px[idx], px[idx + 1], px[idx + 2]], style: info.style };
     }, at);
     if (!r.ink) { console.log('? ' + s + ' 拿不到调色板'); continue; }
     results.push({ style: s, ink: r.ink, want: hex2rgb(r.ink), rgb: r.rgb });
@@ -77,7 +82,7 @@ try {
     if (!ok) fail++;
     console.log(
       (ok ? '  PASS  ' : '  FAIL  ') + s.padEnd(17)
-      + 'ink ' + r.ink + ' → 画面 #' + r.rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
+      + 'bg ' + r.ink + '（ink ' + r.inkRaw + '） → 画面 #' + r.rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
       + '  Δ' + d
     );
   }
