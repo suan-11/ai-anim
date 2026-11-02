@@ -2428,6 +2428,38 @@ async function cmdCheck() {
       }
     }
   }
+
+  // 1.542b) **色系**：这支片子的颜色在不在一个色系里（tools/lint-color-family.mjs）。
+  //
+  // 为什么在 check 里：换风格最常翻的车不是「配色丑」，是**色系散了** ——
+  // 底色偏冷、强调色偏暖、第二强调色又落在第三个色系；观众说不出哪里怪，只觉得脏。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-color-family.mjs');
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '色系（color-family）', '工具不存在：tools/lint-color-family.mjs');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, '--task', task, '--json'], { encoding: 'utf8', timeout: 60000 });
+        let j = null;
+        // --json 时工具只吐 JSON（人读的那些行被 quiet 掉了），所以整段解析即可
+        try { j = JSON.parse((r.stdout ?? '').trim()); } catch { j = null; }
+        const row = j && Array.isArray(j.rows) ? j.rows[0] : null;
+        if (row) {
+          if (row.ok) {
+            log('  ✓ 色系：' + row.families + '（主色系 ' + Math.round(row.top * 100) + '% · 底/字对比 ' + row.contrast.toFixed(2) + '）');
+          } else {
+            warn('⚠ 色系散了：' + row.families + '（主色系 ' + Math.round(row.top * 100) + '% · 前二 ' + Math.round(row.top2 * 100) + '%）');
+            for (const p of row.problems ?? []) warn('  · ' + p);
+            warn('  → 强调色（ember/blood/acid）跟着 signal 走；或换一套风格（docs/STYLE.md）');
+            if (strict) staticErrs.push('[色系] ' + (row.problems ?? []).join('；'));
+          }
+        }
+      } catch (err) {
+        pushSkipped(skipped, '色系（color-family）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
   // 1.545) **事件密度**：观众每一秒有没有新东西看（tools/lint-event-density.mjs）。
   //
   // 为什么在 check 里：片子可以零报错、qa 全绿，但观众第 8 秒就走人。

@@ -108,11 +108,66 @@ export function checkPalette(palette) {
   return { ok: problems.length === 0, problems, families: sorted.map(([f, w]) => f + w.toFixed(1)).join(' '), top, top2, contrast, detail };
 }
 
-function report(name, palette) {
+function report(name, palette, quiet = false) {
   const r = checkPalette(palette);
-  console.log(`${r.ok ? '✓' : '✗'} ${name.padEnd(16)} ${r.families.padEnd(24)} 主 ${String(Math.round(r.top * 100)).padStart(3)}%  前二 ${String(Math.round(r.top2 * 100)).padStart(3)}%  对比 ${r.contrast.toFixed(2)}`);
-  for (const p of r.problems) console.log('    · ' + p);
+  if (!quiet) {
+    console.log(`${r.ok ? '✓' : '✗'} ${name.padEnd(16)} ${r.families.padEnd(24)} 主 ${String(Math.round(r.top * 100)).padStart(3)}%  前二 ${String(Math.round(r.top2 * 100)).padStart(3)}%  对比 ${r.contrast.toFixed(2)}`);
+    for (const p of r.problems) console.log('    · ' + p);
+  }
   return r;
+}
+
+/** 主色系 + 加权平均色相（撞色系判据用） */
+function dominantOf(palette) {
+  const weights = new Map();
+  for (const [k, w] of Object.entries(WEIGHT)) {
+    const hex = palette[k];
+    if (typeof hex !== 'string') continue;
+    const f = familyOf(hex);
+    if (f.family === '中性') continue;
+    const cur = weights.get(f.family) ?? { w: 0, h: 0 };
+    cur.w += w; cur.h += f.h * w;
+    weights.set(f.family, cur);
+  }
+  const sorted = [...weights.entries()].sort((a, b) => b[1].w - a[1].w);
+  if (!sorted.length) return { family: '中性', hue: 0 };
+  const [family, agg] = sorted[0];
+  return { family, hue: agg.h / agg.w };
+}
+
+/** 载入一支任务（或一个风格名）的调色板 hex 表 */
+async function paletteOf(name) {
+  if (STYLES[name]) {
+    const style = resolveStyle(name);
+    const palette = makePalette({ ...(style?.palette ?? {}) });
+    return { kind: 'style', style: name, hexes: Object.fromEntries(Object.keys(palette.hex).map((k) => [k, palette.hex[k]])) };
+  }
+  const mod = await import(new URL('../tasks/' + name + '/task.config.mjs', import.meta.url).href);
+  const cfg = mod.default ?? mod.config;
+  const style = resolveStyle(cfg);
+  const palette = makePalette({ ...(style?.palette ?? {}), ...(cfg.palette ?? {}) });
+  return { kind: 'task', style: style?.name, hexes: Object.fromEntries(Object.keys(palette.hex).map((k) => [k, palette.hex[k]])) };
+}
+
+// ---- 撞色系：和上一支（或指定的另一支）比 ----
+const compareTo = opt('compare', '');
+if (compareTo) {
+  const a = await paletteOf(opt('task', compareTo) && opt('task', '') ? opt('task', '') : (opt('task', '') || compareTo));
+  const bTask = compareTo === opt('task', '') ? compareTo : compareTo;
+  const A = await paletteOf(opt('task', ''));
+  const B = await paletteOf(bTask);
+  const da = dominantOf(A.hexes), db = dominantOf(B.hexes);
+  const dH = hueDist(da.hue, db.hue);
+  const sameFamily = da.family === db.family;
+  const clash = sameFamily && dH < 25;
+  console.log(`A ${opt('task', '')}  →  ${da.family}（色相 ${da.hue.toFixed(0)}°）${A.style ? '  [' + A.style + ']' : ''}`);
+  console.log(`B ${bTask}  →  ${db.family}（色相 ${db.hue.toFixed(0)}°）${B.style ? '  [' + B.style + ']' : ''}`);
+  console.log(clash
+    ? `⚠ 撞色系：两支都是【${da.family}】，色相只差 ${dH.toFixed(0)}° —— 连着发布会被看成"同一套脸"（docs/STYLE.md 反审美疲劳）`
+    : `✓ 没撞色系：${da.family} vs ${db.family}，色相差 ${dH.toFixed(0)}°`);
+  if (flag('json')) console.log(JSON.stringify({ a: da, b: db, hueDist: dH, clash }, null, 2));
+  process.exitCode = clash ? 1 : 0;
+  process.exit();
 }
 
 const taskName = opt('task', '');
@@ -124,7 +179,7 @@ if (taskName) {
   const style = resolveStyle(cfg);
   const palette = makePalette({ ...(style?.palette ?? {}), ...(cfg.palette ?? {}) });
   const hexes = Object.fromEntries(Object.keys(palette.hex).map((k) => [k, palette.hex[k]]));
-  const r = report(taskName + ' [' + (style?.name ?? 'print') + ']', hexes);
+  const r = report(taskName + ' [' + (style?.name ?? 'print') + ']', hexes, flag('json'));
   rows.push({ name: taskName, style: style?.name, ...r });
   total = 1; if (!r.ok) bad = 1;
 } else {
@@ -133,7 +188,7 @@ if (taskName) {
     const palette = makePalette({ ...(style?.palette ?? {}) });
     const hexes = Object.fromEntries(Object.keys(palette.hex).map((k) => [k, palette.hex[k]]));
     total++;
-    const r = report(name, hexes);
+    const r = report(name, hexes, flag('json'));
     rows.push({ name, ...r });
     if (!r.ok) bad++;
   }

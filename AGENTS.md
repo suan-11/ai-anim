@@ -722,6 +722,7 @@ node scripts/anim.mjs check <任务>
 11.55 **颜色要在一个色系里**（换风格时最容易翻的车：底色冷、强调色暖、第二强调色在第三个色系）：
     `node tools/lint-color-family.mjs [--task <任务>]` —— 主色系加权 ≥55%、前二 ≥85%、底与字亮度差 ≥0.25、
     信号色与底色拉得开。强调色（ember/blood/acid）默认跟着 `signal` 旋转，风格只改 signal 也不散。
+    `check` 里已经跑这条；**连着发布两支**时再比一次：`lint-color-family.mjs --task A --compare B` —— 同族且色相差 <25° 就是撞色系。
 11.6 **每一秒都有东西看**（有音乐时也要）：`check` 的「事件密度」读的是**成片**帧间差 —— `最长静止 ≤ 3.5s`、
     `稀薄窗口 ≤ 25%`（低于均值一半的 2 秒窗口）。超了就补持续运动（推近/扫线/逐条落位），别指望 2px 游标
     或 0.09 alpha 的水印（检测器和人眼都看不见）。单独体检 `tools/lint-event-density.mjs <任务>`。
