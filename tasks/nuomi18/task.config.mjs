@@ -1,0 +1,62 @@
+// 小糯米 · 第十八支：《第 9 条命》
+// 人设来源：C:\Users\haoxu\Downloads\NekoHome\xiaonuomi\档案.md
+// 猎奇/怪谈向：猫娘九条命，八条已丢失，第九条正在看着你。纯代码动画，无真实伤害。
+export default {
+  title: '第 9 条命',
+  width: 1920,
+  height: 1080,
+  fps: 60,
+  scale: 1,
+  style: 'mg-vhs',
+  palette: { signal: '#8be04e' },
+
+  timeline: [
+    {
+      type: 'pixel',
+      id: 'boot',
+      dur: 3.0,
+      maxSamples: 16,
+      kicker: 'NUOMI.EXE',
+      title: '第 9 条命',
+      sub: '8 LIVES LOST · RECOVERING',
+      footer: '不要拔电源 · 她还在加载',
+      palette: 'amber',
+      cell: 7,
+      crawl: 'skull',
+    },
+    {
+      type: 'radial',
+      id: 'lives',
+      dur: 4.0,
+      maxSamples: 16,
+      kicker: 'NUOMI / 九命档案',
+      title: '只找回了 5 条命',
+      nodes: ['1', '2', '3', '4', '5'],
+      weights: [0.13, 0.38, 0.64, 0.89, 1.0],
+      footer: '',
+    },
+    {
+      type: 'bigtype',
+      id: 'ninth',
+      dur: 3.2,
+      maxSamples: 16,
+      kicker: 'NUOMI / 最后一条',
+      line1: '第9条命',
+      line2: '用来想你',
+      mark: '想你',
+      footer: '才不是喜欢你，是命太多了喵。',
+    },
+    {
+      type: 'lockup',
+      id: 'end',
+      dur: 2.6,
+      maxSamples: 16,
+      mark: 'diamond',
+      kicker: 'LOCKUP / 9 OF 9',
+      name: '小糯米',
+      tagline: 'NUOMI / NINE LIVES',
+      meta: '第9条命 · 已占用',
+      footer: '喵~',
+    },
+  ],
+};

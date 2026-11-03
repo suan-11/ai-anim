@@ -118,6 +118,14 @@ export function mixSfx(L, R, items, opts = {}) {
     if (!(at >= 0) || at >= n) { skipped.push({ file, why: 'at 落在片子外（' + it.at + 's）' }); continue; }
     let mono;
     try { mono = decodeMono(file, sr); } catch (e) { skipped.push({ file, why: '解码失败：' + String(e.message).slice(0, 40) }); continue; }
+    // 长素材（爆炸 5.7s、长 whoosh 11s）当"一记"用时必须能裁：
+    //   offset = 从源里第几秒开始取（"riser"就是这么用长 whoosh 的尾巴）；
+    //   len    = 最多取多长。两个都不写 = 整段原样（老行为）。
+    if (Number(it.offset) > 0 || Number(it.len) > 0) {
+      const off = Math.max(0, Math.round(Number(it.offset ?? 0) * sr));
+      const len = Number(it.len) > 0 ? Math.round(Number(it.len) * sr) : mono.length - off;
+      mono = mono.subarray(off, Math.min(mono.length, off + len));
+    }
     // 每个音效**先峰归一到 0.7** 再乘 gain —— 不同来源音量能差两三个数量级，
     // 不归一就会出现「有的根本没听见、有的一下盖住整条轨」。gain 因而是可预测的比例（0.75 ≈ 与音乐同量级）。
     let pk = 0;
@@ -597,7 +605,10 @@ export function runMix(task, opts) {
     log(`· 音乐床 ${musicDur.toFixed(2)}s 比片子 ${total.toFixed(2)}s 长，按片子长度裁掉尾巴。`);
   }
   const [musicL, musicR] = decodeChannels(music, sr, 2);
-  const { L, R, peakRaw } = mixTracks({ vo, musicL, musicR, gain, voGain: duck.voGain, bedGain: duck.bedGain });
+  // 没有旁白就不要把音乐床压 0.78：那是给「说话让路」用的。纯音乐片子 +0.78 的衰减
+  // 实测把整条轨从 -13.8 LUFS 拉到 -16.4（少了 2.6 LU，观众得自己拧音量）。
+  const bedGain = voiced > 0 ? duck.bedGain : 1;
+  const { L, R, peakRaw } = mixTracks({ vo, musicL, musicR, gain, voGain: duck.voGain, bedGain });
   // 音效最后叠：它是最「点」的一层，先过闪避会被旁白压掉
   let sfxReport = null;
   if (opts.sfx && opts.sfx.length) {
@@ -698,7 +709,7 @@ export function runMix(task, opts) {
   const rel = (f) => path.relative(taskDir, f).replace(/\\/g, '/');
   log(`✓ ${path.relative(process.cwd(), mp3)}  ${dur.toFixed(2)}s  ${timing ? (timing.scenes?.length ?? 0) + " 段" : "无旁白（纯音乐 + 音效）"}`);
   if (voiced > 0) log(`  说话 ${voiced.toFixed(1)}s / ${total.toFixed(1)}s = ${((voiced / total) * 100).toFixed(0)}%（其余是留白与呼吸）`);
-  log(`  峰值 ${peakRaw.toFixed(2)} → 归一 ${norm.toFixed(2)}×，音乐 ×${duck.bedGain}，旁白 ×${duck.voGain}`
+  log(`  峰值 ${peakRaw.toFixed(2)} → 归一 ${norm.toFixed(2)}×，音乐 ×${bedGain}，旁白 ×${duck.voGain}`
     + `，闪避最深 −${(20 * Math.log10(1 / Math.max(1e-6, 1 - duck.depth))).toFixed(0)} dB`
     + `（有 ${(duckedRatio * 100).toFixed(0)}% 的时间压着）`);
   log(`  在 task.config.mjs 里写：audio: { music: './${rel(music)}', vo: './${rel(path.join(taskDir, 'audio', `${task}-vo.mp3`))}', mix: './${rel(mp3)}' }`);

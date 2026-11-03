@@ -124,3 +124,56 @@ node tools/test-sfx.mjs    # 17 项：库查找 / 自动摆位 / 混音位置与
 进 CI（`regress-all --ci` 的 `unit:sfx`）。库里**找不到类别必须抛**，不是静默返回 null ——
 否则「我加的音效没响」会变成永远查不出来的那种 bug。
 
+
+## 语义规则：不再每个切点一声风（2026-11-03 晚）
+
+`--sfx auto` 现在读**段表的语义**选声音（`scripts/lib/sfx-rules.mjs`，纯函数、可离线断言）。
+
+| 段是什么 | 声音 | 为什么 |
+|---|---|---|
+| `title` / `bigtype` / `kinetic` 段首 | `destruction`（裁 0.55s）+ `camera-flash` | 大字砸下来 = 撞 + 闪 |
+| `outro` 段首 | `power-outage` | 收尾是「世界关灯」，不是「切镜头」 |
+| `chart` / `counter` / `compare` / `timeline` / `scan` 段首 | `digital-click` | 数据出现那一下是 UI 声 |
+| 其它切点 | `whoosh`（库里最短那条） | 画面被甩走，耳朵里该有一声风 |
+| 大字段之前 | 追加 `riser`（长 whoosh 的尾巴 1.2s，**结束在切点上**） | 冲上去先吸气 |
+
+**歌词镜头另有一套**（`params.mode`，PV 用）：句子句相连，**不能每句一声风**。
+按「表演方式的族」判：
+
+| mode | 族 | 声音 |
+|---|---|---|
+| `karaoke` / `ticker` | sing | 换族时 `whoosh`；同族延续**不放** |
+| `mask` / `vertical` / `big` / `stack` | display | 同上 |
+| `glitch` / `shatter` | fx | 每次 `glitch` |
+| 第一条段 | — | `destruction` + `camera-flash` |
+| 最后一条段 | — | `power-outage` |
+
+实测 KING PV（46 段 / 135s）：
+
+```
+· 音效语义摆位：36 条（destruction×1 camera-flash×1 glitch×6 whoosh×27 power-outage×1）
+```
+
+对比上一版「45 个切点全 whoosh」：声音从「一直在响」变成**有结构**（开场撞、换唱段风、故障段故障声、收尾断电）。
+
+### 两个数字上的坑（都踩过）
+
+1. **撞击别给满**：`destruction` 的增益从 1.15 降到 0.95 —— 峰归一之后线性归一被压下去，整条轨掉 3 dB（-16.4 LUFS）。
+2. **没旁白就别压床**：`bedGain 0.78` 是给「说话让路」用的，纯音乐片子用上它白掉 2.2 dB。现在 `voiced === 0` 时床增益固定 1.0。
+
+### 库里的 10 条（10 个类别）
+
+| 角色 | 文件 | 时长 |
+|---|---|---|
+| whoosh / riser | `whoosh-transition__73722__Sound16.mp3`（短）/ `whoosh-transition__79283__vzhuh-active-in-space.mp3`（11s，riser 用它的尾巴） | 0.29s / 11.15s |
+| click | `click__84724__Short-click-of-a-computer-mouse.mp3` | 0.16s |
+| 错误提示 | `click__35602__Click-on-the-error-warning-sound-clip.mp3` | 0.60s |
+| glitch | `glitch__2734__Very-short-glitch-sound.mp3` | 0.55s |
+| energy | `energy__28978__Sound-for-an-arcade-game-energy-power-2-.mp3` | 0.97s |
+| flash | `camera-flash__7876__Camera-flash-sound.mp3` | 0.81s |
+| UI 点击 | `digital-click__78237__button-digital-sharp-noisy.mp3` | 0.24s |
+| 断电 | `power-outage__2730__The-sound-where-the-lights-went-out-all-.mp3` | 3.11s |
+| 撞击 | `destruction__30869__Explosion-with-destruction.mp3` | 5.72s（裁 0.55s 当一记用） |
+
+`test-sfx` 现在 30 项，含 12 项语义断言（标题有撞击、图表是 UI 声、片尾断电、换族才给风、同族不给……）。
+

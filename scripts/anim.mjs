@@ -7416,16 +7416,23 @@ async function resolveSfxOpt(task) {
   if (!flag('sfx')) return undefined;
   const raw = opt('sfx');
   if (raw === undefined) die('--sfx 后面要跟一个值：auto / 一个 json 路径 / 若干类别名（逗号分隔）。');
-  const { autoSfx, findSfx } = await import('./lib/mix.mjs');
+  const { findSfx } = await import('./lib/mix.mjs');
+  const { designSfx, summarize } = await import('./lib/sfx-rules.mjs');
   const { build } = await import('../src/timeline.js');
   const dir = path.join(ROOT, 'tasks', task);
   const mod = await import(pathToFileURL(path.join(dir, 'task.config.mjs')).href);
   const cfg = mod.default ?? mod.config;
   const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
   if (raw === 'auto') {
-    const items = autoSfx(segs);
-    if (!items.length) die('--sfx auto 一条都没排上：库里没有 whoosh 类音效（先跑 node tools/sfx-fetch.mjs --get … --dir assets/sfx），或这条时间线只有一个段。');
-    log(`· 音效自动摆位：${items.length} 个切点各一记 whoosh`);
+    // 语义摆位：不按"每个切点一声风"，而是按段在做什么选声音（title→撞+闪、chart→UI 声、
+    // 歌词换族→风、glitch→故障、outro→断电）。规则表见 scripts/lib/sfx-rules.mjs 头注释。
+    const { items, missing } = designSfx(segs);
+    if (!items.length) {
+      die('--sfx auto 一条都没排上：库里缺这些类别（' + (missing.join(' / ') || '?') + '）。'
+        + '\n  先跑 node tools/sfx-fetch.mjs --get <id> --category <类别> --dir assets/sfx 补上。');
+    }
+    log('· 音效语义摆位：' + items.length + ' 条（' + summarize(items) + '）');
+    if (missing.length) log('  ⚠ 库里缺这些类别，已跳过：' + missing.join(' / '));
     return items;
   }
   if (/\.json$/i.test(raw)) {

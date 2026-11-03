@@ -82,4 +82,41 @@ if (existsSync(catPath)) {
   console.log('  · 没有索引（跳过）');
 }
 
+
+console.log('语义规则（designSfx）');
+const { designSfx, summarize } = await import('../scripts/lib/sfx-rules.mjs');
+const rolesAt = (items, t) => items.filter((x) => Math.abs(x.at - t) < 0.02).map((x) => x.role);
+{
+  const segs2 = [
+    { id: 'title', start: 0 },
+    { id: 'chart', start: 4 },
+    { id: 'kinetic', start: 9 },
+    { id: 'outro', start: 13 },
+  ];
+  const { items: d, missing } = designSfx(segs2);
+  eq(missing.length, 0, '库里各类角色都齐');
+  ok(rolesAt(d, 0).includes('destruction'), '标题段：有撞击（destruction）');
+  ok(rolesAt(d, 0).includes('camera-flash'), '标题段：有闪（camera-flash）');
+  ok(!rolesAt(d, 0).includes('whoosh'), '第一条段不放切点风');
+  ok(rolesAt(d, 4).includes('digital-click'), '图表段：UI 声而不是风');
+  ok(rolesAt(d, 9).includes('destruction'), '动态大字段：也是撞击');
+  eq(rolesAt(d, 13), ['power-outage'], '片尾：断电，且不给别的声');
+  ok(d.some((x) => x.role === 'riser' || x.role === 'riser-in'), '大字之前先吸气');
+}
+{
+  const lyric = [
+    { id: 'k01', start: 0, params: { mode: 'mask' } },
+    { id: 'k02', start: 3, params: { mode: 'karaoke' } },
+    { id: 'k03', start: 6, params: { mode: 'karaoke' } },
+    { id: 'k04', start: 9, params: { mode: 'glitch' } },
+    { id: 'k05', start: 12, params: { mode: 'karaoke' } },
+    { id: 'k06', start: 15, params: { mode: 'mask' } },
+  ];
+  const { items: l } = designSfx(lyric);
+  ok(rolesAt(l, 3).includes('whoosh'), '换族（display → sing）给一声风');
+  eq(rolesAt(l, 6), [], '同族延续（karaoke → karaoke）不给切点声');
+  ok(rolesAt(l, 9).includes('glitch'), 'glitch 段给故障声');
+  eq(rolesAt(l, 15), ['power-outage'], '最后一段断电');
+  ok(summarize(l).length > 0, '摘要能念出用量（' + summarize(l) + '）');
+}
 console.log('\n✓ 音效回归：' + passed + ' 项通过');

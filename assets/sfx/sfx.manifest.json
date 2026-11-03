@@ -64,6 +64,71 @@
       "source": "https://sounddino.com/en/effects/energy/",
       "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
       "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "7876",
+      "title": "Camera flash sound",
+      "group": "",
+      "category": "camera-flash",
+      "file": "camera-flash__7876__Camera-flash-sound.mp3",
+      "bytes": 20941,
+      "sha1": "7bd3de1d04f2",
+      "durationSec": 0.81,
+      "source": "https://sounddino.com/en/effects/camera-flash/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "78237",
+      "title": "button digital sharp noisy",
+      "group": "Sharp piercing click",
+      "category": "digital-click",
+      "file": "digital-click__78237__button-digital-sharp-noisy.mp3",
+      "bytes": 18015,
+      "sha1": "cfa113ffd4e2",
+      "durationSec": 0.24,
+      "source": "https://sounddino.com/en/effects/digital-click/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "2730",
+      "title": "The sound where the lights went out all over the land",
+      "group": "",
+      "category": "power-outage",
+      "file": "power-outage__2730__The-sound-where-the-lights-went-out-all-.mp3",
+      "bytes": 64200,
+      "sha1": "22e9ceca1b6b",
+      "durationSec": 3.11,
+      "source": "https://sounddino.com/en/effects/power-outage/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "79283",
+      "title": "vzhuh active in space",
+      "group": "Quick whoosh",
+      "category": "whoosh-transition",
+      "file": "whoosh-transition__79283__vzhuh-active-in-space.mp3",
+      "bytes": 192722,
+      "sha1": "ef7c5df2baa8",
+      "durationSec": 11.15,
+      "source": "https://sounddino.com/en/effects/whoosh-transition/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "30869",
+      "title": "Explosion with destruction",
+      "group": "Buildings coming down",
+      "category": "destruction",
+      "file": "destruction__30869__Explosion-with-destruction.mp3",
+      "bytes": 151762,
+      "sha1": "6861fccaee54",
+      "durationSec": 5.72,
+      "source": "https://sounddino.com/en/effects/destruction/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
     }
   ]
 }
