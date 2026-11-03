@@ -7404,6 +7404,51 @@ async function cmdSay() {
  * `anim mix` —— 旁白摆位 + 用旁白自己的包络给音乐做闪避，混成**一条**交给引擎的音轨。
  * 引擎只有一条音轨、没有 sidechain（`docs/NARRATION.md` §1），所以这一步必须在外面做。
  */
+
+/**
+ * `anim mix --sfx …` 的三种写法：
+ *   `auto`        —— 按切点自动摆 whoosh（第一条段除外），一条命令就有声音设计；
+ *   `<json 路径>`  —— 读一个 { items: [{ file, at, gain }] } 的表（file 可以是类别名，也可以是绝对/相对路径）；
+ *   `whoosh,click` —— 逗号分隔的类别，按**均匀间隔**摆开（临时试听用，正式片子写 json）。
+ * 不给就是 undefined（老路径，一个字节都不变）。
+ */
+async function resolveSfxOpt(task) {
+  if (!flag('sfx')) return undefined;
+  const raw = opt('sfx');
+  if (raw === undefined) die('--sfx 后面要跟一个值：auto / 一个 json 路径 / 若干类别名（逗号分隔）。');
+  const { autoSfx, findSfx } = await import('./lib/mix.mjs');
+  const { build } = await import('../src/timeline.js');
+  const dir = path.join(ROOT, 'tasks', task);
+  const mod = await import(pathToFileURL(path.join(dir, 'task.config.mjs')).href);
+  const cfg = mod.default ?? mod.config;
+  const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
+  if (raw === 'auto') {
+    const items = autoSfx(segs);
+    if (!items.length) die('--sfx auto 一条都没排上：库里没有 whoosh 类音效（先跑 node tools/sfx-fetch.mjs --get … --dir assets/sfx），或这条时间线只有一个段。');
+    log(`· 音效自动摆位：${items.length} 个切点各一记 whoosh`);
+    return items;
+  }
+  if (/\.json$/i.test(raw)) {
+    const file = path.resolve(ROOT, raw);
+    if (!existsSync(file)) die('没有这个音效表：' + raw);
+    const spec = JSON.parse(readFileSync(file, 'utf8'));
+    const items = (spec.items ?? []).map((it) => ({
+      ...it,
+      file: /[\\/]/.test(it.file) || /\.mp3$/i.test(it.file) ? path.resolve(dir, it.file) : findSfx(it.file),
+    }));
+    log(`· 音效表 ${raw}：${items.length} 条`);
+    return items;
+  }
+  const kinds = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const total = segs.length ? segs[segs.length - 1].end : 0;
+  const items = [];
+  kinds.forEach((k, i) => {
+    const step = total / (kinds.length + 1);
+    items.push({ file: findSfx(k), at: Number((step * (i + 1)).toFixed(2)), gain: 0.45 });
+  });
+  log(`· 音效 ${kinds.join(' / ')}：按均匀间隔摆了 ${items.length} 条（试听用；正式片子写成 json）`);
+  return items;
+}
 async function cmdMix() {
   const task = pickTask();
   const { runMix } = await import('./lib/mix.mjs');
@@ -7436,6 +7481,7 @@ async function cmdMix() {
       lra,
       // 多语言/多变体：不给它，--table ja 会去读 zh 的 timing 并**覆盖 zh 的混音**（实测踩过）
       table: opt('table'),
+      sfx: await resolveSfxOpt(task),
     });
   } catch (e) {
     if (e && /^(不认识的 --target|靶子的 |给了 LRA)/.test(String(e.message))) die(String(e.message));

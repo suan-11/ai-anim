@@ -469,6 +469,7 @@ music.hit('kick', t, 0.12)   // 衰减脉冲（做撞击位移/闪白最省事�
 ```sh
 node scripts/anim.mjs say <任务> [--voice zh-CN-YunxiNeural] [--rate -6%] [--dry-run]
 node scripts/anim.mjs mix <任务>          # 旁白摆位 + 给音乐做闪避 → 一条混音轨
+node scripts/anim.mjs mix <任务> --sfx auto   # + 音效：每个切点一记 whoosh（库在 assets/sfx/，见 docs/SFX.md）；纯音乐片子也能用
 node scripts/anim.mjs say <任务> --table en   # 表写到 audio/en.{timing,narration}.json，默认那份不动
                                             # → task.config 里 narration: './audio/en.narration.json'
 ```

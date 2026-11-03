@@ -1,0 +1,69 @@
+{
+  "sounds": [
+    {
+      "id": "73722",
+      "title": "Sound16",
+      "group": "Quick whoosh",
+      "category": "whoosh-transition",
+      "file": "whoosh-transition__73722__Sound16.mp3",
+      "bytes": 18851,
+      "sha1": "33a6ded503ba",
+      "durationSec": 0.29,
+      "source": "https://sounddino.com/en/effects/whoosh-transition/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "84724",
+      "title": "Short click of a computer mouse",
+      "group": "Mouse and UI clicks",
+      "category": "click",
+      "file": "click__84724__Short-click-of-a-computer-mouse.mp3",
+      "bytes": 16761,
+      "sha1": "677d6ca21ff7",
+      "durationSec": 0.16,
+      "source": "https://sounddino.com/en/effects/click/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "2734",
+      "title": "Very short glitch sound",
+      "group": "Glitch hits for edits",
+      "category": "glitch",
+      "file": "glitch__2734__Very-short-glitch-sound.mp3",
+      "bytes": 18851,
+      "sha1": "ebd1772d825a",
+      "durationSec": 0.55,
+      "source": "https://sounddino.com/en/effects/glitch/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "35602",
+      "title": "Click on the error warning sound clip",
+      "group": "Mouse and UI clicks",
+      "category": "click",
+      "file": "click__35602__Click-on-the-error-warning-sound-clip.mp3",
+      "bytes": 28864,
+      "sha1": "6680b425701c",
+      "durationSec": 0.6,
+      "source": "https://sounddino.com/en/effects/click/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    },
+    {
+      "id": "28978",
+      "title": "Sound for an arcade game (energy, power 2)",
+      "group": "Energy refills",
+      "category": "energy",
+      "file": "energy__28978__Sound-for-an-arcade-game-energy-power-2-.mp3",
+      "bytes": 53124,
+      "sha1": "03ea1e9e2814",
+      "durationSec": 0.97,
+      "source": "https://sounddino.com/en/effects/energy/",
+      "license": "SoundDino 免费授权（可商用 / 无需署名；以站点条款为准）",
+      "fetchedAt": "2026-11-03"
+    }
+  ]
+}
