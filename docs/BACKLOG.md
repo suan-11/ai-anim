@@ -1,5 +1,7 @@
 # BACKLOG —— 还没做的事（唯一的待办清单）
 
+> **刚接手？先读 [`HANDOVER.md`](HANDOVER.md)**：现状 / 这轮做了什么 / 怎么验证 / 环境坑 / 欠账。
+
 > **这份文件是仓库里唯一的待办 / 待拍板清单。**
 > 各轮改进记录（[`history/IMPROVEMENTS-1-3.md`](history/IMPROVEMENTS-1-3.md)、
 > [`history/IMPROVEMENTS-4-5.md`](history/IMPROVEMENTS-4-5.md)）与 [`STATUS.md`](STATUS.md)
