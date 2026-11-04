@@ -68,7 +68,8 @@ const ITEMS = [
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
   { name: 'unit:doc-facts', cmd: ['tools/lint-doc-facts.mjs'], note: 'TIMELINE_KEYS（13 个）↔ 文档键表：漏键/数字不符就红（2026-10-17 focus 漏过一次）' },
   { name: 'unit:doc-facts-selftest', cmd: ['tools/lint-doc-facts.mjs', '--selftest'], note: '上面那个守门的判据自测（7 项，含"不误吃那 3 个面"的反例）' },
-              { name: 'unit:sfx', cmd: ['tools/test-sfx.mjs'], note: '音效这一层：库查找（找不到要抛）/ 自动摆位（首段不摆、贴段首）/ 混音位置与越界记账 / 侧链把床压下去 / 索引完整（17 项）' },
+                  { name: 'unit:anti-ppt', cmd: ['tools/test-anti-ppt.mjs'], note: '反 PPT 判据：状态差（透明度/缩放不算）/ 接力物断链 / 淡出转场 / 节奏 CoV / 钩子 / 歌词片豁免（12 项）' },
+    { name: 'unit:sfx', cmd: ['tools/test-sfx.mjs'], note: '音效这一层：库查找（找不到要抛）/ 自动摆位（首段不摆、贴段首）/ 混音位置与越界记账 / 侧链把床压下去 / 索引完整（17 项）' },
     { name: 'unit:color-family', cmd: ['tools/lint-color-family.mjs'], note: '色系判据：32 套风格的主色系 ≥55% / 前二 ≥85% / 底与字亮度差 / 信号色拉得开（强调色跟着 signal 旋转）' },
     { name: 'meta:changes-fresh', cmd: ['tools/gen-changes.mjs', '--check'], note: '相对上游基线的改动清单不许过期（生成物，--check 比对磁盘）' },
     { name: 'unit:agents-refs', cmd: ['tools/lint-agents-refs.mjs'], note: 'AGENTS.md 的章节号是外部锚点：全部 § 引用可解析（docs/history/ 的归档断链不计）' },

@@ -219,7 +219,7 @@ export default {
 
 | 类别 | 键 | 说明 |
 |---|---|---|
-| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` `transitionOpts` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切 / `relay` 相机接力（相机从上一段位姿飞向本段、内容在交叠窗换手；`transitionOpts` 定曲线与换手窗，两种写法见 `docs/ENGINE.md` §3.7.7）；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6） |
+| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` `transitionOpts` `state` `relayTo` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切 / `relay` 相机接力（相机从上一段位姿飞向本段、内容在交叠窗换手；`transitionOpts` 定曲线与换手窗，两种写法见 `docs/ENGINE.md` §3.7.7）；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6）。`state` / `relayTo` = 反 PPT 声明（状态差与接力物，见 §10.11.56 与 `docs/ANTI-PPT.md`） |
 | **模板参数** | **其余所有键** | 原样交给 `shot(type, { … })`；也可以显式写在 `params: { … }` 里（`params` 优先）。**没有必需参数**，每个都有默认值 |
 
 三条硬边界：
@@ -724,6 +724,9 @@ node scripts/anim.mjs check <任务>
     `node tools/lint-color-family.mjs [--task <任务>]` —— 主色系加权 ≥55%、前二 ≥85%、底与字亮度差 ≥0.25、
     信号色与底色拉得开。强调色（ember/blood/acid）默认跟着 `signal` 旋转，风格只改 signal 也不散。
     `check` 里已经跑这条；**连着发布两支**时再比一次：`lint-color-family.mjs --task A --compare B` —— 同族且色相差 <25° 就是撞色系。
+11.56 **别让它变成 PPT**：每段声明 `state: { from, to, diff }`（只动透明度/缩放不算）与 `relayTo`（接力物），
+    然后 `node tools/lint-anti-ppt.mjs <任务>`（状态差 / 接力物断链 / 淡出转场 / 时长 CoV / 每 10s 钩子 / 成片是否匀速漂移）。
+    参照样本见 `tasks/demo/task.config.mjs`，规则与 P1/P2 见 `docs/ANTI-PPT.md`。
 11.6 **每一秒都有东西看**（有音乐时也要）：`check` 的「事件密度」读的是**成片**帧间差 —— `最长静止 ≤ 3.5s`、
     `稀薄窗口 ≤ 25%`（低于均值一半的 2 秒窗口）。超了就补持续运动（推近/扫线/逐条落位），别指望 2px 游标
     或 0.09 alpha 的水印（检测器和人眼都看不见）。单独体检 `tools/lint-event-density.mjs <任务>`。

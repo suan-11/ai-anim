@@ -73,6 +73,12 @@ const TIMELINE_KEYS = new Set([
   // 配置档节点上也能写 —— 不加进这张表它会被当成模板参数。
   // ⚠ 注释里别写带单引号的词：tools/lint-doc-facts.mjs 用单引号提取器解析这张表。
   'transitionOpts',
+  // 反 PPT 约束（docs/ANTI-PPT.md）：本镜的世界**变了什么** ——
+  // { from: [起点对象], to: [终点对象], diff: [变化方向] }，diff 只写 opacity / scale 不算状态差。
+  // ⚠ 这条注释里**不能出现单引号词**：tools/lint-doc-facts.mjs 会把它们当成键名。
+  'state',
+  // 接力物：本镜结束时哪个对象交给下一镜；没有接力物的镜头不能连续出现三段（lint-anti-ppt 判）。
+  'relayTo',
 ]);
 
 /**
@@ -83,7 +89,7 @@ const TIMELINE_KEYS = new Set([
  * 而不是静默吃默认值画出一张看起来正常的图（`docs/history/IMPROVEMENTS-1-3.md` 那类 bug 的通用解法）。
  */
 function configToCut(node, where) {
-  const { type, id, dur, at, overlap, params, post, maxSamples, handlesTransition, note, world, worldPass, focus, carry, transition, transitionOpts, ...rest } = node;
+  const { type, id, dur, at, overlap, params, post, maxSamples, handlesTransition, note, world, worldPass, focus, carry, transition, transitionOpts, state, relayTo, ...rest } = node;
   const tparams = { ...rest, ...(params ?? {}) };
   if (id != null) tparams.id = id;          // ⚠ 不能写成 tparams.id = id：undefined 会盖掉模板默认段名
   let scene;
@@ -112,6 +118,9 @@ function configToCut(node, where) {
     transition,
     // 相机接力的运动曲线与换手窗（BACKLOG 1-12）：照 transition 键的同一条路径落到段上
     transitionOpts,
+    // 反 PPT 声明：照 focus / transitionOpts 的同一条路径落到段上
+    state,
+    relayTo,
   };
 }
 
@@ -154,6 +163,10 @@ export function cut(scene, opts = {}) {
     // 相机接力（BACKLOG 1-12）：{ move?: 'glide'|'whip', handover?: [w0,w1] }，
     // 只在 transition: 'relay' 时被 engine composite 读（不透传 = 静默丢失，与 focus 同一条教训）。
     transitionOpts: opts.transitionOpts,
+    // 反 PPT 声明（docs/ANTI-PPT.md）：与 focus / transitionOpts 同一条教训 ——
+    // 不在这里白名单化，量具就永远读不到（静默丢失）。
+    state: opts.state,
+    relayTo: opts.relayTo,
   };
 }
 
@@ -303,6 +316,10 @@ export function build(plan, music = {}) {
       // 相机接力（BACKLOG 1-12）：{ move, handover } 落到段上，composite() 的 relay 分支读它
       // —— 照 transition 键的同一条路径走（cut() / 配置档节点两种写法都到得了）。
       transitionOpts: c.transitionOpts,
+      // 反 PPT 声明（docs/ANTI-PPT.md）：state / relayTo 也要搬上段，
+      // 否则 tools/lint-anti-ppt.mjs 永远读到 undefined（= 声明了也当没声明）。
+      state: c.state ?? null,
+      relayTo: c.relayTo ?? null,
     });
     return start + dur;
   };
