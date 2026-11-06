@@ -322,3 +322,4 @@ export {
 
 // 母题库（BACKLOG 1-49）：跨片子复用的视觉母题 —— 见 src/kit/motifs/index.js 的头注释
 export * from './motifs/index.js';
+export { smooth, phase, recoil, cascadePose, contourPoint, deconstructPose } from './action-motion.js';

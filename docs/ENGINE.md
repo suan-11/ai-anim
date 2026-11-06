@@ -809,6 +809,10 @@ comp.draw(gl, text, ctx.out, { premult: false });   // ④ 叠到场景上
 
 ### 5.2 `TextKit` API
 
+#### `reveal(text, x, y, opts)` → TextKit
+
+动作触发的空间显影：`progress`（有限数，夹到 0..1）由遮挡物、碰撞或路径传入；保留 `write` 的字号、整行对齐与颜色参数。`mode: 'wipe'`（默认）按边缘裁切；`'trace'` 横向按字素完整留字、竖向按边缘留字；`'light'` 只显示移动光束覆盖处，扫过后消失。`direction: 'right'|'left'|'up'|'down'`（默认 right）；光束相对宽度 `beam` 默认 0.32。可传 `bounds: {x,y,w,h}` 与动作共用裁切矩形，不传则按整行测宽与字号估算。裁切通过 save/restore 限于本次绘制，异常同样恢复。完整例子见 `docs/ANTI-PPT.md` §七。
+
 #### `font(style)` → CSS font 字符串
 
 `style` 字段与默认值：

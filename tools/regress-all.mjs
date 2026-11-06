@@ -65,6 +65,8 @@ const isCiEligible = (it) => !it.ciExclude && CI_GROUPS.some((g) => it.name.star
 
 /** @type {Item[]} */
 const ITEMS = [
+  { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
+  { name: 'harness:action-lab', cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
   { name: 'unit:doc-facts', cmd: ['tools/lint-doc-facts.mjs'], note: 'TIMELINE_KEYS（13 个）↔ 文档键表：漏键/数字不符就红（2026-10-17 focus 漏过一次）' },
   { name: 'unit:doc-facts-selftest', cmd: ['tools/lint-doc-facts.mjs', '--selftest'], note: '上面那个守门的判据自测（7 项，含"不误吃那 3 个面"的反例）' },

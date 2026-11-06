@@ -41,6 +41,8 @@ export const CATEGORIES = [
 /** 模板 → 分类。新增模板必须在这里登记（--check 会拦） */
 export const SHOT_CATEGORY = {
   title: 'opening', kinetic: 'opening',
+  reveal: 'opening', cascade: 'flow', transform: 'flow',
+  deconstruct: 'flow',
   bigtype: 'assertion', quote: 'assertion',
   chart: 'data', counter: 'data', compare: 'data', morph: 'data',
   timeline: 'flow', lineart: 'flow', layers: 'flow',

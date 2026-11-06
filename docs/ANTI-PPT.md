@@ -71,12 +71,46 @@ C7 要有成片（`out/<任务>/*.mp4`）才跑；没有时进「没跑」，不
 
 ⚠ 存量片子不要求立刻回填声明 —— 但**新片子**必须先写这两个字段，否则判据红。
 
-## 六、还没做的（P1 / P2，写进 BACKLOG）
+## 六、实施状态（P1 / P2）
 
-- **P1**：三类有效运动的镜头模板（揭示 / 因果 / 变形）进 `src/shots/`；
-- **P1**：`TextKit` 的触发式文字（遮挡显影、光照显影、动作留字）；
+- **已落地**：`reveal` / `cascade` / `transform` 三类有效运动模板（参数以 `anim shots <名字>` 为准）。共享舞台和核心物，动作按镜头进度伸缩。
+- **已落地**：`TextKit.reveal()` 空间触发文字（`wipe` 遮挡显影 / `light` 光束扫过 / `trace` 动作留字），进度由动作传入；见 §七。
 - **P1**：非均匀时长模板 + 呼吸镜头自动插入；
 - **P1**：声音层加环境音（现在是 music / vo / sfx 三层，缺 ambient）；
 - **P2**：真三维视差与「镜头穿场景」；
 - **P2**：后处理「被拍摄感」预设；
 - **P2**：`anim check` 里直接跑 C7（现在要单独跑）。
+
+## 七、动作模板与触发文字
+
+`tasks/_action-lab/task.config.mjs` 是 18 秒的动作示例：遮挡板打开 → 核心触碰叶片并逐个翻倒 → 同一轮廓变成波带和圆角方形 → 收回核心。三段共用核心的位置、尺寸与色彩；零 overlap 硬切接力。镜头时长 4.2 / 8.4 / 5.4 秒，包含动作前蓄力、接触回弹、变形中停顿。
+
+```sh
+node scripts/anim.mjs check _action-lab --quick
+node scripts/anim.mjs video _action-lab --draft --segments 10
+node tools/lint-anti-ppt.mjs _action-lab --strict
+```
+
+```js
+// 配置档的一项。morph 负责图表，transform 负责闭合物体轮廓。
+{ type: 'cascade', dur: 6, count: 7, title: '一次触碰，层层传递', world: false }
+
+// shutterProgress 来自遮挡物本身；不要为文字另开一条不同步的时间轴。
+type.reveal('发现', x, y, {
+  size: 72, align: 'center', color: css(P.bone),
+  progress: shutterProgress, mode: 'wipe', direction: 'right',
+});
+```
+
+`progress` 是有限数（夹到 0..1）；`direction` 可用 `right/left/up/down`。默认按量出的整行宽度裁切，支持 `bounds: {x,y,w,h}` 与世界中的遮挡物共用裁切范围。`light` 的 `beam` 为相对宽度，扫过后文字消失；`trace` 横向按字素完整留下字符，竖向按扫描边缘留下。Canvas 裁切只作用于本次调用，异常也会恢复；不修改前面已经画好的图层。`progress:1` 的 wipe/trace（无显式 bounds）与普通 write 相同。
+
+运动数学回归：`tools/test-action-motion.mjs`；整段 seek / 数值健全：`tools/scene-harness.mjs _action-lab`。无声示例只验证视觉运动，环境音、自动节奏编排与 C7 接线仍在上面的待办中。
+
+## 八、三维解构（deconstruct）
+
+`shot('deconstruct', { spread: 2.15 })`：27 个真实三维圆角模块错峰分离，中心模块保持锚定，镜头在展开后绕到侧面观察内部，再按原拓扑归位。构件、引线和重组共用同一份 `deconstructPose(index,p,spread)`；`spread` 的合法范围为 1.4..2.8，镜头拉远量随展开距离改变。Three.js 提供深度遮挡、材质、真实阴影与投影标注；独立预览为 `tasks/_deconstruct-lab`（10.8 秒）。
+
+```sh
+node scripts/anim.mjs still _deconstruct-lab -t 0.7,4.5,6.3,10.5
+node scripts/anim.mjs video _deconstruct-lab --draft --segments 10
+```

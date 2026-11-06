@@ -452,6 +452,59 @@ export class TextKit {
   }
 
   /**
+   * Action-triggered text. `progress` comes from a shutter / contact / path, not a second clock.
+   * wipe: a spatial edge uncovers ink; trace: that edge leaves whole graphemes behind;
+   * light: a moving light reveals only the glyphs inside its beam (does not retain ink).
+   * `bounds` is the action's actual clip rectangle; omitted = measured line box.
+   * @param {string} text @param {number} x @param {number} y
+   * @param {TypeStyle & { progress: number, mode?: 'wipe'|'trace'|'light',
+   *   direction?: 'right'|'left'|'up'|'down', bounds?: {x:number,y:number,w:number,h:number},
+   *   beam?: number, color?: any, alpha?: number }} opts
+   */
+  reveal(text, x, y, opts) {
+    const { progress, mode = 'wipe', direction = 'right', bounds, beam = .32, ...styleOpts } = opts;
+    if (!Number.isFinite(progress)) throw new Error('TextKit.reveal: progress 必须是有限数');
+    if (!['wipe', 'trace', 'light'].includes(mode)) throw new Error(`TextKit.reveal: 未知 mode "${mode}"`);
+    if (!['right', 'left', 'up', 'down'].includes(direction)) throw new Error(`TextKit.reveal: 未知 direction "${direction}"`);
+    if (!Number.isFinite(beam) || beam <= 0 || beam > 1) throw new Error('TextKit.reveal: beam 必须在 0..1 内且大于零');
+    if (bounds && ![bounds.x, bounds.y, bounds.w, bounds.h].every(Number.isFinite)) throw new Error('TextKit.reveal: bounds 必须是有限矩形');
+    const p = clamp(progress), s = this.withSize(styleOpts);
+    if (p <= 0 || !String(text).length) return this;
+    const w = this.measure(text, s), size = s.size ?? 64;
+    const align = s.align ?? 'left';
+    const left = x - (align === 'center' ? w / 2 : align === 'right' || align === 'end' ? w : 0);
+    // Alphabetic metrics cover ascenders/descenders; other baselines get conservative bounds.
+    const top = y - (s.baseline === 'top' || s.baseline === 'hanging' ? 0 : s.baseline === 'middle' ? size * .65 : size * 1.15);
+    const b = bounds ?? { x: left - size * .08, y: top, w: w + size * .16, h: size * 1.5 };
+    if (b.w < 0 || b.h < 0) throw new Error('TextKit.reveal: bounds 的宽高不能为负');
+    if (p >= 1 && mode !== 'light' && !bounds) return this.write(text, x, y, s);
+    const horizontal = direction === 'left' || direction === 'right';
+    const reverse = direction === 'left' || direction === 'up';
+    const c = this.ctx;
+    c.save();
+    try {
+      let a = reverse ? 1 - p : 0, z = reverse ? 1 : p;
+      if (mode === 'light') {
+        // At p=0 and p=1 the beam is outside the text, with no abrupt full-line flash.
+        const head = (reverse ? 1 - p : p) * (1 + beam) - beam / 2;
+        a = Math.max(0, head - beam / 2); z = Math.min(1, head + beam / 2);
+      }
+      c.beginPath();
+      if (mode === 'trace' && horizontal) {
+        const layout = this.layout(text, s);
+        layout.clusters.forEach((cl, i) => {
+          const center = left + layout.x[i] + (layout.cum[i+1]-layout.cum[i])*.5;
+          const hit = reverse ? center >= b.x+b.w*(1-p) : center <= b.x+b.w*p;
+          if (hit) c.rect(left+layout.x[i]-size*.04,b.y,layout.cum[i+1]-layout.cum[i]+size*.08,b.h);
+        });
+      } else c.rect(b.x + (horizontal ? b.w * a : 0), b.y + (horizontal ? 0 : b.h * a), horizontal ? b.w * Math.max(0,z-a) : b.w, horizontal ? b.h : b.h * Math.max(0,z-a));
+      c.clip();
+      this.write(text, x, y, s);
+    } finally { c.restore(); }
+    return this;
+  }
+
+  /**
    * 逐词卡拉OK。words 里的每一项是「原文本的一段」——把整行按顺序切开即可，
    * 中间的空白/标点单独作为一项，这样位置永远对得上。
    *

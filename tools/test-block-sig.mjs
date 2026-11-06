@@ -100,7 +100,7 @@ const t2 = timeline.map((s) => (s.id === 'chart' ? { ...s, params: { variant: 'g
 ok(sigOf(4, 9, { timeline: t2 }) !== sigOf(4, 9), 'chart 的 params 变 ⇒ 第 2 块签名变');
 ok(sigOf(0, 4, { timeline: t2 }) === sigOf(0, 4), '其它块不受影响');
 
-section('查不到源文件的段：永远重渲（不猜）');
+section('查不到源文件的段：标记未知，由源文件清单保守回退');
 const t3 = [...timeline, { id: 'ghost', start: 12, end: 14 }];
 const g = sigOf(9, 13, { timeline: t3 });
 ok(g.includes('?:ghost'), '未知 id 记成 ?ghost');
@@ -151,6 +151,22 @@ section('配置档的按段切片（BACKLOG 1-59）');
   const idxNoSlice = { byId: idx.byId, configHashes: new Map() };
   const s3 = blockSignature({ ...base0, index: idxNoSlice, from: 0, to: 4 });
   ok(s3.includes('slice:') === false, '没有切片时退回文件 stat（不含 slice: 前缀）');
+}
+
+section('配置档省略 id：任务参数和模板都不能被固定问号哨兵漏掉');
+{
+  const base = {
+    root, engineSig:'global', paramsText:'draft', from:0, to:4,
+    timeline:[{id:'reveal',start:0,end:4}],
+    index:{byId:new Map(),all:['tasks/t1/task.config.mjs']},
+    engineAtoms:new Map([['src/shots/reveal.js','reveal:v1']]),
+    engineDeps:new Map(), stat:()=>({size:100,mtimeMs:1000}),
+  };
+  const before=blockSignature(base);
+  ok(blockSignature({...base,stat:()=>({size:101,mtimeMs:2000})})!==before,'无显式 id 时，改 task.config 风格/文案会失效');
+  ok(blockSignature({...base,engineAtoms:new Map([['src/shots/reveal.js','reveal:v2']])})!==before,'无显式 id 时，改模板会失效');
+  const mapped={...base,index:{byId:new Map([['reveal',['tasks/t1/task.config.mjs']]]),configHashes:new Map([['tasks/t1/task.config.mjs#reveal','same-node']])}};
+  ok(blockSignature({...mapped,engineAtoms:new Map([['src/shots/reveal.js','reveal:v2']])})!==blockSignature(mapped),'有节点切片时也必须计入模板依赖，不能在收集依赖前 continue');
 }
 
 /* ---------------------------------------------------------------- 收尾 */
