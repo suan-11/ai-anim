@@ -66,6 +66,8 @@ const TEMPLATES = [
   'pixel',
   // BACKLOG 1-69：手写笔迹（白板 / 纸感手写讲解）；夹具 tasks/_handwrite-lab
   'handwrite',
+  'reveal', 'cascade', 'transform',
+  'deconstruct',
 ];
 
 /** 任务侧的 8 个场景模块 → 它们必须保持的段名。 */

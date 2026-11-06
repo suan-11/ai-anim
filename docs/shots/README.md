@@ -1,8 +1,8 @@
-# 镜头卡索引（25 张）
+# 镜头卡索引（29 张）
 
 > 生成物：`node tools/gen-shot-cards.mjs`。按**叙事功能**分组，不是按长相。
 
-## 开场（opening）· 2 张
+## 开场（opening）· 3 张
 
 片子最先建立的印象：标题、主张的第一句
 
@@ -10,6 +10,7 @@
 |---|---|---|
 | [title](opening/title.md) | 全片第一镜或一章的开头：先让观众读到一句主标题 | 低 |
 | [kinetic](opening/kinetic.md) | 一句短结论要砸出来（每行 ≤6 字），当全片最响的一拍 | 高 |
+| [reveal](opening/reveal.md) | 揭晓、打开、从遮挡中发现主体 | 中 |
 
 ## 主张（assertion）· 2 张
 
@@ -31,7 +32,7 @@
 | [compare](data/compare.md) | 2–4 个指标、两组值的对比（前后 / 方案 A vs B） | 中低 |
 | [morph](data/morph.md) | 讲"同一件事换一种呈现" —— 柱看高低、线看趋势、面积看累积 | 中 |
 
-## 流程（flow）· 3 张
+## 流程（flow）· 6 张
 
 顺序、路径、分层 —— 一件事接一件事
 
@@ -40,6 +41,9 @@
 | [lineart](flow/lineart.md) | 流程 / 时间线 / 路径 / 生长曲线 —— 一件事接一件事的** | 中低 |
 | [layers](flow/layers.md) | 讲"分层 / 抽象层级 / 叠加的几层" —— 一层一层往回退 | 中低 |
 | [timeline](flow/timeline.md) | 讲顺序 / 步骤 / 阶段 —— 先做什么后做什么 | 中低 |
+| [cascade](flow/cascade.md) | 连锁反应、信号传递、前因后果 | 中高 |
+| [transform](flow/transform.md) | 结构变化、状态转换、同一对象的不同形态 | 中 |
+| [deconstruct](flow/deconstruct.md) | 结构拆解、产品爆炸图、模块组成与重新组装 | 中高 |
 
 ## 界面（ui）· 2 张
 

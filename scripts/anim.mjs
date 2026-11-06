@@ -5019,7 +5019,8 @@ async function renderSegments({ task, info, out, from, to, fps, samples, shutter
     });
     blockSigs[key] = sig;
     // 已经渲好的块直接复用（改一个镜头就只重渲它所在的那块）
-    if (globalReuse && existsSync(file) && prevBlocks?.[key] === sig) {
+    const hasSources = sceneIndex.all.length > 0;
+    if (globalReuse && hasSources && existsSync(file) && prevBlocks?.[key] === sig) {
       log(`  [${i + 1}/${chunks.length}] ${c.from.toFixed(2)}–${c.to.toFixed(2)}s  已存在且签名一致，跳过（${man.fp.text}）`);
       files.push({ file, expect });
       continue;

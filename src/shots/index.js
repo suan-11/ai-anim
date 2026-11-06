@@ -105,6 +105,10 @@ import { radialShot } from './radial.js';
 import { pixelShot } from './pixel.js';
 // BACKLOG 1-69（素材包缺口表第 6 行）：手写笔迹 —— 白板 / 纸感手写讲解
 import { handwriteShot } from './handwrite.js';
+import { revealShot } from './reveal.js';
+import { cascadeShot } from './cascade.js';
+import { transformShot } from './transform.js';
+import { deconstructShot } from './deconstruct.js';
 
 // 选型词表从 `./pick.js` 转发（1-62 迁移）：老读者（anim.mjs / test-shots）从这里拿，不受影响。
 export {
@@ -116,7 +120,7 @@ export {
 export { titleShot, chartShot, kineticShot, whipShot, outroShot, waveShot, pulseShot, gridShot,
   quoteShot, counterShot, compareShot, bigtypeShot, scanShot, deviceShot, lineartShot,
   morphShot, layersShot, isometricShot, celShot, liquidShot, lockupShot, timelineShot, radialShot,
-  pixelShot, handwriteShot };
+  pixelShot, handwriteShot, revealShot, cascadeShot, transformShot, deconstructShot };
 
 /**
  * `spec.requires` 认得的**依赖令牌**（词表 = 契约的一部分）。
@@ -151,6 +155,8 @@ const REGISTRY = [
   morphShot, layersShot, isometricShot, celShot, liquidShot, lockupShot, timelineShot, radialShot,
   // BACKLOG 1-67 / 1-69：像素风 / 手绘笔迹（夹具 tasks/_pixel-lab、_handwrite-lab）
   pixelShot, handwriteShot,
+  revealShot, cascadeShot, transformShot,
+  deconstructShot,
 ];
 
 /** 模板名 -> 工厂函数（键来自各工厂自报的 meta.name —— 缺了当场抛错，不会静默变成 titleShot）。 */

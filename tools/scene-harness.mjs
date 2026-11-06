@@ -61,6 +61,8 @@ import { frameSeed } from '../src/core/scene.js';
 import { build, isConfigNode } from '../src/timeline.js';
 import { MusicData, SILENT } from '../src/core/audio.js';
 import { makeNarration, makeNarrationReader } from '../src/core/narration.js';
+import { TextKit } from '../src/core/text.js';
+import { polySpans, circleSpans } from '../src/core/fill.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** 与任务无关的过程性提醒（读不到分析文件、调色板少名字…） */
@@ -442,6 +444,15 @@ class FakeLines {
     return this;
   }
   seg(ax, ay, bx, by, width = 1, color = [1, 1, 1]) { return this._push(ax, ay, bx, by, width, color); }
+  band(x0,x1,y,h,color) { return this._push(x0,y,x1,y,-Math.abs(h),color); }
+  fillPoly(pts,color=[1,1,1],step=1) {
+    for(const s of polySpans(pts,step)) this.band(s.x,s.x+s.w,s.y,s.h,color);
+    return this;
+  }
+  fillCircle(x,y,r,color=[1,1,1],step=1) {
+    for(const s of circleSpans(x,y,r,step)) this.band(s.x,s.x+s.w,s.y,s.h,color);
+    return this;
+  }
 
   polyline(pts, width = 1, color = [1, 1, 1], closed = false) {
     if (!Array.isArray(pts)) { this.__rec?.problems.push('polyline 的 pts 不是数组'); return this; }
@@ -524,6 +535,9 @@ const optSig = (o, f) => OPT_KEYS.filter((k) => o[k] !== undefined).map((k) => `
 /** 假 `TextKit`：镜像真实现的**可见性语义**（k ≤ 0 的字形根本不画） */
 class FakeTextKit {
   constructor(owner) { this.__owner = owner; }
+  // Run the real trigger/clip calculation; fake Canvas only records its geometry.
+  withSize(style) { return style; }
+  reveal(text,x,y,opts) { return TextKit.prototype.reveal.call(this,text,x,y,opts); }
   get __rec() { return this.__owner.rec; }
   setFamilies() { return this; }
   font(style = {}) { return `${style.size ?? 64}px`; }
@@ -701,6 +715,7 @@ class FakeTextLayer {
     this.dirty = true;
     this._uploaded = false;
     this.type = new FakeTextKit(owner);
+    this.type.ctx = this.ctx;
   }
   get __rec() { return this.__owner.rec; }
   clear() { this._uploaded = false; const rec = this.__rec; if (rec) { rec.add('text.clear', 'text.clear'); rec.stats.textClears++; } return this; }

@@ -123,8 +123,8 @@ function hash32(s) {
  * CLI 手上只有时间线（段 id / 起止 / 参数），拿不到模块路径。但每个场景文件里必然写着它的 id：
  * `id: 'chart'`、`makeShot('chart', …)`、`shot('chart', …)` 三种写法。
  *
- * ⚠ 扫不到的段**不猜**：`blockSignature()` 会记一个永远不匹配的 `?<id>`，
- * 于是包含它的块每次都重渲 —— 宁可多渲一块，也不要拿旧块冒充新画面。
+ * ⚠ 扫不到的段不猜：签名保守包含任务的全部源文件和全部引擎通用件。
+ * 不能只写一个固定的 ?<id>：固定哨兵下一次仍会相等，反而会静默复用旧画面。
  *
  * @param {string} taskDir 任务目录（绝对路径）
  * @param {string} root 仓库根（用来生成相对路径；不传就用 taskDir）
@@ -189,7 +189,7 @@ export function sceneFileIndex(taskDir, root = taskDir) {
  *
  * 保守规则（都写进 `docs/BACKLOG.md` 1-45 的判据）：
  *   · 引擎签名进每一块 ⇒ `src/` 一改，整批失效（引擎影响所有画面）；
- *   · 段查不到源文件 ⇒ `?<id>` ⇒ 这一块永远重渲；
+ *   · 段查不到源文件 ⇒ 全任务源文件 + 全部引擎通用件（保守回退）；
  *   · 段的时间边界**不放宽**（第一版放宽 0.5s，结果"改一个镜头重渲三块"）。
  *
  * @param {{
@@ -221,8 +221,23 @@ export function blockSignature(o) {
   let allEngine = false;
   for (const it of segs) {
     const files = o.index.byId.get(it.id);
-    if (!files || !files.length) { parts.push(`?:${it.id}`); continue; }
+    if (!files || !files.length) {
+      parts.push(`?:${it.id}`);
+      allEngine = true;
+      const fallback = o.index.all ?? [];
+      // Legacy callers without a source inventory must never receive a reusable signature.
+      // renderSegments checks the same condition before comparing signatures.
+      for (const rel of fallback) {
+        try {
+          const st = stat(path.join(o.root, rel));
+          parts.push(`fallback:${rel}:${st.size}:${Math.round(st.mtimeMs)}`);
+        } catch { parts.push(`fallback:${rel}:missing`); }
+      }
+      continue;
+    }
     for (const rel of files) {
+      const deps = o.engineDeps?.get(rel);
+      if (!deps) { allEngine = true; } else { for (const d of deps) usedEngine.add(d); }
       // 配置档文件用**按段切片**的哈希：改 A 段不影响 B 段（BACKLOG 1-59）。
       // 切片截不出来就不进这张表，退回下面的整文件 mtime（保守）。
       const slice = o.index.configHashes?.get(rel + '#' + it.id);
@@ -232,8 +247,6 @@ export function blockSignature(o) {
         parts.push(`${rel}:${st.size}:${Math.round(st.mtimeMs)}`);
       } catch { parts.push(`${rel}:missing`); }
       // 这个场景**传递依赖**到的引擎文件（由 engine-graph 的正向闭包算好传进来）
-      const deps = o.engineDeps?.get(rel);
-      if (!deps) { allEngine = true; } else { for (const d of deps) usedEngine.add(d); }
     }
     // 段参数（时间线上的 params）改了一样要重渲这一块
     parts.push(`params:${it.id}:${JSON.stringify(it.params ?? null)}`);
