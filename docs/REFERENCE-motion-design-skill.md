@@ -84,4 +84,14 @@ motion: { personality: 'premium', emotion: 'calm' },   // 或 playful / corporat
 2. 参数选择查 `skills/motion-design/reference/timing-easing-tables.md`（换算成秒；低于 0.2s 的一律当「帧级抖动」处理）；
 3. 排查毛病查 `skills/motion-design/reference/troubleshooting.md`，但**判据仍以我们的 lint 为准**（它只是提问清单）。
 
+### 已经落地的三条（2026-11-06）
+
+| 从它这儿来的 | 我们的落点 | 判据 |
+|---|---|---|
+| 运动人格（四种气质 × 时长/缓动/回弹） | `motion.personality` 可选声明（`src/kit/motion-persona.js`） | `tools/lint-motion-persona.mjs` |
+| 缓动方向（进 out* / 出 in* / 位移别线性） | 无新 API，只量现有写法 | `tools/lint-easing-direction.mjs` |
+| 1/3 规则（同时运动元素 ≤1/3） | 从成片解帧算变化面积与主体数 | `tools/lint-concurrency.mjs` |
+
+三条都**默认只报不拦**（`--strict` 才当门）、都可豁免 —— 审美参考不该变成硬规格。
+
 ⚠ 它是**方法论**，不是引擎契约。任何与 `AGENTS.md` / `docs/MOTION.md` 冲突的地方，**以我们的判据为准**。
