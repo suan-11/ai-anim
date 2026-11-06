@@ -443,3 +443,53 @@ render(ctx) {
 | 节奏的宏观数值（每 20–40 秒换版面、8 秒静帧红线…**附证据强度**） | [STYLE.md](STYLE.md) §7 |
 | **连贯（carry）**：镜头边界上"有没有东西活下来变成下一个画面" —— 判据、词表、验收口径 | [REFERENCE-onetake.md](REFERENCE-onetake.md) §2（拆解报告；落地待办见 [BACKLOG.md](BACKLOG.md) §1.D） |
 | 这三个函数的单测 | `node tools/test-motion.mjs`（纯 JS，不需要 GPU） |
+
+## 7. 运动人格（可选声明，**不是模板**）
+
+风格包换的是**视觉**（配色 / 字体 / 母题），不换**运动** —— 于是同一支片子里每个镜头各弹各的。
+这一层可选的声明只回答一件事：**这支片子属于哪种运动气质**，其余由它给**区间**。
+
+```js
+// task.config.mjs（可选；不写就完全不判）
+motion: {
+  personality: 'premium',   // premium / corporate / playful / energetic
+  emotion: 'calm',          // 自由文本，只进报告
+  intensity: 1,             // 整体缩放系数（0.7 = 这一档整体收一点）
+  exempt: ['overshoot'],    // 显式豁免；也可以行内写 // motion:allow overshoot
+},
+```
+
+| 人格 | 时长档 quick / standard / slow（秒） | 回弹上限 | 说明 |
+|---|---|---|---|
+| `playful` | 0.12–0.3 / 0.24–0.5 / 0.4–0.8 | 20% | 回弹明显、收得快 |
+| `premium` | 0.3–0.55 / 0.45–0.8 / 0.7–1.4 | 4% | 不弹、慢起慢收 |
+| `corporate` | 0.18–0.35 / 0.3–0.55 / 0.45–0.9 | 3% | 干净、可预测 |
+| `energetic` | 0.08–0.2 / 0.16–0.36 / 0.3–0.6 | 30% | 快切、砸字 |
+
+> 数值来自 LottieFiles motion-design-skill（MIT）的 UI 毫秒表，**换算成秒并向外放宽** ——
+> 它是**参考区间**，不是规格。写片子的自由度在区间之外，判据只负责让你知道自己越了。
+
+### 两个判据
+
+```sh
+node tools/lint-motion-persona.mjs <任务> [--strict]
+node tools/lint-easing-direction.mjs <任务> [--strict]
+```
+
+| 判据 | 报什么 | 默认行为 |
+|---|---|---|
+| **人格** P1 时长档 | 场景里 `prog(t, a, b)` 的字面量跨度落在 quick 以下 / slow 以上的比例 | 只报；`--strict` 才拦 |
+| **人格** P2 缓动族 | 缓动名不属于这一档（`outBack` 出现在 premium）或**拼错**（会静默退化成 linear） | 同上 |
+| **人格** P3 回弹 | `spring(stiffness, damping)` 的预估 overshoot 超上限 | 同上 |
+| **方向** D1/D2/D3 | 位移配线性 / 入场用 ease-in / 出场用 ease-out | 只报；`--strict` 才拦 |
+
+三条**不僵化**的设计（改之前先读）：
+
+1. **可选**：不写 `motion` ⇒ 判据退出码 2（进 skipped，**不假装通过也不扣分**）；
+2. **区间 + 强度缩放**：不是定值；`intensity: 0.7` 可以把整档收 30%；
+3. **可豁免**：`motion.exempt` 或行内 `// motion:allow <项>` —— 等距尺、机械感、匀速滚动屏都有正当理由用线性。
+
+### 为什么默认只报不拦
+
+这两条是**审美参考**，不是物理规格。`--strict` 留给「交付前想逼自己一把」的时候用；
+CI 里不放它们（漂移风险大于收益）。

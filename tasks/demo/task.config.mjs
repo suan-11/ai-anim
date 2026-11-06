@@ -13,6 +13,9 @@ export default {
   height: 1080,
   fps: 60,
   scale: 1,
+  // ★ 运动人格（可选；docs/MOTION.md §7）。不写就完全不判 —— 这一层只给**参考区间**，不是模板。
+  //   demo 是判据的参照样本，所以这里显式声明一档，让 lint-motion-persona 有得判。
+  motion: { personality: 'corporate', emotion: 'clear' },
   palette: {
     // 不改也能跑：这里示范怎么换一套配色（键名会变成 GLSL 里的 C_XXX）
     signal: '#ff4d12',
