@@ -6,7 +6,9 @@
 本文件列出仓库里**随附的第三方内容**（目前只有字体）及其许可，以及那些**容易被误会成第三方素材、
 但其实是本仓库自己生成的东西**。目标是：任何人 clone 下来，都能自己确认「哪些东西是谁的、按什么条件用」。
 
-> 一句话结论：**除字体外，仓库里没有第三方素材。** 没有第三方图片、没有第三方音乐、没有第三方视频、
+> 一句话结论：**除字体外，仓库里没有第三方素材、没有第三方运行时依赖的代码副本。**
+> 唯一的第三方**代码/文档**是一个 MIT 许可的 skill 目录（`skills/motion-design/`，见 §2.1），
+> 已随目录带上 `LICENSE` 与 `NOTICE.md`。没有第三方图片、没有第三方音乐、没有第三方视频、
 > 没有第三方 3D 模型，也没有随仓库分发的浏览器。
 
 ---
@@ -109,6 +111,23 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 许可证分布为 **MIT 58 个 · Apache-2.0 1 个 · ISC 1 个 · BSD-3-Clause 1 个**，
 **没有任何** GPL / AGPL / LGPL / SSPL / CC-BY-NC / BUSL 等限制性更强的许可证。
 （条目数、版本与许可证字段均可由 `package-lock.json` 直接复核。）
+
+---
+
+## 2.1 随附的第三方 skill（`skills/motion-design/`）
+
+**这是仓库里唯一的第三方**文档/方法论**内容**（不是代码、不是素材）。**
+
+| 目录 | 内容 | 上游 | 许可 |
+|---|---|---|---|
+| `skills/motion-design/` | 17 个 markdown（`SKILL.md` + `director/` + `patterns/` + `reference/`），约 1.5k 行 | [LottieFiles/motion-design-skill](https://github.com/LottieFiles/motion-design-skill) v1.0.0 | **MIT** |
+
+- 逐字节照抄上游、未做本地修改；许可全文在 `skills/motion-design/LICENSE`，
+  出处与 vendor 日期在 `skills/motion-design/NOTICE.md`。
+- 它**只作为提问清单**被引用（`docs/REFERENCE-motion-design-skill.md`），
+  引擎侧的落点是 `src/kit/motion-persona.js` 与三条判据 —— 数值**换算并放宽过**，不是照抄。
+- 与 `AGENTS.md` 冲突时以 `AGENTS.md` 为准（它只是方法论参考，不是引擎契约）。
+- 它**不含任何代码**，因此不影响 §2 的依赖口径，也不改变「仓库没有第三方素材」这条结论。
 
 ---
 
