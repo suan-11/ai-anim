@@ -44,7 +44,11 @@ if (!hasBase) {
   process.exit(2);
 }
 
-const commits = git('log', '--format=%h%x1f%ad%x1f%s', '--date=short', range).split('\n').filter(Boolean)
+// ⚠ **PR 的 CI 上 HEAD 是 GitHub 现造的 merge commit**（`Merge pull request #N from ...`，或
+// `Merge <sha> into <sha>`）。它与本地生成物里的 HEAD 必然不同 —— 于是 --check 在任何 PR 上
+// 都会红，而红的原因不是「清单过期」，是「比对基准是个临时对象」。
+// 所以计数、提交一览与「当前 HEAD」这一行都只看 `--no-merges` 的最后一个真提交。
+const commits = git('log', '--no-merges', '--format=%h%x1f%ad%x1f%s', '--date=short', range).split('\n').filter(Boolean)
   .map((l) => { const p = l.split('\x1f'); return { h: p[0], d: p[1], s: p[2] }; });
 const numstat = gitRaw('diff', '--numstat', range).split('\n').filter(Boolean);
 const byDir = new Map();
@@ -62,7 +66,8 @@ for (const line of numstat) {
 }
 const dirs = [...byDir.entries()].sort((a, b) => b[1].add - a[1].add);
 const totalFiles = numstat.length;
-const headLine = git('log', '-1', '--format=%h %s');
+// 同上：跳过 merge commit，否则 PR 的 CI 会看到多一个提交（差异只有那一行）。
+const headLine = git('log', '--no-merges', '-1', '--format=%h %s');
 
 let manual = '';
 if (existsSync(OUT)) {
