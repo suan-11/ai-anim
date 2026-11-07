@@ -24,7 +24,7 @@ export const PERSONAS = {
       entry: ['outBack', 'outBounce', 'outElastic', 'outCubic', 'outQuad'],
       exit: ['inCubic', 'inQuad', 'inBack'],
       onScreen: ['inOutCubic', 'inOutQuad', 'inOutQuart'],
-      loop: ['linear', 'sine'],
+      loop: ['linear'],
     },
     overshoot: [0.08, 0.2],
     note: '回弹明显、收得快；适合鬼畜/表情包/轻内容',
@@ -36,7 +36,7 @@ export const PERSONAS = {
       entry: ['outCubic', 'outQuart', 'outExpo'],
       exit: ['inCubic', 'inQuart'],
       onScreen: ['inOutCubic', 'inOutQuart'],
-      loop: ['linear', 'sine'],
+      loop: ['linear'],
     },
     overshoot: [0, 0.04],
     note: '不弹、慢起慢收；适合品牌/时装/预告',
@@ -48,7 +48,7 @@ export const PERSONAS = {
       entry: ['outCubic', 'outQuad'],
       exit: ['inCubic', 'inQuad'],
       onScreen: ['inOutCubic', 'inOutQuad'],
-      loop: ['linear', 'sine'],
+      loop: ['linear'],
     },
     overshoot: [0, 0.03],
     note: '干净、可预测；适合产品/数据/说明',
@@ -118,22 +118,39 @@ export function resolveMotion(cfg) {
 }
 
 /**
- * 欠阻尼弹簧的**预估 overshoot**（对 spring(stiffness, damping) 的一阶近似）。
+ * 欠阻尼弹簧的**预估 overshoot**（对 `spring(elapsed, target, stiffness, damping)` 的一阶近似）。
  * 用来判「这一记弹跳是不是超出了人格允许的上限」。
  *
  * damping ≥ 临界阻尼 ⇒ 不超调（返回 0）；否则 overshoot = exp(-ζπ / √(1-ζ²))。
+ *
+ * ⚠ **参数顺序与引擎一致**：`spring(elapsed, target = 1, stiffness = 90, damping = 18)`
+ * （src/core/util.js:61）—— stiffness 在**第 3 位**、damping 在**第 4 位**。
+ * 这个函数的签名一直是 (stiffness, damping, target)，但判据那边曾经按「第 2、3 个数字」取参，
+ * 抓到的是 target 和 stiffness，于是恒判 0 回弹（P3 从未生效）。
+ *
+ * @param {number} [stiffness] 第 3 位
+ * @param {number} [damping] 第 4 位
+ * @param {number} [target] 第 2 位 —— target > 1 时绝对超调量按 target 等比放大（百分比不变）
  */
 export function overshootOf(stiffness = 90, damping = 18, target = 1) {
   const k = Math.max(1e-6, stiffness), c = Math.max(0, damping);
   const zeta = c / (2 * Math.sqrt(k));
   if (!(target > 0) || zeta >= 1) return 0;
+  // ζ 无量纲，exp() 给出的就是「超调占 target 的百分比」—— target 只影响绝对值，不影响这个比例。
   return Math.exp((-zeta * Math.PI) / Math.sqrt(1 - zeta * zeta));
 }
 
-/** 缓动名属于哪一类（entry / exit / onScreen / loop / unknown） */
+/**
+ * 缓动名属于哪一类（entry / exit / onScreen / loop / unknown）。
+ *
+ * ⚠ 这里只认 `src/core/util.js` 的 `ease` 表里**真实存在**的名字。
+ * 原版把 `sine` 也当 loop —— 但引擎根本没有这条曲线，`ease.sine` 是 undefined，
+ * 写 `'sine'` 会静默退化成 linear（`warnEase` 只喊一声）。把它放进白名单等于
+ * 放行一个实际不生效的名字。
+ */
 export function easingRole(name) {
   const n = String(name ?? '').toLowerCase();
-  if (!n || n === 'linear' || n === 'sine') return 'loop';
+  if (!n || n === 'linear') return 'loop';
   if (n.startsWith('inout')) return 'onScreen';
   if (n.startsWith('in')) return 'exit';
   if (n.startsWith('out')) return 'entry';

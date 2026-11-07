@@ -29,37 +29,73 @@ const strict = flag('strict');
 
 /* ---------------------------------------------------------------- 纯扫描器（可单测） */
 
-/** 收集源码里所有 `prog(` 调用的**字面量跨度**（a、b 都是数字时） */
-export function scanProgSpans(src) {
-  const out = [];
-  const re = /prog\(\s*[^,()]+,\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)/g;
-  let m;
-  while ((m = re.exec(src))) {
-    const a = Number(m[1]), b = Number(m[2]);
-    if (Number.isFinite(a) && Number.isFinite(b) && b > a) out.push(Number((b - a).toFixed(3)));
+/**
+ * 取出 `openIdx` 处那个 '(' 里的参数（按**顶层**逗号切）。
+ * 照抄 tools/lint-prog-range.mjs 的 argsOf —— 它已经处理过嵌套括号 / 字符串里的逗号，
+ * 正则版会在第一个 ')' 处断掉（`prog(t, 0, Math.min(0.42, x), 'outCubic')` 就截在 Math.min 里）。
+ */
+export function argsOf(src, openIdx) {
+  let depth = 0, cur = '', out = [];
+  for (let i = openIdx; i < src.length; i++) {
+    const c = src[i];
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') {
+      depth--;
+      if (depth === 0) { out.push(cur); return out; }
+    } else if (c === ',' && depth === 1) { out.push(cur); cur = ''; continue; }
+    if (depth >= 1) cur += c;
   }
   return out;
 }
 
-/** 收集缓动名：`prog(..., 'name')` 的第三参 + `keys([...])` 里每项的第三元素 + `easing: 'name'` */
+/** 收集源码里所有 `prog(` 调用的**字面量跨度**（a、b 都是纯数字时；有表达式就跳过，不猜） */
+export function scanProgSpans(src) {
+  const out = [];
+  for (const m of src.matchAll(/\bprog\s*\(/g)) {
+    const args = argsOf(src, m.index + m[0].length - 1);
+    const num = (x) => (/^\s*-?[\d.]+\s*$/.test(String(x ?? '')) ? Number(String(x).trim()) : null);
+    const a = num(args[1]), b = num(args[2]);
+    if (a !== null && b !== null && Number.isFinite(a) && Number.isFinite(b) && b > a) out.push(Number((b - a).toFixed(3)));
+  }
+  return out;
+}
+
+/** 收集缓动名：`prog(..., 'name')` 的第四参 + `keys([...])` 里每项的第三元素 + `easing: 'name'` */
 export function scanEaseNames(src) {
   const names = [];
-  for (const m of src.matchAll(/prog\([^)]*?,\s*'([A-Za-z]+)'\s*\)/g)) names.push(m[1]);
-  for (const m of src.matchAll(/easing:\s*'([A-Za-z]+)'/g)) names.push(m[1]);
-  for (const m of src.matchAll(/\[\s*-?[\d.]+\s*,\s*-?[\d.]+\s*,\s*'([A-Za-z]+)'\s*\]/g)) names.push(m[1]);
+  for (const m of src.matchAll(/\bprog\s*\(/g)) {
+    const args = argsOf(src, m.index + m[0].length - 1);
+    const e = String(args[3] ?? '').match(/^\s*['"]([A-Za-z]+)['"]\s*$/);
+    if (e) names.push(e[1]);
+  }
+  for (const m of src.matchAll(/easing:\s*['"]([A-Za-z]+)['"]/g)) names.push(m[1]);
+  for (const m of src.matchAll(/\[\s*-?[\d.]+\s*,\s*-?[\d.]+\s*,\s*['"]([A-Za-z]+)['"]\s*\]/g)) names.push(m[1]);
   return names;
 }
 
-/** 收集 `spring(...)` 的 (stiffness, damping) 字面量（第一个参是 elapsed，所以看第 2、3 个数字） */
+/**
+ * 收集 `spring(...)` 的 (stiffness, damping) 字面量。
+ *
+ * ⚠ 引擎签名是 `spring(elapsed, target = 1, stiffness = 90, damping = 18)`（src/core/util.js:61）——
+ * **stiffness 在第 3 位、damping 在第 4 位**。这里曾按「第 2、3 个数字」取，抓到的是 target 和 stiffness：
+ * `spring(dt, 1, 140, 12)` 被读成 (1, 140) ⇒ ζ = 70 ≫ 1 ⇒ overshootOf 恒 0，
+ * **P3 回弹判据对任何真实调用都没生效过**。
+ *
+ * target 非 1（或写表达式）时 overshoot 的幅值要按 target 缩放（见 overshootOf 的 target 参），
+ * 数字读不出来的调用**返回 `unjudged` 交给上层报「这处判不了」**，而不是拿默认值 90/18 顶上去
+ * —— 后者会给出一个看着很像真的假读数。
+ */
 export function scanSprings(src) {
   const out = [];
-  const re = /spring\(\s*[^,()]+(?:,\s*(-?[\d.]+))?(?:,\s*(-?[\d.]+))?/g;
-  let m;
-  while ((m = re.exec(src))) {
-    if (m[1] == null && m[2] == null) continue;
-    const stiffness = m[1] != null ? Number(m[1]) : 90;
-    const damping = m[2] != null ? Number(m[2]) : 18;
-    if (Number.isFinite(stiffness) && Number.isFinite(damping)) out.push({ stiffness, damping });
+  for (const m of src.matchAll(/\bspring\s*\(/g)) {
+    const args = argsOf(src, m.index + m[0].length - 1);
+    const num = (x) => (/^\s*-?[\d.]+\s*$/.test(String(x ?? '')) ? Number(String(x).trim()) : null);
+    const target = args[1] === undefined ? 1 : num(args[1]);
+    const stiffness = args[2] === undefined ? 90 : num(args[2]);
+    const damping = args[3] === undefined ? 18 : num(args[3]);
+    const line = src.slice(0, m.index).split('\n').length;
+    if (target === null || stiffness === null || damping === null) { out.push({ unjudged: true, line }); continue; }
+    if (Number.isFinite(stiffness) && Number.isFinite(damping)) out.push({ stiffness, damping, target, line });
   }
   return out;
 }
@@ -81,6 +117,10 @@ const task = argv.find((a) => !a.startsWith('--') && !/^[\d.]+$/.test(a));
 if (!task) { console.error('用法：node tools/lint-motion-persona.mjs <任务> [--strict] [--json]'); process.exit(2); }
 
 const dir = path.join(ROOT, 'tasks', task);
+if (!existsSync(path.join(dir, 'task.config.mjs'))) {
+  console.error('✗ 没有这个任务：' + task + '（tasks/' + task + '/task.config.mjs 不存在）');
+  process.exit(2);
+}
 const cfg = (await import(new URL('../tasks/' + task + '/task.config.mjs', import.meta.url).href)).default;
 let motion = null;
 try { motion = resolveMotion(cfg); } catch (e) { console.error('✗ ' + e.message); process.exit(1); }
@@ -90,20 +130,31 @@ if (!motion) {
   process.exit(2);
 }
 
+// 扫文件的口径必须与 lint-easing-direction 一致：scenes/**/*.js ∪ *.mjs ∪ task.config.mjs。
+// 原版只在「没有 scenes/」时才读 task.config.mjs —— 于是**有 scenes/ 的任务永远读不到 config 里
+// 登记的 `// motion:allow` 行**（豁免被静默忽略，判据照样报）。
 const files = [];
-const scenesDir = path.join(dir, 'scenes');
-if (existsSync(scenesDir)) {
-  for (const f of readdirSync(scenesDir)) {
-    const p = path.join(scenesDir, f);
-    if (statSync(p).isFile() && f.endsWith('.js')) files.push(p);
+const walk = (d) => {
+  if (!existsSync(d)) return;
+  for (const f of readdirSync(d)) {
+    const p = path.join(d, f);
+    if (statSync(p).isDirectory()) walk(p);
+    else if (f.endsWith('.js') || f.endsWith('.mjs')) files.push(p);
   }
+};
+walk(dir);
+if (!files.length) {
+  console.error('✗ ' + task + '：一个可扫的文件都没有（scenes/**/*.js / *.mjs / task.config.mjs）—— 「没扫到」不是「没问题」');
+  process.exit(2);
 }
-if (!files.length) files.push(path.join(dir, 'task.config.mjs'));
 const src = files.map((f) => readFileSync(f, 'utf8')).join('\n');
 
 const exempt = new Set([...motion.exempt, ...inlineAllows(src)]);
 const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
+/** 超过预算的项 —— 真的越界了 */
 const problems = [];
+/** 判不了的项（跳过 / 读不出字面量）—— 这一项没生效，不是通过（BACKLOG 1-19「空 ≠ 干净」） */
+const unjudged = [];
 const info = [];
 const B = motion.budgets;
 
@@ -123,7 +174,8 @@ if (!exempt.has('duration')) {
     if (tooFast / spans.length > 0.35) problems.push('有 ' + tooFast + '/' + spans.length + ' 处元素动作短于 ' + B.durations.quick[0] + 's（这一档的「快」下限）—— 观众会看成抖动而不是动作');
     if (tooSlow / spans.length > 0.35) problems.push('有 ' + tooSlow + '/' + spans.length + ' 处长于 ' + B.durations.slow[1] + 's（这一档的「慢」上限）—— 会显得卡住');
   } else {
-    info.push('时长：可判的 prog 跨度只有 ' + spans.length + ' 处（<4，跳过）');
+    // 「跳过」不能进 info 就算完 —— info 是绿色区，结论行打 ✓ 就成了假绿灯。
+    unjudged.push('时长档判不了：可判的 prog 跨度只有 ' + spans.length + ' 处（<4）');
   }
 } else info.push('时长：已豁免');
 
@@ -140,10 +192,17 @@ if (!exempt.has('easing')) {
 // P3 回弹
 if (!exempt.has('overshoot')) {
   const springs = scanSprings(src);
-  const over = springs.map((s) => ({ ...s, os: overshootOf(s.stiffness, s.damping) }))
+  const judged = springs.filter((s) => !s.unjudged);
+  const bad = springs.filter((s) => s.unjudged);
+  const over = judged.map((s) => ({ ...s, os: overshootOf(s.stiffness, s.damping, s.target) }))
     .filter((s) => s.os > B.overshoot[1] + 1e-6);
   const backish = [...new Set(scanEaseNames(src).filter((n) => n === 'outBack' || n === 'outElastic'))];
-  if (springs.length) info.push('回弹：' + springs.length + ' 处 spring，最大 ' + (Math.max(...springs.map((s) => overshootOf(s.stiffness, s.damping))) * 100).toFixed(0) + '%');
+  const maxOs = judged.length ? Math.max(...judged.map((s) => overshootOf(s.stiffness, s.damping, s.target))) : 0;
+  if (judged.length) info.push('回弹：' + judged.length + ' 处 spring，最大 ' + (maxOs * 100).toFixed(0) + '%');
+  if (bad.length) {
+    unjudged.push(bad.length + ' 处 spring 的参数是表达式、读不出字面量（行 ' + bad.map((s) => s.line).join(' / ') + '）');
+  }
+  if (!judged.length && !bad.length) info.push('回弹：源码里没有 spring 调用（这一项没得判）');
   if (over.length) {
     const worst = over.sort((a, b) => b.os - a.os)[0];
     problems.push(over.length + ' 处 spring 的回弹超过上限 ' + (B.overshoot[1] * 100).toFixed(0) + '%（最高 ' + (worst.os * 100).toFixed(0) + '%，stiffness ' + worst.stiffness + ' / damping ' + worst.damping + '）');
@@ -152,19 +211,26 @@ if (!exempt.has('overshoot')) {
 } else info.push('回弹：已豁免');
 
 if (flag('json')) {
-  console.log(JSON.stringify({ task, motion: { persona: motion.persona, emotion: motion.emotion, exempt: [...exempt] }, budgets: B, problems, info, segments: segs.length }, null, 2));
+  console.log(JSON.stringify({ task, motion: { persona: motion.persona, emotion: motion.emotion, exempt: [...exempt] }, budgets: B, problems, unjudged, info, segments: segs.length }, null, 2));
 } else {
   console.log('运动人格体检：' + task + '（' + segs.length + ' 段）');
   for (const line of info) console.log('  · ' + line);
+  if (unjudged.length) {
+    for (const u of unjudged) console.log('  · 判不了：' + u);
+  }
   if (problems.length) {
     console.log('');
     for (const p of problems) console.log('  ⚠ ' + p);
     console.log('');
     console.log(strict ? '✗ --strict：' + problems.length + ' 条超预算（要留就写 motion.exempt 或行内 // motion:allow）'
       : '⚠ ' + problems.length + ' 条超预算 —— 默认只报不拦（要当门加 --strict）');
+  } else if (unjudged.length) {
+    console.log('\n· ' + unjudged.length + ' 项判不了（没生效，不是通过 —— 退出码 2）');
   } else {
     console.log('\n✓ 都在「' + motion.label + '」这一档的参考区间内');
   }
 }
+// 有「判不了」而一条真超预算都没有 ⇒ 退出码 2：这一项没生效，不假装通过（同 lint-easing-direction）。
+if (unjudged.length && !problems.length) process.exitCode = 2;
 if (problems.length && strict) process.exitCode = 1;
 }

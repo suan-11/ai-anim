@@ -24,6 +24,25 @@ const argv = process.argv.slice(2);
 const flag = (n) => argv.includes('--' + n);
 const strict = flag('strict');
 
+/**
+ * 取出 `openIdx` 处那个 '(' 里的参数（按**顶层**逗号切）。
+ * 照抄 tools/lint-prog-range.mjs 的 argsOf —— 它已经处理过嵌套括号 / 字符串里的逗号，
+ * 正则版 (/prog\(([^)]*)\)/) 会在第一个 ')' 处断掉。
+ */
+export function argsOf(src, openIdx) {
+  let depth = 0, cur = '', out = [];
+  for (let i = openIdx; i < src.length; i++) {
+    const c = src[i];
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') {
+      depth--;
+      if (depth === 0) { out.push(cur); return out; }
+    } else if (c === ',' && depth === 1) { out.push(cur); cur = ''; continue; }
+    if (depth >= 1) cur += c;
+  }
+  return out;
+}
+
 const SPATIAL = /\b(dx|dy|px|x|y|translate|offset|pos)\b/;
 const IN_TOKENS = /\b(tin|enter|entering|from:)\b/;
 const OUT_TOKENS = /\b(tout|exit|exit\w*|leave)\b/;
@@ -44,12 +63,14 @@ export function scanDirection(files, opts = {}) {
       const line = raw.trim();
       if (!line || line.startsWith('//') || line.startsWith('*')) return;
       if (/\/\/\s*motion:allow\s+[^\n]*\beasing\b/.test(raw)) return;
-      const prog = line.match(/prog\(([^)]*)\)/);
+      const prog = line.match(/prog\(/);
       if (!prog) return;
       progCount++;
       if (skipAll) return;
-      const args = prog[1];
-      const easeMatch = args.match(/^[^,]*,[^,]*,[^,]*,\s*'([A-Za-z]+)'/);
+      // 按括号深度切参（照 lint-prog-range.mjs 的 argsOf）：正则遇到第一个 ')' 就停，
+      // 会把 prog(t, 0, Math.min(0.42, x), 'outCubic') 截成 prog(t, 0, Math.min(0.42, x —— 缓动名落空 ⇒ 误报 D1。
+      const args = argsOf(raw, prog.index + 4);
+      const easeMatch = String(args[3] ?? '').match(/^\s*['"]([A-Za-z]+)['"]\s*$/);
       const ease = easeMatch ? easeMatch[1] : 'linear';
       const where = file + ':' + (i + 1);
       if (ease === 'linear' && SPATIAL.test(line)) {
@@ -73,6 +94,10 @@ if (isMain) {
 const task = argv.find((a) => !a.startsWith('--') && !/^[\d.]+$/.test(a));
 if (!task) { console.error('用法：node tools/lint-easing-direction.mjs <任务> [--strict] [--json]'); process.exit(2); }
 const dir = path.join(ROOT, 'tasks', task);
+if (!existsSync(path.join(dir, 'task.config.mjs'))) {
+  console.error('✗ 没有这个任务：' + task + '（tasks/' + task + '/task.config.mjs 不存在）');
+  process.exit(2);
+}
 const cfg = (await import(new URL('../tasks/' + task + '/task.config.mjs', import.meta.url).href)).default;
 let exempt = [];
 try { exempt = resolveMotion(cfg)?.exempt ?? []; } catch { exempt = []; }
@@ -83,17 +108,35 @@ const walk = (d) => {
   for (const f of readdirSync(d)) {
     const p = path.join(d, f);
     if (statSync(p).isDirectory()) walk(p);
-    else if (f.endsWith('.js')) files.push({ file: path.relative(ROOT, p).replace(/\\/g, '/'), src: readFileSync(p, 'utf8') });
+    // 口径与 lint-motion-persona 一致：scenes/**/*.js ∪ *.mjs ∪ task.config.mjs。
+    // 只收 .js 会让纯配置档任务（36/65）扫到 0 个文件却打 ✓ —— 那正是 BACKLOG 1-19「空 ≠ 干净」。
+    else if (f.endsWith('.js') || f.endsWith('.mjs')) files.push({ file: path.relative(ROOT, p).replace(/\\/g, '/'), src: readFileSync(p, 'utf8') });
   }
 };
 walk(dir);
+
+// 有 scenes/ 的任务同样要读 task.config.mjs —— 登记在那里的 // motion:allow 行不能丢。
+const cfgFile = path.join(dir, 'task.config.mjs');
+const cfgRel = path.relative(ROOT, cfgFile).replace(/\\/g, '/');
+if (existsSync(cfgFile) && !files.some((f) => f.file === cfgRel)) {
+  files.push({ file: cfgRel, src: readFileSync(cfgFile, 'utf8') });
+}
+
+if (!files.length) {
+  console.error('✗ ' + task + '：一个可扫的文件都没有（scenes/**/*.js / *.mjs / task.config.mjs）—— 「没扫到」不是「没问题」');
+  process.exit(2);
+}
 
 const { issues, progCount } = scanDirection(files, { exempt });
 if (flag('json')) {
   console.log(JSON.stringify({ task, files: files.length, progCount, exempt, issues }, null, 2));
 } else {
   console.log('缓动方向：' + task + '（' + files.length + ' 个文件 / ' + progCount + ' 处 prog' + (exempt.length ? ' · 豁免 ' + exempt.join(',') : '') + '）');
-  if (!issues.length) console.log('  ✓ 没发现方向矛盾（进 out* / 出 in* / 位移不用线性）');
+  if (!issues.length && progCount === 0) {
+    // 空 ≠ 干净：扫了文件但一处 prog 都没有，不能说「没发现方向矛盾」。
+    console.log('  · 扫到 ' + files.length + ' 个文件，但一处 prog 调用都没有 —— 这一项没得判（不是通过）');
+    process.exitCode = 2;
+  } else if (!issues.length) console.log('  ✓ 没发现方向矛盾（进 out* / 出 in* / 位移不用线性）');
   for (const it of issues.slice(0, 12)) {
     console.log('  ⚠ ' + it.rule + ' ' + it.where + ' —— ' + it.why);
     console.log('     ' + it.line.slice(0, 110));

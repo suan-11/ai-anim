@@ -2,7 +2,7 @@
 /**
  * tools/lint-concurrency.mjs —— **同时运动元素**判据（1/3 规则的可测版）。
  *
- *   node tools/lint-concurrency.mjs <任务> [--file x.mp4] [--fps 8] [--area 0.33] [--cells 48] [--strict]
+ *   node tools/lint-concurrency.mjs <任务> [--file x.mp4] [--fps 8] [--area 0.33] [--cell 8] [--blocks 6] [--strict]
  *
  * 「太吵」在观众那边是可测的：**一帧里有三分之一的画面在动**，眼睛就不知道看哪。
  * 这条判据量两件事（都从成片解帧算，纯 ffmpeg + JS，不需要浏览器）：
@@ -29,7 +29,17 @@ const strict = flag('strict');
 
 const FPS = Number(opt('fps', '8'));
 const W = 384, H = 216;
-const CELL = Number(opt('cell', '8'));       // 栅格块边长（像素）
+// 栅格块边长（像素）。⚠ 曾宣传过 `--cells 48`，但代码只读 `--cell` —— 传错了是静默无效。
+// 现在两个都收（`--cells` 当别名），并且写错名字（--cellz）会报出来，不静默。
+const CELL = Number(opt('cells', opt('cell', '8')));
+{ // 认不出的 --选项就报出来（这个文件自己的文档写着「写错当场抛，不静默」）
+  const known = ['fps', 'cell', 'cells', 'thr', 'area', 'blocks', 'file', 'strict', 'json'];
+  const unknown = argv.filter((a) => a.startsWith('--') && !known.includes(a.slice(2)) && !/^--\d/.test(a));
+  if (unknown.length) {
+    console.error('✗ 认不出这些选项：' + unknown.join(' ') + '\n  可用：--' + known.join(' / --'));
+    process.exit(2);
+  }
+}
 const THR = Number(opt('thr', '6'));         // 块内平均 |Δ| 超过这个值算「变了」
 const AREA_MAX = Number(opt('area', '0.33'));
 const BLOCKS_MAX = Number(opt('blocks', '6'));
