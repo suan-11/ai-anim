@@ -112,11 +112,26 @@ const text = out.join('\n') + '\n';
 
 if (check) {
   const old = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
-  // 宽松一档：允许落后一个提交（这份文档自己也会被下一个提交带上）
-  const prevRange = BASE + '..HEAD^';
-  const prevCommits = (() => { try { return git('rev-list', '--count', prevRange); } catch { return -1; } })();
-  const oneBehind = prevCommits >= 0 && old.includes(prevCommits + ' 个提交');
-  if (old !== text && !oneBehind) {
+  // 宽松一档：允许**落后任意个提交**，只要「提交一览」不矛盾。
+  //
+  // 起因：原先只允许落后一个提交（`HEAD^` 的 rev-list 计数），而生成物落在仓库里 ——
+  // 你在它之后又提交了一次，它就落后两个。PR 上尤其明显：作者在分支末端生成，
+  // GitHub 又造了个 merge commit，落后几个完全取决于那个 PR 有几个提交。
+  // 结果这一项在 PR 上永远红，而且在那个方向上重生成多少次都不可能绿。
+  //
+  // 现在的判据是「不矛盾」而不是「逐字节相同」：
+  //   · 磁盘那份里列出的每个提交，必须仍然是 `log --no-merges` 里真有的（防止有人删了提交不重生成）；
+  //   · 状态行里的「N 个提交 / M 个文件」不能比现在**多**（少一点是「落后」，多一点是「编造」）。
+  // 落后这件事本身交给维护者自己决定什么时候重生成 —— 它不该把 CI 卡死。
+  const listed = [...old.matchAll(/^\| ([0-9a-f]{7,}) \|/gm)].map((m) => m[1]);
+  const known = new Set(commits.map((c) => c.h));
+  const staleCommit = listed.find((h) => !known.has(h));
+  const staleCount = (() => {
+    const m = old.match(/^(\d+) 个提交 · (\d+) 个文件 · /m);
+    if (!m) return false;
+    return Number(m[1]) > commits.length || Number(m[2]) > totalFiles;
+  })();
+  if (old !== text && (staleCommit || staleCount)) {
     console.error('✗ ' + path.relative(ROOT, OUT) + ' 已过期 —— 跑 node tools/gen-changes.mjs 重新生成');
     process.exitCode = 1;
   } else {
