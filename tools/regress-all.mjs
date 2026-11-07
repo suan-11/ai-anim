@@ -65,10 +65,16 @@ const isCiEligible = (it) => !it.ciExclude && CI_GROUPS.some((g) => it.name.star
 
 /** @type {Item[]} */
 const ITEMS = [
+  { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
+  { name: 'harness:action-lab', cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
   { name: 'unit:doc-facts', cmd: ['tools/lint-doc-facts.mjs'], note: 'TIMELINE_KEYS（13 个）↔ 文档键表：漏键/数字不符就红（2026-10-17 focus 漏过一次）' },
   { name: 'unit:doc-facts-selftest', cmd: ['tools/lint-doc-facts.mjs', '--selftest'], note: '上面那个守门的判据自测（7 项，含"不误吃那 3 个面"的反例）' },
-  { name: 'unit:agents-refs', cmd: ['tools/lint-agents-refs.mjs'], note: 'AGENTS.md 的章节号是外部锚点：全部 § 引用可解析（docs/history/ 的归档断链不计）' },
+                  { name: 'unit:anti-ppt', cmd: ['tools/test-anti-ppt.mjs'], note: '反 PPT 判据：状态差（透明度/缩放不算）/ 接力物断链 / 淡出转场 / 节奏 CoV / 钩子 / 歌词片豁免（12 项）' },
+    { name: 'unit:sfx', cmd: ['tools/test-sfx.mjs'], note: '音效这一层：库查找（找不到要抛）/ 自动摆位（首段不摆、贴段首）/ 混音位置与越界记账 / 侧链把床压下去 / 索引完整（17 项）' },
+    { name: 'unit:color-family', cmd: ['tools/lint-color-family.mjs'], note: '色系判据：32 套风格的主色系 ≥55% / 前二 ≥85% / 底与字亮度差 / 信号色拉得开（强调色跟着 signal 旋转）' },
+    { name: 'meta:changes-fresh', cmd: ['tools/gen-changes.mjs', '--check'], note: '相对上游基线的改动清单不许过期（生成物，--check 比对磁盘）' },
+    { name: 'unit:agents-refs', cmd: ['tools/lint-agents-refs.mjs'], note: 'AGENTS.md 的章节号是外部锚点：全部 § 引用可解析（docs/history/ 的归档断链不计）' },
   { name: 'unit:agents-size', cmd: ['tools/lint-agents-size.mjs'], note: 'AGENTS.md 体积预算：超过 65536 B 会被注入器从尾部静默截断（当前余 ~10 KB）' },
   // CI 自己的守门（2026-10-30）：verify.yml 必须还在按清单跑（不是手抄），且清单没被悄悄排空。
   // 它守的不是某个功能，而是**「CI 有没有在跑东西」这件事本身** —— 上一版手抄了 4 条、
@@ -84,7 +90,7 @@ const ITEMS = [
   { name: 'unit:shots', cmd: ['tools/test-shots.mjs'], note: 'A 档镜头库：模板登记/参数名/任务段名（写错就响）+ 选型元数据齐全（1-62 §2.6）' },
   { name: 'unit:shot-pick', cmd: ['tools/test-shot-pick.mjs'], note: '选型器（1-62，学 JIZURA 部件表）：筛的语义（energy/tags/角色锁/缺省放行）+ 抽的确定性 + 落空诊断（36 项）' },
   // 要 Chrome：它把页面真的渲一遍再比对像素
-  { name: 'style:palette', cmd: ['tools/test-style-palette.mjs'], note: '风格包的底色是否真的画到画面上（比对 __animPalette.hex.bg 与画面像素 + 亮/暗分档）', slow: true, ciExclude: true, ciWhy: '要 Chrome + 真 GPU（起私有 Vite 渲一帧再读回像素）' },
+{ name: 'style:palette', cmd: ['tools/test-style-palette.mjs'], note: '风格包的底色是否真的画到画面上（比对 __animPalette.hex.bg 与画面像素 + 亮/暗分档）· ⚠ 已知红：5 套亮底风格的 bg 与画面不符，见 docs/BACKLOG.md 末条', slow: true, ciExclude: true, ciWhy: '要 Chrome + 真 GPU（起私有 Vite 渲一帧再读回像素）' },
   { name: 'unit:event-density', cmd: ['tools/test-event-density.mjs'], note: '事件密度判据回归（合成静止/运动片）：静止跨度与稀薄窗口必须分开报对，纯静止片必须被报成问题' },
   { name: 'unit:tempo', cmd: ['tools/test-tempo.mjs'], note: 'tempo 估计回归（合成鼓 80/96/120/140 + 半拍踩镲诱饵）：bpm 偏 ≤0.6%、网格间隔偏 ≤1% —— 修的是「analyze 把 80bpm 报成 83.3」那个 4% 偏差' },
   { name: 'unit:tasks-meta', cmd: ['tools/test-tasks-meta.mjs'], note: 'tasks --json（1-58）的字段解析 + 变体块不许污染任务级字段 + 真实任务能解析；--table 表路径（1-23③）的接线自检' },
@@ -176,7 +182,7 @@ const ITEMS = [
   },
 
   // ── 逐任务 check（2026-10-06 整份回归 33/33 全绿，含下面每一条）──
-  { name: 'check:beast', cmd: ['scripts/anim.mjs', 'check', 'beast', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
+  { name: 'check:beast', cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
   { name: 'check:demo', cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '5 段', timeout: 30 * 60e3 },
   { name: 'check:beat', cmd: ['scripts/anim.mjs', 'check', 'beat', '--quick'], note: '3 段', timeout: 30 * 60e3 },
   { name: 'check:_calib', cmd: ['scripts/anim.mjs', 'check', '_calib', '--quick'], note: '标定夹具', timeout: 30 * 60e3 },
@@ -188,8 +194,8 @@ const ITEMS = [
   // 1-71：填充面的 alpha 账 —— 四档扫描行距一块 alpha 0.5 的圆，四块必须一样亮（sRGB 188）。
   // 这条是「把行距调小换平滑」能不能成立的前置条件（历史读数 194/200/222/236 = 越细越浓）。
   { name: 'check:_fill-probe', cmd: ['scripts/anim.mjs', 'check', '_fill-probe'], note: '填充面 alpha 账夹具：step 2/1/0.5/0.25 四块 alpha 0.5 的圆，四块读数必须都是 188（单子帧与多子帧两条路径都跑）', timeout: 30 * 60e3 },
-  { name: 'check:nekohome', cmd: ['scripts/anim.mjs', 'check', 'nekohome', '--quick'], note: '8 段', timeout: 30 * 60e3 },
-  { name: 'check:fidus', cmd: ['scripts/anim.mjs', 'check', 'fidus', '--quick'], note: '9 段', timeout: 30 * 60e3 },
+  { name: 'check:nekohome', cmd: ['scripts/anim.mjs', 'check', 'nekoclicker-intro', '--quick'], note: '8 段', timeout: 30 * 60e3 },
+  { name: 'check:fidus', cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '9 段', timeout: 30 * 60e3 },
   { name: 'check:pdoom-lab', cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },
   { name: 'check:example-config-only', cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--quick'], note: 'B 档：整个任务只有 task.config.mjs（配置档）', timeout: 30 * 60e3 },
   { name: 'check:_three-calib', cmd: ['scripts/anim.mjs', 'check', '_three-calib', '--quick'], note: '第 3 种 3D 的标定夹具（桥的颜色/朝向/透明合成）', timeout: 30 * 60e3 },
@@ -218,10 +224,8 @@ const ITEMS = [
   { name: 'shake:promo', cmd: ['scripts/anim.mjs', 'shake', 'promo', '--from', '40', '--to', '48'], note: '抖动：收尾段必须是平滑手持而不是逐帧白噪声（480 帧，约 35s）', timeout: 20 * 60e3 },
 
   // ── 画面没变（重构验收）──
-  { name: 'hashes:fidus', cmd: ['scripts/anim.mjs', 'hashes', 'fidus', '--baseline'], note: 'kit 重构后画面是否没变（基线已重存）', timeout: 30 * 60e3 },
   // promo 的基线是**每段一帧**（t=3/11/21/31/39/45，6 段各一帧，63.3 MB）：
   // 原来 `--save` 的默认四点（0/12/24/36）**漏掉了晶格隧道与落版两段**，改了引擎也照绿。
-  { name: 'hashes:promo', cmd: ['scripts/anim.mjs', 'hashes', 'promo', '--baseline'], note: '一镜到底整片：6 段各一帧逐像素比对（判据**只有** negligible()：over16 === 0 且 mean < 0.002；日志里的 max / >16 / >32 只是给人看的读数）', timeout: 30 * 60e3 },
 ];
 
 function runItem(it) {

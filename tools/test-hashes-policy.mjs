@@ -115,8 +115,13 @@ t('ENGINE §14.7 与 DIAGNOSIS §1.6 都指向同一条规则', () => {
 });
 
 t('回归清单仍用 --baseline 当门（没有偷换成 --accept）', () => {
-  assert.ok(/'hashes:fidus'[\s\S]{0,200}--baseline/.test(regress), 'hashes:fidus 不再是 --baseline');
-  assert.ok(/'hashes:promo'[\s\S]{0,200}--baseline/.test(regress), 'hashes:promo 不再是 --baseline');
+  // 这两条要 out/<任务>/hashes.json 这份**本地**基线（没进仓库）：新机器上必然红，
+  // 所以 2026-11-02 把它们从回归清单里去掉了。判据改成「要么没有，要么带 --baseline」——
+  // 只要写了这条，就必须是真的比对模式，不能悄悄退回 --save。
+  for (const name of ['hashes:fidus', 'hashes:promo']) {
+    const m = regress.match(new RegExp("'" + name + "'" + '[\\s\\S]{0,200}'));
+    if (m) assert.ok(/--baseline/.test(m[0]), name + ' 写了但没带 --baseline（比对模式才对）');
+  }
 });
 
 /* ---------------------------------------------------------------- 汇总 */

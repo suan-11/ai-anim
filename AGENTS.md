@@ -122,8 +122,8 @@ export default {
 `task.config.mjs` + `scenes/title.js` + `scenes/shapes.js` + `audio/`；改这两个场景文件就能出片，
 **不需要动 `src/` 里的引擎**（除非确实要加底层能力）。
 
-> **要写多少代码？** 常见镜头是**一行**——A 档镜头库 `src/shots/` 有 25 个参数化模板
-> （`title` `chart` `kinetic` `whip` `outro` `wave` `pulse` `grid` `quote` `counter` `compare` `bigtype` `scan` `device` `lineart` `morph` `layers` `isometric` `cel` `liquid` `lockup` `timeline` `radial` `pixel` `handwrite`），
+> **要写多少代码？** 常见镜头是**一行**——A 档镜头库 `src/shots/` 有 29 个参数化模板
+> （`title` `chart` `kinetic` `whip` `outro` `wave` `pulse` `grid` `quote` `counter` `compare` `bigtype` `scan` `device` `lineart` `morph` `layers` `isometric` `cel` `liquid` `lockup` `timeline` `radial` `pixel` `handwrite` `reveal` `cascade` `transform` `deconstruct`），
 > 场景文件退化成「取模板 + 给参数」：
 >
 > ```js
@@ -219,7 +219,7 @@ export default {
 
 | 类别 | 键 | 说明 |
 |---|---|---|
-| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` `transitionOpts` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切 / `relay` 相机接力（相机从上一段位姿飞向本段、内容在交叠窗换手；`transitionOpts` 定曲线与换手窗，两种写法见 `docs/ENGINE.md` §3.7.7）；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6） |
+| **时间线字段** | `type` `id` `dur` `at` `overlap` `params` `post` `maxSamples` `handlesTransition` `note` `world` `worldPass` `focus` `carry` `transition` `transitionOpts` `state` `relayTo` | 与 `cut(scene, { … })` 的第二个参数同义。⚠ `maxSamples` 是自适应子帧数的**上限**（合法档 8 / 24 / 72 / 216）、**只会往下压** —— 它是**提速**旋钮，**不是"加密采样"**：写 `maxSamples: 64` 会被夹到 24，画面更粗且不报错；拖影要更细就调**小** `--tol`。`world: false` 是合法声明（"这一段我刻意不铺底"，背景守门**不判**它的铺底、但会照常打出读数），别为了骗过 `check` 去画一笔没意义的全屏 Pass。`carry: 'morph'` = 声明这条切缝是跨元素合成的衔接（`anim carry` 判 bare 但对观众成立）。`transition` = 交叠期转场模式：默认 `push` 甩镜，另有 `wipe` 擦除 / `iris` 光圈 / `glitch` 故障 / `pixel` 像素块 / `dissolve` 阈值溶解 / `mix` 交叉溶解 / `none` 硬切 / `relay` 相机接力（相机从上一段位姿飞向本段、内容在交叠窗换手；`transitionOpts` 定曲线与换手窗，两种写法见 `docs/ENGINE.md` §3.7.7）；**写错当场抛并列出可用值**（静默回落成甩镜等于"我要的擦除没出现"）。不写 = 逐像素与从前一致（`docs/MOTION.md` §3.6）。`state` / `relayTo` = 反 PPT 声明（状态差与接力物，见 §10.11.56 与 `docs/ANTI-PPT.md`） |
 | **模板参数** | **其余所有键** | 原样交给 `shot(type, { … })`；也可以显式写在 `params: { … }` 里（`params` 优先）。**没有必需参数**，每个都有默认值 |
 
 三条硬边界：
@@ -238,7 +238,7 @@ export default {
     镜头模板 "chart" 没有参数 "value"（大概是拼错了）。可用参数：id / values / title / sub / footer / peak
   ```
 
-**什么时候必须回去写场景**：模板只有这 25 个，参数只能调它们**本来就有的画面**。要新视觉
+**什么时候必须回去写场景**：模板只有这 29 个，参数只能调它们**本来就有的画面**。要新视觉
 （raymarch 晶格、燃烧的引线、某支片子特有的母题）就回 §3 手写场景 / §3.5 的 `makeShot`；
 要自己掌控转场与背景时同理。**别为了"纯配置"把模板撑成万能 DSL。**
 
@@ -469,6 +469,7 @@ music.hit('kick', t, 0.12)   // 衰减脉冲（做撞击位移/闪白最省事�
 ```sh
 node scripts/anim.mjs say <任务> [--voice zh-CN-YunxiNeural] [--rate -6%] [--dry-run]
 node scripts/anim.mjs mix <任务>          # 旁白摆位 + 给音乐做闪避 → 一条混音轨
+node scripts/anim.mjs mix <任务> --sfx auto   # + 音效：每个切点一记 whoosh（库在 assets/sfx/，见 docs/SFX.md）；纯音乐片子也能用
 node scripts/anim.mjs say <任务> --table en   # 表写到 audio/en.{timing,narration}.json，默认那份不动
                                             # → task.config 里 narration: './audio/en.narration.json'
 ```
@@ -573,6 +574,7 @@ node scripts/anim.mjs hashes <任务> --accept --note "…"
 
 # 交付物料 / 体检
 node scripts/anim.mjs cover <任务> -t 12 --title "…" [--sub "…"] [--scale 2]   # 封面：字用**引擎那套字体**
+node scripts/anim.mjs film-html <任务>      # 一个 HTML 文件，双击就播（含音轨；量具 tools/probe-film-html.mjs）
 node scripts/anim.mjs chapters <任务> [--min 4] [--json]   # mm:ss 章节；首段必 00:00、短段并进上一章
 node scripts/anim.mjs shake <任务> [--from 0 --to 48]      # 抖动是"平滑手持"还是"逐帧振动"（有问题退出码 1）
 node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再定：填充重的片子差 2×
@@ -648,7 +650,7 @@ node scripts/anim.mjs check <任务>
 | 要改什么 | 去哪 |
 |---|---|
 | 渲染一帧 / 合成 / 后处理 / 自适应运动模糊 | `src/core/`（先读 `docs/ENGINE.md`） |
-| 镜头模板（A 档，25 个） | `src/shots/`；参数：`node scripts/anim.mjs shots [名字]` |
+| 镜头模板（A 档，29 个） | `src/shots/`；参数：`node scripts/anim.mjs shots [名字]` |
 | 写镜头的骨架与元件 | `src/kit/`（`index.js` 是统一出口：`makeShot` `makeWorldKit` `panel` …） |
 | 时间线 DSL、任务加载、配置档节点判定 | `src/timeline.js`、`src/tasks.js` |
 | 风格包 | `src/style/`（见 `docs/STYLE.md`） |
@@ -664,7 +666,7 @@ node scripts/anim.mjs check <任务>
 | `docs/ENGINE.md` | 引擎规格（`src/` 的地基；**改引擎之前读**） |
 | `docs/COOKBOOK.md` | 常见效果怎么做 —— 按「画面要什么」找做法 |
 | `docs/MOTIFS.md` | **母题库**`src/kit/motifs/`：拆方波 / 8×8 DCT / 波形+游标 —— 同一件事只写一次 |
-| `docs/shots/` | **镜头卡索引**（按叙事功能分组，25 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
+| `docs/shots/` | **镜头卡索引**（按叙事功能分组，29 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
 | `docs/CONFIG-ONLY.md` | 零代码出片（B 档，§3.2 的完整版） |
 | `docs/STYLE.md` | 风格包与反审美疲劳（相邻两片换脸是**建议**：风格由内容决定） |
 | `docs/CAPTIONS.md` | 字幕层与信息分工（画面只放标注） |
@@ -673,10 +675,12 @@ node scripts/anim.mjs check <任务>
 | `docs/MOTION.md` | 运动规则表（什么时候用哪个、数值上限、证据分级） |
 | `docs/NARRATION.md` | 旁白 / 口播这一层（A/B/C 三档） |
 | `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（37 提交 / 381 文件，按引擎·工作台·模板·风格·判据·流程分块） |
+| `docs/FILM-HTML.md` | **单文件播放器**（`anim film-html` → 一个 HTML，双击就播）+ OpenFilm 对照 |
 | `docs/SFX.md` | 音效层：从 SoundDino 取（授权/配额/记账）、`anim` 侧的接入缺口 |
 | `docs/THREE.md` | 第 3 种 3D：Three.js 镜头 |
 | `docs/DIAGNOSIS.md` | 输出词 → 含义 → 修法（**看到不认识的诊断词就查**） |
 | `docs/PERF.md` | 渲染性能实测与验收口径 |
+| `docs/HANDOVER.md` | **交接页**：现状 / 这轮做了什么 / 怎么验证 / 环境坑 / 欠账（新接手先读这个） |
 | `docs/BACKLOG.md` | **「还没做的事」的唯一清单** —— 要动引擎先看这份 |
 | `docs/history/` | **归档，别当待办读**（索引：`history/README.md`） |
 
@@ -712,6 +716,18 @@ node scripts/anim.mjs check <任务>
 11.5 **切点对得上拍子**（有音乐时）：`check` 的「卡点」那行要是 `✓ N/N 个切点都在 ±30ms 内`（`--strict` 要求 ≥90%）。
     对不上就改段长（`dur: { beat: n }`）或把 `narration.mjs` 的 `BPM` 设成实测值；单独体检 `tools/lint-beat-align.mjs`
     （它从音频**自己重建**网格，不信 `analysis.json` 的 bpm 估计）。
+11.5b **纯音乐片子（没有旁白表）的切点要单独量**：上面那条只在有 `audio/timing.json` 时跑，
+    音乐片子没有那张表 ⇒ 段长随手写也不会有人报（实测被用户当场指出「没有卡点啊喂」）。
+    自查：`node tools/lint-cut-beats.mjs <任务> [--bar] [--json]` —— 段表 `build()` 出来后逐个切点量到实测拍的距离。
+    ⚠ 拍点对齐只是**下界**：歌词还要对得上人声 —— 有官方 LRC 就用它（`audio/lrc-*.json`），别按字数均摊。
+    歌词片再加一层：`node tools/lint-lyric-sync.mjs <任务>`（段首到人声起音 中位 ≤150ms / p90 ≤400ms；`check` 里已经跑这条）。
+11.55 **颜色要在一个色系里**（换风格时最容易翻的车：底色冷、强调色暖、第二强调色在第三个色系）：
+    `node tools/lint-color-family.mjs [--task <任务>]` —— 主色系加权 ≥55%、前二 ≥85%、底与字亮度差 ≥0.25、
+    信号色与底色拉得开。强调色（ember/blood/acid）默认跟着 `signal` 旋转，风格只改 signal 也不散。
+    `check` 里已经跑这条；**连着发布两支**时再比一次：`lint-color-family.mjs --task A --compare B` —— 同族且色相差 <25° 就是撞色系。
+11.56 **别让它变成 PPT**：每段声明 `state: { from, to, diff }`（只动透明度/缩放不算）与 `relayTo`（接力物），
+    然后 `node tools/lint-anti-ppt.mjs <任务>`（状态差 / 接力物断链 / 淡出转场 / 时长 CoV / 每 10s 钩子 / 成片是否匀速漂移）。
+    参照样本见 `tasks/demo/task.config.mjs`，规则与 P1/P2 见 `docs/ANTI-PPT.md`。
 11.6 **每一秒都有东西看**（有音乐时也要）：`check` 的「事件密度」读的是**成片**帧间差 —— `最长静止 ≤ 3.5s`、
     `稀薄窗口 ≤ 25%`（低于均值一半的 2 秒窗口）。超了就补持续运动（推近/扫线/逐条落位），别指望 2px 游标
     或 0.09 alpha 的水印（检测器和人眼都看不见）。单独体检 `tools/lint-event-density.mjs <任务>`。

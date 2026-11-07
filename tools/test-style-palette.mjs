@@ -23,7 +23,10 @@ const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
 const styles = (opt('styles', 'mg-flat-vector,mg-vhs,mg-bauhaus,mg-hud,mg-pixel')).split(',');
 const task = opt('task', '_style-sampler');
-const at = Number(opt('t', '6'));
+// ⚠ 采样时刻要落在「模板自己**不画纸面**」的那一段（标题），否则量到的是模板的纸，不是风格底色：
+//   chart 模板刻意用 P.bone 当纸、P.ink 当墨（见 src/shots/chart.js 头注释），
+//   亮底风格下那张图的纸是深色 —— 于是 t=6（chart 段）会把「风格底色对不对」量成「这张图好不好看」。
+const at = Number(opt('t', '1.8'));
 // 允许后处理带来的偏差：角落一定被暗角/颗粒压暗，实测 23–38，取 45 留余量
 const TOL = Number(opt('tol', '45'));
 
@@ -62,12 +65,20 @@ try {
     await page.goto(`http://127.0.0.1:${PORT}/?task=${task}&style=${s}&t=${at}`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__anim?.info?.().duration > 0, { timeout: 180000 });
     const r = await page.evaluate(async (tt) => {
-      const px = await window.__anim.pixels(tt);
+      // ⚠ 必须关后处理：暗角（vignette 0.5）会把角上的底色压掉几十级，
+      //   于是「调色板 vs 画面」永远差一截 —— 判据要量的是**底色本身**，不是被暗角吃掉之后的角。
+      const px = await window.__anim.pixels(tt, { skipPost: true });
       const info = window.__anim.info();
       const W = info.pw, H = info.ph;
       // 左上角内缩 8px 取一点（避开可能的最后一列 padding）
-      const idx = ((H - 1 - 8) * W + 8) * 4;
-      return { ink: window.__animPalette?.hex?.ink ?? null, rgb: [px[idx], px[idx + 1], px[idx + 2]], style: info.style };
+      // ⚠ 取**上边中点**而不是左上角：角落被暗角（vignette）压掉约两成，
+      //   白底风格会因此假红（#ffffff → #cfcece，Δ49 就卡在阈值边上）。
+      //   上边中点离画心更近、暗角更弱，而且标题段的这一带是纯底色。
+      const idx = ((H - 1 - 8) * W + Math.floor(W / 2)) * 4;
+      // ⚠ 比的是**底色**（bg），不是 ink：`gl.clear` / worldPass 用的是 P.bg，
+  //   两套风格 bg 与 ink 不同（亮底风格尤其明显）时，比 ink 会假红。
+  const pal = window.__animPalette?.hex ?? {};
+  return { ink: pal.bg ?? pal.ink ?? null, inkRaw: pal.ink ?? null, bgRaw: pal.bg ?? null, rgb: [px[idx], px[idx + 1], px[idx + 2]], style: info.style };
     }, at);
     if (!r.ink) { console.log('? ' + s + ' 拿不到调色板'); continue; }
     results.push({ style: s, ink: r.ink, want: hex2rgb(r.ink), rgb: r.rgb });
@@ -77,7 +88,7 @@ try {
     if (!ok) fail++;
     console.log(
       (ok ? '  PASS  ' : '  FAIL  ') + s.padEnd(17)
-      + 'ink ' + r.ink + ' → 画面 #' + r.rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
+      + 'bg ' + r.ink + '（ink ' + r.inkRaw + '） → 画面 #' + r.rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
       + '  Δ' + d
     );
   }

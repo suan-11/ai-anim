@@ -19,8 +19,9 @@
  * 引擎照旧只认一条轨（`audio: { music, vo, mix }` 里的 `mix`）。
  */
 
-import { existsSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, renameSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   LOUDNESS_TARGET, assessLoudness, decodeChannels, decodeMono, encodeMp3, ffmpegArgv, formatLoudness,
   measureLoudness, normalize, parseLoudnormJson, probeDuration, readTaskAudioSpec, runChecked, taskRel, writeWav16,
@@ -53,6 +54,116 @@ export const DEFAULT_DUCK = {
  * @param {{ sr?: number, total?: number, onLine?: (line: any, i: number) => void }} [opts]
  * @returns {{ vo: Float32Array, sr: number, total: number, voiced: number }}
  */
+/* ------------------------------------------------------------------ 音效（sfx） */
+
+/**
+ * 共享音效库的根：`assets/sfx/`（`tools/sfx-fetch.mjs` 拉下来的东西都在这）。
+ * 单支片子专用的小素材可以放 `tasks/<任务>/audio/sfx/`。
+ */
+export const SFX_LIB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'assets', 'sfx');
+
+/**
+ * 按**类别前缀**在库里找第一条音效（`whoosh` → `whoosh-transition__73722__Sound16.mp3`）。
+ * 找不到就抛，并列出库里有哪些类别 —— 静默跳过等于"我加的音效没响"。
+ */
+export function findSfx(kind, libDir = SFX_LIB) {
+  if (!existsSync(libDir)) throw new Error('没有音效库 ' + libDir + ' —— 先跑 node tools/sfx-fetch.mjs --get … --dir assets/sfx');
+  const files = readdirSync(libDir).filter((f) => /\.mp3$/i.test(f));
+  const hit = files.find((f) => f.startsWith(kind + '__')) ?? files.find((f) => f.includes(kind));
+  if (!hit) {
+    const kinds = [...new Set(files.map((f) => f.split('__')[0]))];
+    throw new Error('库里没有 "' + kind + '" 这类音效。现有：' + (kinds.join(' / ') || '（空）'));
+  }
+  return path.join(libDir, hit);
+}
+
+/**
+ * **自动音效设计**：每个切点砸一记 whoosh（第一条段除外 —— 片子开头不需要"推门声"）。
+ *
+ * 为什么是 whoosh：切镜头在视觉上是"画面被甩走"，观众耳朵里本来就该有一声风；
+ * 没有它，切点会显得"干"。这类声音**不需要**按拍子对，长 0.29s，砸在切点上就成立。
+ *
+ * @param {Array<{start:number}>} segments `build()` 出来的段表
+ * @param {{ kind?: string, gain?: number, skipFirst?: boolean, libDir?: string }} [opts]
+ */
+export function autoSfx(segments, opts = {}) {
+  const kind = opts.kind ?? 'whoosh';
+  // 增益是相对**峰归一后的 0.7** 的倍数：1.6 ⇒ 峰值约 1.12，明显高过音乐床（实测床峰 ~0.78）。
+  // 早先默认 0.5 的结果是「切点上只比音乐高 17% RMS」，等于没做 —— 数字上在，耳朵里不在。
+  const gain = opts.gain ?? 1.6;
+  const skipFirst = opts.skipFirst !== false;
+  let file;
+  try { file = findSfx(kind, opts.libDir); } catch { return []; }
+  return segments
+    .filter((s, i) => !(skipFirst && i === 0))
+    .map((s) => ({ file, at: Number(s.start), gain, fadeIn: 0.005, fadeOut: 0.06 }))
+    .filter((x) => x.at > 0);
+}
+
+/**
+ * 把一批评位好的音效叠进已经混好的 L/R（就地改）。
+ *
+ * 每条：解码成单声道 → 乘增益 → 从 at 秒开始相加。越界部分裁掉。
+ * @returns {{ placed: number, skipped: Array<{file:string, why:string}> }}
+ */
+export function mixSfx(L, R, items, opts = {}) {
+  const sr = opts.sr ?? 44100;
+  const n = L.length;
+  let placed = 0;
+  const skipped = [];
+  for (const it of items ?? []) {
+    const file = it.file;
+    if (!file || !existsSync(file)) { skipped.push({ file: String(file), why: '文件不存在' }); continue; }
+    const at = Math.round(Number(it.at ?? 0) * sr);
+    if (!(at >= 0) || at >= n) { skipped.push({ file, why: 'at 落在片子外（' + it.at + 's）' }); continue; }
+    let mono;
+    try { mono = decodeMono(file, sr); } catch (e) { skipped.push({ file, why: '解码失败：' + String(e.message).slice(0, 40) }); continue; }
+    // 长素材（爆炸 5.7s、长 whoosh 11s）当"一记"用时必须能裁：
+    //   offset = 从源里第几秒开始取（"riser"就是这么用长 whoosh 的尾巴）；
+    //   len    = 最多取多长。两个都不写 = 整段原样（老行为）。
+    if (Number(it.offset) > 0 || Number(it.len) > 0) {
+      const off = Math.max(0, Math.round(Number(it.offset ?? 0) * sr));
+      const len = Number(it.len) > 0 ? Math.round(Number(it.len) * sr) : mono.length - off;
+      mono = mono.subarray(off, Math.min(mono.length, off + len));
+    }
+    // 每个音效**先峰归一到 0.7** 再乘 gain —— 不同来源音量能差两三个数量级，
+    // 不归一就会出现「有的根本没听见、有的一下盖住整条轨」。gain 因而是可预测的比例（0.75 ≈ 与音乐同量级）。
+    let pk = 0;
+    for (let i = 0; i < mono.length; i++) { const v = Math.abs(mono[i]); if (v > pk) pk = v; }
+    const nrm = pk > 1e-4 ? 0.7 / pk : 1;
+    const g = Number(it.gain ?? 0.75) * nrm;
+    // **给音效让路**：在它出现的前 220ms 里把已混好的音乐压下去一点（−6 dB 左右），
+    // 出来再恢复。实测：不压的话切点 whoosh 只比音乐高 17% RMS —— 数字上在，耳朵里不在。
+    // 这是"轻侧链"，不是全片闪避：窗口短、深度浅，听不出音乐在呼吸，但 whoosh 立刻清楚了。
+    const duckDepth = Number(it.duck ?? 0.5);
+    const duckLen = Math.round(Math.max(0.15, Number(it.duckLen ?? 0.22)) * sr);
+    if (duckDepth > 0) {
+      for (let i = 0; i < duckLen; i++) {
+        const idx = at + i;
+        if (idx >= n) break;
+        // 余弦形：0 → 1 → 0，峰值在开头
+        const k = i / duckLen;
+        const dip = 1 - duckDepth * Math.sin(Math.PI * k) ** 1.5;
+        L[idx] *= dip;
+        R[idx] *= dip;
+      }
+    }
+    const fadeIn = Math.max(0, Number(it.fadeIn ?? 0.004)) * sr;
+    const fadeOut = Math.max(0, Number(it.fadeOut ?? 0.04)) * sr;
+    const len = Math.min(mono.length, n - at);
+    for (let i = 0; i < len; i++) {
+      let env = 1;
+      if (fadeIn > 0 && i < fadeIn) env *= i / fadeIn;
+      if (fadeOut > 0 && i > len - fadeOut) env *= Math.max(0, (len - i) / fadeOut);
+      const v = mono[i] * g * env;
+      L[at + i] += v;
+      R[at + i] += v;
+    }
+    placed++;
+  }
+  return { placed, skipped };
+}
+
 export function placeVo(timing, taskDir, opts = {}) {
   const sr = opts.sr ?? 44100;
   const total = opts.total ?? Number(timing.total);
@@ -458,13 +569,25 @@ export function runMix(task, opts) {
   const table = opts.table ? String(opts.table).replace(/[^\w.-]/g, '') : '';
   const stem = table || task;
   const timingFile = path.join(taskDir, 'audio', table ? `${table}.timing.json` : 'timing.json');
-  if (!existsSync(timingFile)) {
-    throw new Error(`没有 ${path.relative(process.cwd(), timingFile)} —— 先跑 anim say ${task}（它才会算出每段的起点与时长）。`);
+  // 有旁白表就走老路；**没有**旁白表、但又给了音效（纯音乐片子）时，允许只做「音乐 + 音效」。
+  // 以前这里一律抛错，于是 `anim mix` 对 PV 这类没有旁白的片子根本用不了 —— 而音效恰恰最缺在这种片子上。
+  const hasTiming = existsSync(timingFile);
+  if (!hasTiming && opts.sfx === undefined) {
+    throw new Error(`没有 ${path.relative(process.cwd(), timingFile)} —— 先跑 anim say ${task}（它才会算出每段的起点与时长）。`
+      + '\n  纯音乐片子可以只做音乐 + 音效：加 --sfx auto（按切点自动摆 whoosh）。');
   }
-  const timing = JSON.parse(readFileSync(timingFile, 'utf8'));
+  const timing = hasTiming ? JSON.parse(readFileSync(timingFile, 'utf8')) : null;
   const duck = { ...DEFAULT_DUCK, ...(opts.duck ?? {}) };
 
-  const { vo, total, voiced } = placeVo(timing, taskDir, { sr });
+  let vo, total, voiced = 0;
+  if (timing) {
+    ({ vo, total, voiced } = placeVo(timing, taskDir, { sr }));
+  } else {
+    // 没有旁白：先拿音乐床，用它的长度当整条音轨的长度
+    const m0 = resolveMusic(taskDir, opts.music);
+    total = probeDuration(m0);
+    vo = new Float32Array(Math.ceil(total * sr));
+  }
   const { gain, duckedRatio } = duckGain(vo, sr, duck);
 
   if (opts.voOnly) {
@@ -482,7 +605,17 @@ export function runMix(task, opts) {
     log(`· 音乐床 ${musicDur.toFixed(2)}s 比片子 ${total.toFixed(2)}s 长，按片子长度裁掉尾巴。`);
   }
   const [musicL, musicR] = decodeChannels(music, sr, 2);
-  const { L, R, peakRaw } = mixTracks({ vo, musicL, musicR, gain, voGain: duck.voGain, bedGain: duck.bedGain });
+  // 没有旁白就不要把音乐床压 0.78：那是给「说话让路」用的。纯音乐片子 +0.78 的衰减
+  // 实测把整条轨从 -13.8 LUFS 拉到 -16.4（少了 2.6 LU，观众得自己拧音量）。
+  const bedGain = voiced > 0 ? duck.bedGain : 1;
+  const { L, R, peakRaw } = mixTracks({ vo, musicL, musicR, gain, voGain: duck.voGain, bedGain });
+  // 音效最后叠：它是最「点」的一层，先过闪避会被旁白压掉
+  let sfxReport = null;
+  if (opts.sfx && opts.sfx.length) {
+    sfxReport = mixSfx(L, R, opts.sfx, { sr });
+    log(`  音效 ${sfxReport.placed} 条` + (sfxReport.skipped.length ? `（跳过 ${sfxReport.skipped.length} 条）` : ''));
+    for (const s of sfxReport.skipped.slice(0, 4)) log(`    · 跳过 ${path.basename(s.file)}：${s.why}`);
+  }
   const { gain: norm } = normalize([L, R], 0.89);
 
   const target = resolveLoudnessTarget(opts.target, opts.lra);
@@ -574,9 +707,9 @@ export function runMix(task, opts) {
   }
 
   const rel = (f) => path.relative(taskDir, f).replace(/\\/g, '/');
-  log(`✓ ${path.relative(process.cwd(), mp3)}  ${dur.toFixed(2)}s  ${timing.scenes?.length ?? 0} 段`);
-  log(`  说话 ${voiced.toFixed(1)}s / ${total.toFixed(1)}s = ${((voiced / total) * 100).toFixed(0)}%（其余是留白与呼吸）`);
-  log(`  峰值 ${peakRaw.toFixed(2)} → 归一 ${norm.toFixed(2)}×，音乐 ×${duck.bedGain}，旁白 ×${duck.voGain}`
+  log(`✓ ${path.relative(process.cwd(), mp3)}  ${dur.toFixed(2)}s  ${timing ? (timing.scenes?.length ?? 0) + " 段" : "无旁白（纯音乐 + 音效）"}`);
+  if (voiced > 0) log(`  说话 ${voiced.toFixed(1)}s / ${total.toFixed(1)}s = ${((voiced / total) * 100).toFixed(0)}%（其余是留白与呼吸）`);
+  log(`  峰值 ${peakRaw.toFixed(2)} → 归一 ${norm.toFixed(2)}×，音乐 ×${bedGain}，旁白 ×${duck.voGain}`
     + `，闪避最深 −${(20 * Math.log10(1 / Math.max(1e-6, 1 - duck.depth))).toFixed(0)} dB`
     + `（有 ${(duckedRatio * 100).toFixed(0)}% 的时间压着）`);
   log(`  在 task.config.mjs 里写：audio: { music: './${rel(music)}', vo: './${rel(path.join(taskDir, 'audio', `${task}-vo.mp3`))}', mix: './${rel(mp3)}' }`);

@@ -443,3 +443,95 @@ render(ctx) {
 | 节奏的宏观数值（每 20–40 秒换版面、8 秒静帧红线…**附证据强度**） | [STYLE.md](STYLE.md) §7 |
 | **连贯（carry）**：镜头边界上"有没有东西活下来变成下一个画面" —— 判据、词表、验收口径 | [REFERENCE-onetake.md](REFERENCE-onetake.md) §2（拆解报告；落地待办见 [BACKLOG.md](BACKLOG.md) §1.D） |
 | 这三个函数的单测 | `node tools/test-motion.mjs`（纯 JS，不需要 GPU） |
+
+## 7. 运动人格（可选声明，**不是模板**）
+
+风格包换的是**视觉**（配色 / 字体 / 母题），不换**运动** —— 于是同一支片子里每个镜头各弹各的。
+这一层可选的声明只回答一件事：**这支片子属于哪种运动气质**，其余由它给**区间**。
+
+```js
+// task.config.mjs（可选；不写就完全不判）
+motion: {
+  personality: 'premium',   // premium / corporate / playful / energetic
+  emotion: 'calm',          // 自由文本，只进报告
+  intensity: 1,             // 整体缩放系数（0.7 = 这一档整体收一点）
+  exempt: ['overshoot'],    // 显式豁免；也可以行内写 // motion:allow overshoot
+},
+```
+
+| 人格 | 时长档 quick / standard / slow（秒） | 回弹上限 | 说明 |
+|---|---|---|---|
+| `playful` | 0.12–0.3 / 0.24–0.5 / 0.4–0.8 | 20% | 回弹明显、收得快 |
+| `premium` | 0.3–0.55 / 0.45–0.8 / 0.7–1.4 | 4% | 不弹、慢起慢收 |
+| `corporate` | 0.18–0.35 / 0.3–0.55 / 0.45–0.9 | 3% | 干净、可预测 |
+| `energetic` | 0.08–0.2 / 0.16–0.36 / 0.3–0.6 | 30% | 快切、砸字 |
+
+> 数值来自 LottieFiles motion-design-skill（MIT）的 UI 毫秒表，**换算成秒并向外放宽** ——
+> 它是**参考区间**，不是规格。写片子的自由度在区间之外，判据只负责让你知道自己越了。
+
+### 两个判据
+
+```sh
+node tools/lint-motion-persona.mjs <任务> [--strict]
+node tools/lint-easing-direction.mjs <任务> [--strict]
+```
+
+| 判据 | 报什么 | 默认行为 |
+|---|---|---|
+| **人格** P1 时长档 | 场景里 `prog(t, a, b)` 的字面量跨度落在 quick 以下 / slow 以上的比例 | 只报；`--strict` 才拦 |
+| **人格** P2 缓动族 | 缓动名不属于这一档（`outBack` 出现在 premium）或**拼错**（会静默退化成 linear） | 同上 |
+| **人格** P3 回弹 | `spring(stiffness, damping)` 的预估 overshoot 超上限 | 同上 |
+| **方向** D1/D2/D3 | 位移配线性 / 入场用 ease-in / 出场用 ease-out | 只报；`--strict` 才拦 |
+
+三条**不僵化**的设计（改之前先读）：
+
+1. **可选**：不写 `motion` ⇒ 判据退出码 2（进 skipped，**不假装通过也不扣分**）；
+2. **区间 + 强度缩放**：不是定值；`intensity: 0.7` 可以把整档收 30%；
+3. **可豁免**：`motion.exempt` 或行内 `// motion:allow <项>` —— 等距尺、机械感、匀速滚动屏都有正当理由用线性。
+
+### 为什么默认只报不拦
+
+这两条是**审美参考**，不是物理规格。`--strict` 留给「交付前想逼自己一把」的时候用；
+CI 里不放它们（漂移风险大于收益）。
+
+## 8. 同时运动：一屏里有多少东西在动（1/3 规则的片子版）
+
+「太吵」是可测的：**一帧里有三分之一的画面在动**，眼睛就不知道看哪。
+这条判据从**成片**解帧算（纯 ffmpeg + JS，不需要浏览器）：
+
+```sh
+node tools/lint-concurrency.mjs <任务> [--strict]           # 读 out/<任务>/*.mp4
+node tools/lint-concurrency.mjs --file x.mp4 [--fps 8] [--area 0.33] [--blocks 6]
+```
+
+量两件事：**变化面积占比**（相邻两帧之间有多少栅格块真的变了）与**同时运动主体数**（变化块的连通分量）。
+切点附近 ±0.25s 的样本**自动跳过** —— 换镜头是整屏变化，不是「同时在动」。
+
+第一次跑的结果：
+
+| 片子 | 面积中位 / 最大 | 主体中位 / 最大 | 备注 |
+|---|---|---|---|
+| `pv-king` | 3% / 14% | 3 / 11 | 跳过 178 个切点样本；最挤的时刻也远低于 1/3 |
+| `pv-kattachi`（60s 版） | 2% / **64%** | 2 / 34 | 24.1s / 31s 两处整屏在动（用 --file 时切点不排除） |
+
+⚠ 用 `--file` 时没有段表，**切点不排除**，峰值会被换镜头抬起来；要量「运动」就给任务名。
+
+默认只报不拦：打斗、故障风、蒙太奇的短段落**本来就该整屏在动**，`--area 1` 可以整片放行。
+
+## 9. 审美症状表（观众这么说 → 查这条）
+
+来自 `skills/motion-design/reference/troubleshooting.md`（MIT）的**片子版**。左边是观众的话，右边是能跑的判据。
+
+| 观众说 | 多半是 | 先跑这条 | 改法 |
+|---|---|---|---|
+| 「像 PPT」 | 每镜各建一套元素、没有接力物 | `lint-anti-ppt` | `state.diff` + `relayTo`（`docs/ANTI-PPT.md`） |
+| 「机械 / 不像人做的」 | 全片同一缓动、直线路径、无次级运动 | `lint-easing-direction` | 换缓动族 + 弧形路径 + 环境层 |
+| 「廉价 / 平」 | 只有 primary 层、只动透明度 | `lint-concurrency`（面积偏低）+ 目视 | 加 secondary + ambient |
+| 「太吵」 | 同时动的东西太多、幅度过大 | `lint-concurrency` | 面积压到 1/3 以下，主体之外压到 10–20% |
+| 「太快 / 太慢」 | 元素动作不在档位、缺 settle | `lint-motion-persona` | 按人格的时长档 + 50–100ms 收尾 |
+| 「没有个性」 | 同一支片子里每镜各弹各的 | `lint-motion-persona` | 声明 `motion.personality` 按档统一 |
+| 「不像一支片子」 | 切点各建世界 | `anim check`（背景守门） | 共享背景 + 一台摄影机（§4.5） |
+| 「颜色脏」 | 色系散了 | `lint-color-family` | 强调色跟着 `signal`（`docs/STYLE.md`） |
+
+> 用法是**先跑右边的命令**，别凭感觉改。判据红了再改画面；判据绿但人觉得不对，才是判据该扩的时候。
+

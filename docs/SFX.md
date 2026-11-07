@@ -57,3 +57,123 @@ tasks/<任务>/audio/sfx/
 - 各类「免费音效包」：许可条款参差，**没有 manifest 就没法商用记账**；
 - SoundDino 的取舍：授权清晰（可商用 / 无需署名）、直链稳定、单页可枚举 —— 适合脚本化。
   代价是**配额小**（5/天），所以我们走「少量多次 + 记 id」，而不是一次抓一仓库。
+
+## 音效库与自动摆位（2026-11-03）
+
+### 索引：先建目录，再挑着下
+
+```sh
+node tools/sfx-fetch.mjs --index                     # 默认 36 个动效常用分类
+node tools/sfx-fetch.mjs --index --categories glitch,whoosh-transition
+node tools/sfx-fetch.mjs --search whoosh --limit 30   # 在索引里搜
+node tools/sfx-fetch.mjs --list --category glitch     # 列某分类（带序号）
+node tools/sfx-fetch.mjs --pick 1,3,6 --category glitch --dir assets/sfx
+```
+
+索引存在 `assets/sfx/catalog.json`（**只有元数据**：id / 标题 / 分类 / 时长 / 路径，不进音频，可以放心进仓库）。
+当前：**2081 条 / 36 个分类**（whoosh 243、glitch 119、click 121、sci-fi 111、countdown 74、siren 70…）。
+
+### 下载：诚实地用配额
+
+站点页脚写着「Downloads left today Sounds 5/5」—— 所以 `--max` 默认 5、`--gap` 默认 800ms。
+**一天拉 5 条，别去顶限额**（`docs/RULES.md` S3）。下下来的东西连同 `sfx.manifest.json` 落盘，
+每条记 id / 标题 / 分类 / 字节 / sha1 / 时长 / 出处 / 许可 / 日期。
+
+现有库存（`assets/sfx/`，5 条）：
+
+| 类别 | 文件 | 时长 |
+|---|---|---|
+| whoosh | `whoosh-transition__73722__Sound16.mp3` | 0.29s |
+| click | `click__84724__Short-click-of-a-computer-mouse.mp3` | 0.16s |
+| click（错误提示） | `click__35602__Click-on-the-error-warning-sound-clip.mp3` | 0.60s |
+| glitch | `glitch__2734__Very-short-glitch-sound.mp3` | 0.55s |
+| energy | `energy__28978__Sound-for-an-arcade-game-energy-power-2-.mp3` | 0.97s |
+
+### 用起来：`anim mix --sfx`
+
+```sh
+node scripts/anim.mjs mix <任务> --sfx auto            # 每个切点砸一记 whoosh（首段除外）
+node scripts/anim.mjs mix <任务> --sfx whoosh,click     # 按均匀间隔摆（试听用）
+node scripts/anim.mjs mix <任务> --sfx audio/sfx.json   # 正式片子写表
+```
+
+`audio/sfx.json` 的形状（`file` 可以是类别名，也可以是路径）：
+
+```json
+{ "items": [
+  { "file": "whoosh", "at": 12.4 },
+  { "file": "glitch", "at": 28.0, "gain": 1.2 },
+  { "file": "assets/sfx/click__84724__Short-click-of-a-computer-mouse.mp3", "at": 3.2, "gain": 0.9 }
+] }
+```
+
+三条实现细节（都是实测调出来的，别随手改）：
+
+1. **峰归一**：每个素材先归一到峰值 0.7 再乘 `gain`。不同来源音量能差两三个数量级，不归一就一定「有的听不见」。
+2. **侧链让路**：音效出现的前 220ms，把已混好的音乐压下约 6 dB（余弦形），出来再恢复。
+   不做这一步时，切点 whoosh 只比音乐高 17% RMS —— **数字上在，耳朵里不在**。
+3. **纯音乐片子也能混**：没有 `audio/timing.json`（没旁白）时，`--sfx` 在场就按「音乐 + 音效」出轨；
+   以前这条路径直接抛错，而音效恰恰最缺在这种片子上。
+
+### 判据
+
+```sh
+node tools/test-sfx.mjs    # 17 项：库查找 / 自动摆位 / 混音位置与越界记账 / 侧链 / 索引完整
+```
+
+进 CI（`regress-all --ci` 的 `unit:sfx`）。库里**找不到类别必须抛**，不是静默返回 null ——
+否则「我加的音效没响」会变成永远查不出来的那种 bug。
+
+
+## 语义规则：不再每个切点一声风（2026-11-03 晚）
+
+`--sfx auto` 现在读**段表的语义**选声音（`scripts/lib/sfx-rules.mjs`，纯函数、可离线断言）。
+
+| 段是什么 | 声音 | 为什么 |
+|---|---|---|
+| `title` / `bigtype` / `kinetic` 段首 | `destruction`（裁 0.55s）+ `camera-flash` | 大字砸下来 = 撞 + 闪 |
+| `outro` 段首 | `power-outage` | 收尾是「世界关灯」，不是「切镜头」 |
+| `chart` / `counter` / `compare` / `timeline` / `scan` 段首 | `digital-click` | 数据出现那一下是 UI 声 |
+| 其它切点 | `whoosh`（库里最短那条） | 画面被甩走，耳朵里该有一声风 |
+| 大字段之前 | 追加 `riser`（长 whoosh 的尾巴 1.2s，**结束在切点上**） | 冲上去先吸气 |
+
+**歌词镜头另有一套**（`params.mode`，PV 用）：句子句相连，**不能每句一声风**。
+按「表演方式的族」判：
+
+| mode | 族 | 声音 |
+|---|---|---|
+| `karaoke` / `ticker` | sing | 换族时 `whoosh`；同族延续**不放** |
+| `mask` / `vertical` / `big` / `stack` | display | 同上 |
+| `glitch` / `shatter` | fx | 每次 `glitch` |
+| 第一条段 | — | `destruction` + `camera-flash` |
+| 最后一条段 | — | `power-outage` |
+
+实测 KING PV（46 段 / 135s）：
+
+```
+· 音效语义摆位：36 条（destruction×1 camera-flash×1 glitch×6 whoosh×27 power-outage×1）
+```
+
+对比上一版「45 个切点全 whoosh」：声音从「一直在响」变成**有结构**（开场撞、换唱段风、故障段故障声、收尾断电）。
+
+### 两个数字上的坑（都踩过）
+
+1. **撞击别给满**：`destruction` 的增益从 1.15 降到 0.95 —— 峰归一之后线性归一被压下去，整条轨掉 3 dB（-16.4 LUFS）。
+2. **没旁白就别压床**：`bedGain 0.78` 是给「说话让路」用的，纯音乐片子用上它白掉 2.2 dB。现在 `voiced === 0` 时床增益固定 1.0。
+
+### 库里的 10 条（10 个类别）
+
+| 角色 | 文件 | 时长 |
+|---|---|---|
+| whoosh / riser | `whoosh-transition__73722__Sound16.mp3`（短）/ `whoosh-transition__79283__vzhuh-active-in-space.mp3`（11s，riser 用它的尾巴） | 0.29s / 11.15s |
+| click | `click__84724__Short-click-of-a-computer-mouse.mp3` | 0.16s |
+| 错误提示 | `click__35602__Click-on-the-error-warning-sound-clip.mp3` | 0.60s |
+| glitch | `glitch__2734__Very-short-glitch-sound.mp3` | 0.55s |
+| energy | `energy__28978__Sound-for-an-arcade-game-energy-power-2-.mp3` | 0.97s |
+| flash | `camera-flash__7876__Camera-flash-sound.mp3` | 0.81s |
+| UI 点击 | `digital-click__78237__button-digital-sharp-noisy.mp3` | 0.24s |
+| 断电 | `power-outage__2730__The-sound-where-the-lights-went-out-all-.mp3` | 3.11s |
+| 撞击 | `destruction__30869__Explosion-with-destruction.mp3` | 5.72s（裁 0.55s 当一记用） |
+
+`test-sfx` 现在 30 项，含 12 项语义断言（标题有撞击、图表是 UI 声、片尾断电、换族才给风、同族不给……）。
+

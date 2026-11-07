@@ -20,7 +20,13 @@ jobs:
   pure-js:
     runs-on: ubuntu-latest
     steps:
+      # ⚠ `fetch-depth: 0` 不能省。默认的 depth=1 是**浅克隆**，历史里只有 HEAD 一个提交，
+      # 于是 `meta:changes-fresh`（tools/gen-changes.mjs --check）跑
+      # `git log 237e985..HEAD` 会直接报 "unknown revision" —— 这一项红的不是清单过期，
+      # 是「CI 根本拿不到基线」。2026-11-06 / 11-07 的三次 PR run 全是这个原因（#5 / #6 / #7）。
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20

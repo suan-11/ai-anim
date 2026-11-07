@@ -1172,12 +1172,39 @@ function ffmpegHasEncoder(name) {
  * @param {string} requested
  * @returns {string}
  */
+/**
+ * 编码器**真的能跑起来**吗 —— 列在 -encoders 里不代表这台机器能用：
+ * h264_nvenc 在没有 NVIDIA 卡的机器上照样出现在列表里，一 init 就失败、ffmpeg 打一行错退出，
+ * 表现是「只渲染了 5/N 帧」（2026-11-02 全量回归：determinism / worktree-edit 两条都挂在这）。
+ * 判据：真编一帧 64×64 黑，退出码 0 才算能跑。
+ */
+const encoderWorks = new Map();
+function ffmpegEncoderWorks(name) {
+  if (encoderWorks.has(name)) return encoderWorks.get(name);
+  let ok = false;
+  try {
+    const cmd = ffmpegCmd();
+    const r = spawnSync(cmd[0], [
+      ...cmd.slice(1), '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=64x64:d=0.1',
+      '-frames:v', '1', '-c:v', name, '-f', 'null', '-',
+    ], { encoding: 'utf8', timeout: 20000, windowsHide: true });
+    ok = r.status === 0;
+  } catch { ok = false; }
+  encoderWorks.set(name, ok);
+  return ok;
+}
+
 function pickVideoEncoder(requested) {
-  if (ffmpegHasEncoder(requested)) return requested;
+  // 先看「列没列出来」，再看「真能不能编一帧」——
+  // 后者才是这次全量回归里两条 smoke 的真正死因（h264_nvenc 有列表项、没显卡）
+  if (ffmpegHasEncoder(requested)) {
+    if (ffmpegEncoderWorks(requested)) return requested;
+    warn(`⚠ ${requested} 在这台机器上**用不了**（能列出但编不动一帧，多半是没有对应的硬件/驱动），改用兜底编码器。`);
+  }
   const chain = process.platform === 'win32'
     ? ['h264_mf', 'libopenh264']
     : ['libopenh264'];
-  const alt = chain.find((c) => c !== requested && ffmpegHasEncoder(c));
+  const alt = chain.find((c) => c !== requested && ffmpegHasEncoder(c) && ffmpegEncoderWorks(c));
   if (!alt) {
     die(`这台 ffmpeg 既没有 ${requested}，也没有可用的兜底编码器（${chain.join(' / ')}）。\n`
       + `  装一个带 libx264 的 GPL 构建（例如 winget install Gyan.FFmpeg），\n`
@@ -2366,6 +2393,73 @@ async function cmdCheck() {
     }
   }
 
+
+  // 1.542) **歌词同步**：词句段首跟不跟得上人声（tools/lint-lyric-sync.mjs）。
+  //
+  // 为什么在 check 里：卡点只量「切点离拍多远」，可歌词片被观众听出来的问题是「这句字先出来/后出来」。
+  // 实测第一版 PV 按字数均摊句长 → 句首离真人声中位 366ms、最差 8.7s（前奏猜错），用户一句「没有卡点啊喂」。
+  // 判据（工具里）：中位 ≤150ms 且 p90 ≤400ms；不是歌词片时它退出码 2 → 进 skipped，不算失败。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-lyric-sync.mjs');
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '歌词同步（lyric-sync）', '工具不存在：tools/lint-lyric-sync.mjs');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, task, '--json'], { encoding: 'utf8', timeout: 60000 });
+        let j = null;
+        try { j = JSON.parse((r.stdout ?? '') + (r.stderr ?? '')); } catch { j = null; }
+        if (j && typeof j.medianMs === 'number') {
+          if (j.ok) {
+            log('  ✓ 歌词同步：' + j.lines + ' 句都在人声上（中位 ' + j.medianMs + 'ms · p90 ' + j.p90Ms + 'ms）');
+          } else {
+            warn('⚠ 歌词同步：中位 ' + j.medianMs + 'ms / p90 ' + j.p90Ms + 'ms（判据 ≤' + j.medianTol + '/' + j.p90Tol + 'ms）');
+            for (const w of (j.worst ?? []).slice(0, 3)) {
+              warn('  · ' + w.start.toFixed(2) + 's  ' + (w.dMs >= 0 ? '+' : '') + w.dMs + 'ms  ' + w.text);
+            }
+            warn('  → 句首用官方 LRC / 人声起音，别按字数均摊');
+            if (strict) staticErrs.push('[歌词同步] 中位 ' + j.medianMs + 'ms / p90 ' + j.p90Ms + 'ms 超判据');
+          }
+        } else if (r.status === 2) {
+          pushSkipped(skipped, '歌词同步（lyric-sync）', '不是歌词片或没有分析：' + firstLine((r.stdout ?? '') + (r.stderr ?? '')));
+        }
+      } catch (err) {
+        pushSkipped(skipped, '歌词同步（lyric-sync）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
+
+  // 1.542b) **色系**：这支片子的颜色在不在一个色系里（tools/lint-color-family.mjs）。
+  //
+  // 为什么在 check 里：换风格最常翻的车不是「配色丑」，是**色系散了** ——
+  // 底色偏冷、强调色偏暖、第二强调色又落在第三个色系；观众说不出哪里怪，只觉得脏。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-color-family.mjs');
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '色系（color-family）', '工具不存在：tools/lint-color-family.mjs');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, '--task', task, '--json'], { encoding: 'utf8', timeout: 60000 });
+        let j = null;
+        // --json 时工具只吐 JSON（人读的那些行被 quiet 掉了），所以整段解析即可
+        try { j = JSON.parse((r.stdout ?? '').trim()); } catch { j = null; }
+        const row = j && Array.isArray(j.rows) ? j.rows[0] : null;
+        if (row) {
+          if (row.ok) {
+            log('  ✓ 色系：' + row.families + '（主色系 ' + Math.round(row.top * 100) + '% · 底/字对比 ' + row.contrast.toFixed(2) + '）');
+          } else {
+            warn('⚠ 色系散了：' + row.families + '（主色系 ' + Math.round(row.top * 100) + '% · 前二 ' + Math.round(row.top2 * 100) + '%）');
+            for (const p of row.problems ?? []) warn('  · ' + p);
+            warn('  → 强调色（ember/blood/acid）跟着 signal 走；或换一套风格（docs/STYLE.md）');
+            if (strict) staticErrs.push('[色系] ' + (row.problems ?? []).join('；'));
+          }
+        }
+      } catch (err) {
+        pushSkipped(skipped, '色系（color-family）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
   // 1.545) **事件密度**：观众每一秒有没有新东西看（tools/lint-event-density.mjs）。
   //
   // 为什么在 check 里：片子可以零报错、qa 全绿，但观众第 8 秒就走人。
@@ -5019,7 +5113,8 @@ async function renderSegments({ task, info, out, from, to, fps, samples, shutter
     });
     blockSigs[key] = sig;
     // 已经渲好的块直接复用（改一个镜头就只重渲它所在的那块）
-    if (globalReuse && existsSync(file) && prevBlocks?.[key] === sig) {
+    const hasSources = sceneIndex.all.length > 0;
+    if (globalReuse && hasSources && existsSync(file) && prevBlocks?.[key] === sig) {
       log(`  [${i + 1}/${chunks.length}] ${c.from.toFixed(2)}–${c.to.toFixed(2)}s  已存在且签名一致，跳过（${man.fp.text}）`);
       files.push({ file, expect });
       continue;
@@ -7310,6 +7405,58 @@ async function cmdSay() {
  * `anim mix` —— 旁白摆位 + 用旁白自己的包络给音乐做闪避，混成**一条**交给引擎的音轨。
  * 引擎只有一条音轨、没有 sidechain（`docs/NARRATION.md` §1），所以这一步必须在外面做。
  */
+
+/**
+ * `anim mix --sfx …` 的三种写法：
+ *   `auto`        —— 按切点自动摆 whoosh（第一条段除外），一条命令就有声音设计；
+ *   `<json 路径>`  —— 读一个 { items: [{ file, at, gain }] } 的表（file 可以是类别名，也可以是绝对/相对路径）；
+ *   `whoosh,click` —— 逗号分隔的类别，按**均匀间隔**摆开（临时试听用，正式片子写 json）。
+ * 不给就是 undefined（老路径，一个字节都不变）。
+ */
+async function resolveSfxOpt(task) {
+  if (!flag('sfx')) return undefined;
+  const raw = opt('sfx');
+  if (raw === undefined) die('--sfx 后面要跟一个值：auto / 一个 json 路径 / 若干类别名（逗号分隔）。');
+  const { findSfx } = await import('./lib/mix.mjs');
+  const { designSfx, summarize } = await import('./lib/sfx-rules.mjs');
+  const { build } = await import('../src/timeline.js');
+  const dir = path.join(ROOT, 'tasks', task);
+  const mod = await import(pathToFileURL(path.join(dir, 'task.config.mjs')).href);
+  const cfg = mod.default ?? mod.config;
+  const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
+  if (raw === 'auto') {
+    // 语义摆位：不按"每个切点一声风"，而是按段在做什么选声音（title→撞+闪、chart→UI 声、
+    // 歌词换族→风、glitch→故障、outro→断电）。规则表见 scripts/lib/sfx-rules.mjs 头注释。
+    const { items, missing } = designSfx(segs);
+    if (!items.length) {
+      die('--sfx auto 一条都没排上：库里缺这些类别（' + (missing.join(' / ') || '?') + '）。'
+        + '\n  先跑 node tools/sfx-fetch.mjs --get <id> --category <类别> --dir assets/sfx 补上。');
+    }
+    log('· 音效语义摆位：' + items.length + ' 条（' + summarize(items) + '）');
+    if (missing.length) log('  ⚠ 库里缺这些类别，已跳过：' + missing.join(' / '));
+    return items;
+  }
+  if (/\.json$/i.test(raw)) {
+    const file = path.resolve(ROOT, raw);
+    if (!existsSync(file)) die('没有这个音效表：' + raw);
+    const spec = JSON.parse(readFileSync(file, 'utf8'));
+    const items = (spec.items ?? []).map((it) => ({
+      ...it,
+      file: /[\\/]/.test(it.file) || /\.mp3$/i.test(it.file) ? path.resolve(dir, it.file) : findSfx(it.file),
+    }));
+    log(`· 音效表 ${raw}：${items.length} 条`);
+    return items;
+  }
+  const kinds = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const total = segs.length ? segs[segs.length - 1].end : 0;
+  const items = [];
+  kinds.forEach((k, i) => {
+    const step = total / (kinds.length + 1);
+    items.push({ file: findSfx(k), at: Number((step * (i + 1)).toFixed(2)), gain: 0.45 });
+  });
+  log(`· 音效 ${kinds.join(' / ')}：按均匀间隔摆了 ${items.length} 条（试听用；正式片子写成 json）`);
+  return items;
+}
 async function cmdMix() {
   const task = pickTask();
   const { runMix } = await import('./lib/mix.mjs');
@@ -7342,6 +7489,7 @@ async function cmdMix() {
       lra,
       // 多语言/多变体：不给它，--table ja 会去读 zh 的 timing 并**覆盖 zh 的混音**（实测踩过）
       table: opt('table'),
+      sfx: await resolveSfxOpt(task),
     });
   } catch (e) {
     if (e && /^(不认识的 --target|靶子的 |给了 LRA)/.test(String(e.message))) die(String(e.message));
@@ -8029,6 +8177,17 @@ async function cmdShotCards() {
   if (flag('check')) checkShotCards();
   else generateShotCards();
 }
+async function cmdFilmHtml() {
+  const task = pickTask();
+  const out = opt('out', '');
+  const args = [task];
+  if (out) args.push('--out', out);
+  if (opt('max-audio', '')) args.push('--max-audio', opt('max-audio', ''));
+  if (flag('no-audio')) args.push('--no-audio');
+  // 单文件播放器要 esbuild 打包 + 内联音轨，交给 tools/film-html.mjs（同一份逻辑，别抄两遍）
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'film-html.mjs'), ...args], { stdio: 'inherit' });
+  if (r.status !== 0) process.exitCode = r.status ?? 1;
+}
 const commands = {
   new: cmdNew,
   tasks: cmdTasks,
@@ -8060,6 +8219,7 @@ const commands = {
   perf: cmdPerf,
   shake: cmdShake,
   report: cmdReport,
+  'film-html': cmdFilmHtml,
   icons: cmdIcons,
   'shot-cards': cmdShotCards,
   assets: cmdAssets,
