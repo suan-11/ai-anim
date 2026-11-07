@@ -28,6 +28,22 @@ const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8'
 const gitRaw = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 
 const range = BASE + '..HEAD';
+
+// 浅克隆里基线提交根本不在本地 —— 那不是「清单过期」，是「CI 拿不到基线」。
+// 报成未知 revision 会让一次真事故（verify.yml 漏了 fetch-depth: 0）变成一句看不懂的 git 报错。
+const hasBase = (() => {
+  try { execFileSync('git', ['cat-file', '-e', BASE], { cwd: ROOT, stdio: 'pipe' }); return true; }
+  catch { return false; }
+})();
+if (!hasBase) {
+  const shallow = (() => { try { return git('rev-parse', '--is-shallow-repository') === 'true'; } catch { return false; } })();
+  console.error('✗ 拿不到基线提交 ' + BASE + '（' + (shallow ? '这是浅克隆：fetch-depth=1 只带 HEAD 一个提交' : '本地没有这个提交') + '）。');
+  console.error('  · CI：.github/workflows/verify.yml 的 actions/checkout 必须写 fetch-depth: 0；');
+  console.error('  · 本地：git fetch origin ' + BASE + '（或 git fetch --unshallow）。');
+  console.error('  这一项**没验**（退出码 2），不是「清单过期」。');
+  process.exit(2);
+}
+
 const commits = git('log', '--format=%h%x1f%ad%x1f%s', '--date=short', range).split('\n').filter(Boolean)
   .map((l) => { const p = l.split('\x1f'); return { h: p[0], d: p[1], s: p[2] }; });
 const numstat = gitRaw('diff', '--numstat', range).split('\n').filter(Boolean);
