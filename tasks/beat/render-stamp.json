@@ -1,0 +1,9 @@
+{
+  "schema": "anim.render-stamp/1",
+  "task": "beat",
+  "at": "2026-11-07T08:12:47.324Z",
+  "engine": "legacy-unknown",
+  "scene": "fe2895803125032a",
+  "video": "out/beat/beat.mp4",
+  "note": "补记：这支片子渲于版本戳落地之前，引擎版本未知（场景签名按当前内容算）"
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "anim.render-stamp/1",
+  "task": "example-config-only",
+  "at": "2026-11-07T08:12:47.359Z",
+  "engine": "legacy-unknown",
+  "scene": "409a0f7658df7a61",
+  "video": "out/example-config-only/example-config-only.mp4",
+  "note": "补记：这支片子渲于版本戳落地之前，引擎版本未知（场景签名按当前内容算）"
+}

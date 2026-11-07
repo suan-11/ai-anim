@@ -87,6 +87,16 @@
  *   node scripts/anim.mjs hashes <task> --accept --note "为什么"
  *                                                        有意改画面：先比一遍 + 落前后对比图，再存新基线
  *                                                        （note 写进基线，下次比对失败会打出来）
+ *
+ * 【成片版本戳】——交付物是**哪一版**渲的（BACKLOG 1-73）
+ *   node scripts/anim.mjs stamp [<task>] [--json] [--strict] [--legacy]
+ *                                                       读 tasks/<任务>/render-stamp.json（video 成功时写的）：
+ *                                                        引擎签名 + 任务签名，**按内容算**（不是 mtime ——
+ *                                                        mtime 在 git clone 后集体刷新，"成片比源码旧"全线误判）
+ *                                                       四档：current / engine-drift / scene-drift / missing
+ *                                                        ⚠ **engine-drift 不需要重渲**：引擎往前走不等于已交付的片子作废；
+ *                                                        只有 scene-drift（这支片子自己的文件改过）才值得为了看效果重渲
+ *                                                        --legacy 给版本戳落地之前渲的片子补一笔「引擎版本未知」
  *   node scripts/anim.mjs probe <task> --times 4,12       渲染顺序会不会改变结果（确定性）
  *   node scripts/anim.mjs diff <task> --times 12          同一时刻渲两次，差了多少
  *   node scripts/anim.mjs audit <task> [--debug]          每个交叠段在交叠期到底画了什么
@@ -173,6 +183,10 @@ import { sceneFileIndex, blockSignature } from './lib/blocksig.mjs';
 import { DRAFT_SCALE, DRAFT_ENCODE_MS, planTiers, estimateTier } from './lib/tier-estimate.mjs';
 // 引擎改动的爆炸半径（BACKLOG 1-45 细化）：把 `src/` 一改就整片重渲，改成按真实 import 图判定
 import { isGlobalSource, entryEngineDeps } from './lib/engine-graph.mjs';
+// 成片版本戳（1-73）：**交付物不作废** —— 只把"这份是旧引擎渲的"记下来，而不是要求整批重渲。
+// 按内容算签名（不按 mtime）：mtime 在 git clone / checkout 之后会集体刷新，那时"成片比源码旧"的
+// 推断给出的是完全错误的答案（这正是 precommit-report 一直误跳过的根因）。
+import { writeStamp, readStamp, compareStamp, engineSig as stampEngineSig, taskSig as stampTaskSig, stampPath, LEGACY_ENGINE, STAMP_FILE } from './lib/render-stamp.mjs';
 // CLI 渲染硬化的纯逻辑（BACKLOG 1-24① / 复盘 §2 心跳 / E-1 渲染锁）：
 // 冲突开关清单、并发度、切块数、探活判定都在 lib 里（tools/test-cli-hardening.mjs 离线测）
 import {
@@ -5590,6 +5604,42 @@ async function cmdVideo(short = false) {
     }
     const st = statSync(out);
     log(`  文件大小 ${mb(st.size)}`);
+    /**
+     * **成片版本戳**（1-73）：把「这份 mp4 是哪一版引擎 / 哪一版场景渲的」写进
+     * `tasks/<任务>/render-stamp.json`。
+     *
+     * ⚠ 这不是缓存失效（那是 `--segments` 的块签名，规则完全不同）。它回答的是另一件事：
+     *    **这份交付物是不是当前代码的样子** —— 引擎往前走**不作废**已交付的片子。
+     * 之前没有这一层，唯一能判"新旧"的是 mtime；而 mtime 在 `git clone` / `checkout`
+     * 之后集体刷新，于是「成片比源码旧」对每支片子都成立 —— 那是个**错的信号**。
+     *
+     * 只写 `tasks/`（跟着版本控制走），不写 `out/`（那是 gitignore 的产物目录）。
+     * 写失败**不让出片失败**：戳是记录，不是产物的一部分。
+     *
+     * 不写戳的两种情况：`--draft`（那不是成片，戳会让人以为"成片已经重渲过了"）、
+     * `--from/--to` 只渲一段（同上）。两者都只在 `--segments` 的**完整**出片里才对。
+     */
+    const partial = draft || from > 0 || (opt('to', null) != null);
+    if (partial) {
+      log(`  版本戳跳过（${draft ? '草稿档' : '只渲了一段'} 不是完整成片 —— 写了会让人以为成片已重渲）`);
+    } else {
+      try {
+        const res = writeStamp(ROOT, task, {
+          engine: stampEngineSig(ROOT),
+          scene: stampTaskSig(ROOT, task),
+          video: path.relative(ROOT, out).split(path.sep).join('/'),
+          frames: total,
+          fps: Number(fps),
+          draft: !!draft,
+          scale: Number(info.scale ?? 1),
+          samples: String(samples),
+          files: st.size,
+        });
+        log(`  版本戳 ${path.relative(ROOT, stampPath(ROOT, task))}（引擎 ${res.engine} · 场景 ${res.scene}）`);
+      } catch (e) {
+        warn(`  ⚠ 版本戳没写成（${e && e.message ? e.message : e}）—— 不影响出片`);
+      }
+    }
     reportShake(r.shake, task);          // 抖动守门（docs/history/IMPROVEMENTS-1-3.md 建议 F）
     // 中间产物占了多大，以及怎么清（P2-5：以前一个提示都没有，out/ 悄悄涨到几 GB）
     reportIntermediates(task, out);
@@ -8114,6 +8164,96 @@ async function cmdReport() {
   if (strict && bad.length) process.exitCode = 1;
 }
 
+/**
+ * `anim stamp <任务>`（或 `anim stamp`，全任务）—— **成片版本戳**：这份 mp4 是哪一版渲的。
+ *
+ *   node scripts/anim.mjs stamp [<任务>] [--json]
+ *
+ * 回答的是「**交付物还是不是当前这一版的样子**」，**不是**「要不要重渲」：
+ *   · `current` —— 成片就是当前代码渲的；
+ *   · `engine-drift` —— 引擎动过了。**交付物不作废**，想跟上再重渲；
+ *   · `scene-drift` —— 这支片子自己的文件改过了，要看效果得重渲；
+ *   · `missing` —— 没记录（渲于这一层之前 / 从没跑过 `video`）。
+ *
+ * 只读，不起浏览器。退出码恒为 0（除 `--strict` 且出现 `scene-drift`）——
+ * 「旧版本」是一条**事实**，不是一个**错误**。
+ */
+async function cmdStamp() {
+  // ⚠ 这里不能直接用 pickTask()：不传任务时它**直接 die**，而 stamp 的默认语义是"扫全部"。
+  const t0 = positional(0) ?? opt('task');
+  const only = t0 ? pickTask() : null;
+  const asJson = flag('json');
+  const strict = flag('strict');
+  /**
+   * `--legacy`：给**版本戳落地之前**渲的片子补一笔「引擎版本未知」的记录。
+   *
+   * 为什么需要它：那些片子没有引擎签名可查，而现编一个是假读数。记成 `LEGACY_ENGINE`
+   * 之后，`anim stamp` 与预提交自检都能给出**准确**的话（"渲于版本戳之前"），
+   * 而不是一句含糊的"没有记录"。场景签名是真的（按当前内容算），所以
+   * 「这支片子自己的文件后来改过没有」这一半仍然是准的。
+   */
+  const legacy = flag('legacy');
+  const now = { engine: stampEngineSig(ROOT) };
+  const tasksDir = path.join(ROOT, 'tasks');
+  const hasMp4 = (t) => existsSync(path.join(ROOT, 'out', t, t + '.mp4'));
+  const names = only
+    ? [only]
+    : readdirSync(tasksDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      // 默认只列**有成片**的任务：版本戳说的是"这份 mp4 是哪一版渲的"，
+      // 没出过片的任务在这张表里只会是噪音（它们也没有 mp4 可以交付）。
+      .filter(hasMp4)
+      // 下划线开头是夹具 / 实验任务（与 precommit-report 的排除表同口径）—— 它们不是交付物
+      .filter((n) => !n.startsWith('_'))
+      .sort();
+  /** @type {any[]} */
+  const rows = [];
+  let filled = 0;
+  for (const t of names) {
+    const taskDir = path.join(tasksDir, t);
+    if (!existsSync(path.join(taskDir, 'task.config.mjs'))) continue;
+    let stamp = readStamp(ROOT, t);
+    // --legacy：**只补没有记录的**，绝不覆盖真戳（那是把准确的信息换成大概的信息）。
+    // 下划线开头的是夹具 / 实验任务（与 precommit-report 的排除表同口径）：它们本来就要频繁重渲，
+    // 补记一笔只会让清单变吵，而且它们不是交付物。
+    if (legacy && !stamp && !t.startsWith('_')) {
+      const mp4 = existsSync(path.join(ROOT, 'out', t, t + '.mp4'));
+      if (mp4) {
+        stamp = writeStamp(ROOT, t, {
+          engine: LEGACY_ENGINE,
+          scene: stampTaskSig(ROOT, t),
+          video: 'out/' + t + '/' + t + '.mp4',
+          note: '补记：这支片子渲于版本戳落地之前，引擎版本未知（场景签名按当前内容算）',
+        });
+        filled++;
+      }
+    }
+    const scene = stampTaskSig(ROOT, t);
+    const cmp = compareStamp(stamp, { engine: now.engine, scene });
+    rows.push({ task: t, state: cmp.state, note: cmp.note, at: stamp?.at ?? null, engine: stamp?.engine ?? null, scene: stamp?.scene ?? null });
+  }
+  if (legacy) log('\n· --legacy 补记了 ' + filled + ' 支片子的「引擎版本未知」记录（没有覆盖任何已有的真戳）');
+  if (asJson) {
+    console.log(JSON.stringify({ engine: now.engine, rows }, null, 2));
+  } else {
+    const counts = { current: 0, 'engine-drift': 0, 'scene-drift': 0, missing: 0 };
+    log('');
+    log('成片版本戳 —— 引擎 ' + now.engine);
+    for (const r of rows) {
+      counts[r.state] = (counts[r.state] ?? 0) + 1;
+      const mark = { current: '✓', 'engine-drift': '·', 'scene-drift': '⚠', missing: '·' }[r.state] ?? '·';
+      log('  ' + mark + ' ' + r.task.padEnd(22) + r.state.padEnd(14) + r.note);
+    }
+    log('');
+    log('  ✓ current ' + counts.current + ' · · engine-drift ' + counts['engine-drift']
+      + ' · ⚠ scene-drift ' + counts['scene-drift'] + ' · · missing ' + counts.missing);
+    log('  「engine-drift」**不需要重渲**：交付物已经交出去了，引擎往前走不等于旧片子作废。');
+    log('  只有「scene-drift」（这支片子自己的文件改了）才值得为了看效果重渲一遍。');
+  }
+  if (strict && rows.some((r) => r.state === 'scene-drift')) process.exitCode = 1;
+}
+
 /** 读任务的 style 名（配置档里一行 `style: 'xxx'`；没有就 return 空 → 默认 print） */
 function readStyleName(taskDir) {
   try {
@@ -8219,6 +8359,7 @@ const commands = {
   perf: cmdPerf,
   shake: cmdShake,
   report: cmdReport,
+  stamp: cmdStamp,
   'film-html': cmdFilmHtml,
   icons: cmdIcons,
   'shot-cards': cmdShotCards,

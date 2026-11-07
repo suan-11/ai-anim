@@ -1,0 +1,62 @@
+feat(stamp): 成片版本戳 —— 交付物不作废，用戳记版本而不是逼整批重渲（1-73）
+
+## 起因
+
+AGENTS §7 那句「改 src/core ⇒ 整批重渲」被读成了「**已交付的片子必须重渲**」。
+那是**缓存失效**规则（管"正在渲的这一支"，否则会拼出半新半旧画面），
+不等于交付物作废 —— 交付了就交付了，引擎往前走不回溯改写历史。
+
+## 为什么不能继续用 mtime
+
+唯一在用的"新旧"判据是 `tools/precommit-report.mjs` 里的
+`mp4 mtime < 任务目录最新源码 mtime`。它有两个方向相反的结构性错误：
+
+① **git clone / checkout 之后源码 mtime 集体刷新成"现在"** ⇒ 每支片子都判成过期
+   （本地实测：十几支片子全走"跳过密度/一致性"这条分支，等于这一项从来没生效）；
+② 改完源码**立刻**重渲时，成片比源码新 ⇒ 判成"新鲜"，但那可能恰恰是拿**旧引擎**渲的。
+
+## 做法
+
+新增 `scripts/lib/render-stamp.mjs`（纯函数）+ `tasks/<任务>/render-stamp.json`：
+
+· `video` 成功时写**引擎签名 + 任务签名**，两者都**按内容算**（sha256 前缀），
+  不是 mtime —— 跨机器、跨 clone 可复现，而且能进版本控制；
+· 戳**只写 tasks/**（跟 git 走），不写 out/（那是 gitignore 的产物目录）；
+· 戳**自己不进签名**（否则每次渲染戳都变，下次比对永远不一致）；
+· `--draft` / `--from --to` **不写戳**（那不是完整成片，写了会让人以为成片已重渲）。
+
+新命令 `node scripts/anim.mjs stamp [<任务>] [--json] [--strict] [--legacy]`，四档：
+
+| 状态 | 含义 | 要不要重渲 |
+|---|---|---|
+| `current` | 成片就是当前代码渲的 | 不用 |
+| `engine-drift` | 引擎动过了 | **不用** —— 交付物不作废 |
+| `scene-drift` | 这支片子自己的文件改过了 | 要看效果才重渲 |
+| `missing` | 没记录（或 `--legacy` 补的「引擎版本未知」） | 不用 |
+
+`--legacy` 给版本戳落地之前渲的片子补一笔 `engine: legacy-unknown`（**不覆盖任何真戳**）。
+本地已补 11 支。
+
+## 连带修掉的
+
+`tools/precommit-report.mjs` 换成读戳：
+
+· `engine-drift` **不跳过、不拦**（交付物不作废，这条判据本来就是读已有成片）；
+· 只有 `scene-drift` 才跳过密度/一致性（那时读的确实是另一版画面）；
+· 顺手修了一个真 bug：子进程超时（`spawnSync` 180s）时 `status` 是 `null`、
+  输出是半截 ⇒ `JSON.parse` 抛 ⇒ 打印「报告没给出 JSON →」**后面什么都没有**。
+  现在超时单独成句（「这一项没判（不是判据红）」），且超时值可调（`ANIM_PRECOMMIT_MS`，默认 60s）。
+
+## AGENTS §7
+
+那句话后面补了 4 行：它管的是「正在渲的这一支」，**不是**已交付的片子；交付物是哪一版渲的看 `anim stamp`。
+
+## 验证
+
+· `tools/test-render-stamp.mjs` **23 项**（内容签名 / 只动 mtime 不误判 / 戳不自指 /
+  读不懂返回 null 不猜 / 三档语义 / engine-drift 明写「不作废」），已接进回归清单；
+· `regress-all --ci` **75/75 绿**（新增 `unit:render-stamp`）；
+· `anim stamp` 实跑：11 支有 mp4 的任务全部 engine-drift（渲于版本戳之前），0 missing；
+· 实跑 `video example-config-only --draft --segments 2` 确认降档路径**不写戳**（日志明说跳过原因）；
+· `lint-agents-size` 61934 B / 65536 B（94.5%）、`lint-agents-refs` 229 处 0 断链；
+· `gen-changes --check` 绿（73 提交 / 532 文件）。

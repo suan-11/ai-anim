@@ -152,6 +152,8 @@ const ITEMS = [
   { name: 'unit:linebatch-warn', cmd: ['tools/test-linebatch-warn.mjs'], note: 'D-1 flush 后画线要报：_push 孤儿判定（丢弃并计数）/ flush 与 begin 交计数 / paint 形状有槽 / engine 转 warnings 带去重 / 正确用法语句没被删（5 项；端到端由 _d1-probe 人工验证过，故意错的夹具不进常规回归）' },
   { name: 'unit:motion-persona', cmd: ['tools/test-motion-persona.mjs'], note: '运动人格 + 缓动方向两条判据的判据本身（40 项）：声明解析（没写 ⇒ null 不假装通过）/ intensity 区间缩放 / overshoot 单调 / 三个扫描器（四参 spring 取第 3、4 位 / 嵌套括号取得到缓动名 / 参数是表达式 ⇒ 记「判不了」）/ D1-D3 三类方向矛盾 / 两种豁免' },
   { name: 'unit:motion-concurrency', cmd: ['tools/test-concurrency.mjs'], note: '同时运动判据的两个纯函数（14 项）：栅格变化面积 / 4-邻接连通分量 / 阈值与碎块（<2 块不算主体）' },
+  // 1-73 成片版本戳：签名按**内容**算（不是 mtime）、戳不进签名、三档语义（engine-drift ≠ 要重渲）
+  { name: 'unit:render-stamp', cmd: ['tools/test-render-stamp.mjs'], note: '成片版本戳（1-73）：内容签名（clone 后 mtime 集体刷新也不误判）/ 戳不自指 / 读不懂返回 null 不猜 / 三档语义（engine-drift 明写「交付物不作废」、scene-drift 才说重渲）' },
   { name: 'harness:demo', cmd: ['tools/scene-harness.mjs', 'demo'], note: '离线跑场（假 ctx，不起 Chrome，0.1s）：未定义变量 / 确定性 / 文字出画' },
   { name: 'harness:style-sampler', cmd: ['tools/scene-harness.mjs', '_style-sampler'], note: '风格采样器：配置档 4 段 + 风格解析走通' },
 

@@ -584,7 +584,13 @@ node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再�
 只改 `tasks/` 下的场景 ⇒ 只重渲它所在那块；改 `src/core` `src/style` `src/app.js` `src/timeline.js` 或 `public/`
 （**引擎地基**）⇒ 整批重渲；改 `src/kit` `src/shots` 这类**通用件** ⇒ 只重渲**真正 import 到它**的块
 （按 import 图收窄，含 `import { makeShot }` 只跟那一条、`shot('chart')` 只跟 chart 模板）；渲染参数变了 ⇒ 整批。
-⚠ 长时间单进程推流**会中途卡死**（实测 1260/4550 帧处 12 分钟无进度而进程还在）—— 分块每块重启浏览器，天然规避。
+
+> **⚠ 这条规则管的是「正在渲的这一支」，不是「已经交出去的片子」。**
+> 「引擎改了 ⇒ 整批重渲」是**缓存失效**规则（否则会拼出半新半旧画面），它**不**意味着已交付的成片作废。
+> 交付物是哪一版渲的，看版本戳：`node scripts/anim.mjs stamp [<任务>]` —— 读 `tasks/<任务>/render-stamp.json`
+> （`video` 成功时写，**按内容算签名**，不是 mtime；mtime 在 `git clone` 后集体刷新，会让「成片比源码旧」全线误判）。
+> 四档：`current` / `engine-drift`（**不需要重渲**，交付物不作废）/ `scene-drift`（这支片子自己的文件改过，想看到效果才重渲）/ `missing`。
+> ⚠ 长时间单进程推流**会中途卡死**（实测 1260/4550 帧处 12 分钟无进度而进程还在）—— 分块每块重启浏览器，天然规避。
 
 **出片速度**（本机实测、1080p60、`samples=1`）：7.5 fps，raymarch 类加 `--gpu high` 再翻倍；
 传输已换 **NV12**（3.11MB/帧）。读数与瓶颈见 `docs/PERF.md` §5.3–§5.4。

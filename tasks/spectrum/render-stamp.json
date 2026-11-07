@@ -1,0 +1,9 @@
+{
+  "schema": "anim.render-stamp/1",
+  "task": "spectrum",
+  "at": "2026-11-07T08:12:47.542Z",
+  "engine": "legacy-unknown",
+  "scene": "ad6dab493dc88665",
+  "video": "out/spectrum/spectrum.mp4",
+  "note": "补记：这支片子渲于版本戳落地之前，引擎版本未知（场景签名按当前内容算）"
+}
