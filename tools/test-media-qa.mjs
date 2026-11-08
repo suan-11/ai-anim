@@ -12,9 +12,11 @@
  * 端到端那一条只为证明「真的能从文件里量出来」，量不出来会明说跳过（不假装通过）。
  */
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { readCliSource } from './lib/cli-source.mjs';
 
 import {
   parseDetectIntervals, classifyMediaScan, run, tryRun, ffmpegArgv, scanMediaFile,
@@ -22,7 +24,6 @@ import {
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-const ANIM = path.join(ROOT, 'scripts', 'anim.mjs');
 
 let passed = 0;
 const lines = [];
@@ -125,7 +126,8 @@ t('分档：阈值原样带回（打印时要用，不许调用方再写一遍�
 /* ---------------------------------------------------------------- 3. 接线自检 */
 
 t('接线：CLI 里真的有 `qa` 命令与帮助行', () => {
-  const src = readFileSync(ANIM, 'utf8');
+  // 读 CLI 的拼接源码视图（anim.mjs + 拆分后的 scripts/cmd、scripts/lib/cli）—— 见 tools/lib/cli-source.mjs
+  const src = readCliSource();
   assert.ok(/^\s*qa: cmdQa,/m.test(src), 'dispatch 表里没有 qa');
   assert.ok(src.includes('node scripts/anim.mjs qa <task>'), '帮助块里没有 qa 的用法行');
   assert.ok(src.includes('classifyMediaScan'), 'cmdQa 没接分类器');

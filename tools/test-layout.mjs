@@ -24,6 +24,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 import {
   LAYOUT_LIMITS, RESERVED_BANDS, resolveFocus, textGroups, focusOverlap,
   layoutVerdict, layoutReport, layoutSummary, countNonTextDraws, focusNoteOf,
@@ -34,7 +36,8 @@ import { TextKit } from '../src/core/text.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const read = (p) => readFileSync(path.join(ROOT, p), 'utf8');
-const ANIM = read('scripts/anim.mjs');
+// CLI 源码视图（anim.mjs + 拆分后的 scripts/cmd、scripts/lib/cli，见 tools/lib/cli-source.mjs）
+const ANIM = readCliSource();
 const APP = read('src/app.js');
 const TEXT = read('src/core/text.js');
 const ENGINE = read('src/core/engine.js');

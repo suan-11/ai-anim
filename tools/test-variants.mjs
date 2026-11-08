@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { deepMergeInto } = await import('../src/core/util.js');
+const { readCliSource } = await import('./lib/cli-source.mjs');
 
 let pass = 0, fail = 0;
 const check = (name, ok, detail = '') => {
@@ -52,7 +53,8 @@ console.log('§1 deepMergeInto 的语义');
 console.log('');
 console.log('§2 CLI 接线自检（静默失真的高危点）');
 {
-  const cli = readFileSync(join(ROOT, 'scripts/anim.mjs'), 'utf8');
+  // 源码视图：anim.mjs +（拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs
+  const cli = readCliSource();
   check('openSession 把 --variant 放进 URL', /params\.set\('variant', String\(opt\('variant'\)\)\)/.test(cli));
   check('taskOut() 读到 --variant 才加子目录', /function taskOut\(task, \.\.\.parts\)[\s\S]{0,400}opt\('variant', ''\)/.test(cli));
   const sites = (cli.match(/taskOut\(task/g) ?? []).length;

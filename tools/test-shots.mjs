@@ -31,6 +31,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** 仓库根：从脚本所在目录往上找 package.json。 */
@@ -398,7 +400,7 @@ async function main() {
     '缺省语义漂了：要么"缺字段=筛空"要么"false 淘汰不了"');
 
   // `anim shots --json` 的载荷（shotsCatalog）必须把新元数据带出去 —— 读 anim.mjs 源码锚它（同 §2.5 的接法）。
-  const animSrc2 = readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+  const animSrc2 = readCliSource();
   const catStart = animSrc2.indexOf('function shotsCatalog(');
   const catBody = catStart > 0 ? animSrc2.slice(catStart, animSrc2.indexOf('\n}', catStart)) : '';
   check('shotsCatalog 转发 tags / w / fitsNote（--json 的读者靠它做选型）',
@@ -793,7 +795,7 @@ async function main() {
       `beat 扫到的是 ${JSON.stringify(beatUsage)}`);
 
     // ⑤ 接线自检：cmdCheck 里真的调了它，而且 errs 真的并上了（1-19 的教训）
-    const animSrc = readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+    const animSrc = readCliSource();
     const start = animSrc.indexOf('async function cmdCheck(');
     // ⚠ 终点锚锚在函数定义上（别锚注释文本，见 tools/test-check-skipped.mjs 同名那条）
     const end = animSrc.indexOf('async function writeContactSheet', start);

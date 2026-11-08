@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 import {
   planMotionAsserts, motionVerdict, edgeSafeHits,
   MOTION_ASSERT_KINDS, MOTION_ASSERT_DEFAULTS, MOTION_STEP,
@@ -27,7 +29,8 @@ import {
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TL_SRC = readFileSync(path.join(HERE, '../src/timeline.js'), 'utf8');
 const APP_SRC = readFileSync(path.join(HERE, '../src/app.js'), 'utf8');
-const CLI_SRC = readFileSync(path.join(HERE, '../scripts/anim.mjs'), 'utf8');
+// 源码视图：anim.mjs +（拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs
+const CLI_SRC = readCliSource();
 const REGRESS = readFileSync(path.join(HERE, 'regress-all.mjs'), 'utf8');
 
 let passed = 0;

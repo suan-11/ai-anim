@@ -7,10 +7,11 @@
 //   §4 接线自检：check 里真的调了它，且 --strict 会把它变成红（夹具 _motion-lab 是红证明）。
 //
 //   node tools/test-motion-caps.mjs
-import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { readCliSource } from './lib/cli-source.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { scanMotionCaps, maskComments, charCount, collectConsts, MAX_STAGGER_SPAN } =
@@ -90,7 +91,8 @@ console.log('§3.5 辉光峰值（1-33 ②：只认显式 halo 声明）');
 console.log('');
 console.log('§4 接线自检（check 真的调了它，且 --strict 会红）');
 {
-  const cli = readFileSync(join(ROOT, 'scripts/anim.mjs'), 'utf8');
+  // 源码视图：anim.mjs +（拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs
+  const cli = readCliSource();
   check('cmdCheck 里 spawn 了 lint-motion-caps',
     /lint-motion-caps\.mjs/.test(cli) && /spawnSync\(process\.execPath, \[lint, task, '--json'\]/.test(cli));
   check('有命中时进 staticErrs（--strict 才红）', /staticErrs\.push\('\[运动上限\]/.test(cli));

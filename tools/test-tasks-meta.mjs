@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { parseTaskMeta, TASKS_SCHEMA } = await import('../scripts/anim.mjs');
+const { readCliSource } = await import('./lib/cli-source.mjs');
 
 let pass = 0, fail = 0;
 const check = (name, ok, detail = '') => {
@@ -81,7 +82,8 @@ console.log('§4 --table 的接线自检（写另一份表，默认那份不动�
     /const timingName = table \? `\$\{table\}\.timing\.json` : 'timing\.json';/.test(say)
     && /const narrationName = table \? `\$\{table\}\.narration\.json` : 'narration\.json';/.test(say));
   check('表名做了字符白名单（防路径穿越）', /replace\(\/\[\^\\w\.-\]\/g, ''\)/.test(say));
-  const cli = readFileSync(join(ROOT, 'scripts/anim.mjs'), 'utf8');
+  // 源码视图：anim.mjs +（拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs
+  const cli = readCliSource();
   check('CLI 把 --table / --pin-table 传进 runSay', /table: opt\('table'\)/.test(cli) && /pinTable: opt\('pin-table'\)/.test(cli));
 }
 

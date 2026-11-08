@@ -6,10 +6,10 @@
  * 外加 anim.mjs 的**接线自检**（真路径不走这些函数的话，全绿也没用）。
  */
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DRAFT_SCALE, DRAFT_ENCODE_MS, classifyTier, planTiers, estimateTier } from '../scripts/lib/tier-estimate.mjs';
+import { readCliSource } from './lib/cli-source.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let n = 0;
@@ -88,7 +88,8 @@ ok('档位常数：草稿档 scale 绝对 0.5、编码 2ms（1080p 那档的一�
 
 /* ---------------------------------------------------------- 接线自检（真路径不走这些函数 = 白测） */
 {
-  const src = readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+  // 源码视图：anim.mjs +（拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs
+  const src = readCliSource();
   ok('anim.mjs 真用了 tier-estimate（import + planTiers + estimateTier 都在 printEstimate 路径上）', () => {
     assert.ok(/from '\.\/lib\/tier-estimate\.mjs'/.test(src), '找不到 import');
     const i = src.indexOf('async function printEstimate');
