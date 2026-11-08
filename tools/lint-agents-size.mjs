@@ -16,6 +16,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HARD = 65536;
+/**
+ * **注入预算**（PLAN A2）：有的宿主只把 AGENTS.md 的前 ~24 KB 塞进上下文，超出部分 agent 看不到。
+ * 所以 §4「铁律」这张表的**末尾**必须落在这个偏移之内 —— 否则最要命的那几条规则在那些宿主上等于不存在。
+ * 实测本机截断点 23,975 B，取 24,000 作判据。
+ */
+const INJECT_BUDGET = 24000;
 const SOFT = 40960;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -58,4 +64,24 @@ if (process.argv[1]?.endsWith('lint-agents-size.mjs')) {
 
   if (total > HARD) process.exit(1);
   if (total > SOFT) console.log(`\n（软线 ${SOFT} B：这只是工程目标，不阻塞；超了说明查表内容该下沉到 docs/）`);
+
+/**
+ * 注入截断判据：§4 铁律表的**末尾**字节偏移必须 ≤ INJECT_BUDGET。
+ * 为什么盯 §4：它是「写错不报错」的清单，被截掉就等于 agent 从来没看见过这 8 条。
+ */
+{
+  const src = fs.readFileSync(p, 'utf8');
+  const i4 = src.indexOf('## 4. 铁律');
+  const i45 = src.indexOf('## 4.5');
+  if (i4 < 0 || i45 < 0) {
+    console.log('\n⚠ 找不到 §4 / §4.5 的边界，注入截断判据没跑（不算通过）');
+    process.exitCode = 2;
+  } else {
+    const end = Buffer.byteLength(src.slice(0, i45), 'utf8');
+    const ok = end <= INJECT_BUDGET;
+    console.log(`\n注入截断判据：§4 铁律表末尾在 ${end} B（预算 ${INJECT_BUDGET} B）`
+      + (ok ? '  ✓ 截断也不会切掉铁律' : `  ✗ 超了 ${end - INJECT_BUDGET} B —— 只注入前 24 KB 的宿主会看不到部分铁律，把 §4 之前的查表内容继续下沉`));
+    if (!ok) process.exitCode = 1;
+  }
+}
 }
