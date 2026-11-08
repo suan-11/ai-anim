@@ -198,14 +198,14 @@ export function victimSpan(enterDur = 1, ratio = VICTIM_RATIO_DEFAULT) {
  * | 'relay' | 相机接力：位姿混合 + 交叠窗换手，由 engine composite 拦截，不走 transitionPass | 相邻两段都声明了 relayPose（手写 camera3 / makeThreeShot）的镜头之间 |
  */
 export const TRANSITION_MODES = /** @type {const} */ ([
-  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'glitch', 'pixel', 'dissolve',
+  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'spin', 'carousel', 'swirl', 'shatter', 'glitch', 'pixel', 'dissolve',
   // 相机接力（BACKLOG 1-12）：位姿混合 + 交叠窗换手，由 engine composite 的 relay 分支
   // 拦截（见 src/core/relay.js），不走 transitionPass —— 所以没有 shader、
   // isPassTransition('relay') 为 false（与 'mix' / 'none' 同一类）。
   'relay',
 ]);
 
-const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'glitch', 'pixel', 'dissolve']);
+const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'spin', 'carousel', 'swirl', 'shatter', 'glitch', 'pixel', 'dissolve']);
 
 /**
  * 校验转场模式名。**写错当场抛**（并列出可用清单）。
@@ -250,6 +250,10 @@ export function transitionFadeAt(mode) {
     case 'wipe': return 0.85;
     case 'iris': return 0.9;
   case 'sweep': return 0.85;
+    case 'spin': return 0.9;
+    case 'carousel': return 0.8;
+    case 'swirl': return 1.0;
+    case 'shatter': return 1.0;
     case 'glitch': return 0.7;
     case 'pixel': return 0.8;
     case 'dissolve': return 1;

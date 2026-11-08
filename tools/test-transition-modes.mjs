@@ -56,7 +56,7 @@ t('TRANSITION_MODES 覆盖 10 个模式（3 个老 + 6 个新 + relay），没�
     assert.equal(typeof m, 'string');
     assert.ok(m.length > 0);
   }
-  const expected = ['dissolve', 'glitch', 'iris', 'mix', 'none', 'pixel', 'push', 'relay', 'sweep', 'wipe'];
+  const expected = ['carousel', 'dissolve', 'glitch', 'iris', 'mix', 'none', 'pixel', 'push', 'relay', 'shatter', 'spin', 'sweep', 'swirl', 'wipe'];
   assert.deepEqual([...TRANSITION_MODES].sort(), expected);
 });
 
