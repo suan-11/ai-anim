@@ -835,6 +835,8 @@ export class Engine {
           this.comp.mixTo(this.gl, under, outTex, tin, this.mixRT);
           outTex = this.mixRT;
         } else if (transMode !== 'none') {
+          // ⚠ 只记 opts，**不要**动 outTex —— 写成 `outTex = this._x = …` 会把纹理换成对象，下一句就拿不到纹理了
+          this._transitionOpts = item.transitionOpts ?? {};
           outTex = this._pushTransition(outTex, under, tin, t, subDt, transMode);
         }
       }
@@ -1228,10 +1230,16 @@ export class Engine {
       // 每种模式一支 Pass（`'push'` 的那支与从前逐字符相同）；按模式缓存，
       // 别每帧新建 —— Pass 编译一次就要几十毫秒，转场每帧都跑。
       this._transPasses ??= new Map();
-      let pass = this._transPasses.get(mode);
+      // 与创建时的缓存键保持一致（带上 shards/seed/power）
+      const o0 = this._transitionOpts ?? {};
+      const key0 = mode + '#' + [o0.shards, o0.seed, o0.power].join('/');
+      let pass = this._transPasses.get(key0);
       if (!pass) {
-        pass = transitionPass(gl, { mode, key: mode === 'push' ? 'engine_push' : `engine_trans_${mode}` });
-        this._transPasses.set(mode, pass);
+        // 缓存键要带上 shards/seed/power：它们是**创建时**烘进 uniform 的，只按 mode 缓存会让第二段设置不生效
+        const o = this._transitionOpts ?? {};
+        const optKey = [o.shards, o.seed, o.power].join('/');
+        pass = transitionPass(gl, { mode, ...o, key: (mode === 'push' ? 'engine_push' : `engine_trans_${mode}`) + (optKey === '///' ? '' : '#' + optKey) });
+        this._transPasses.set(mode + '#' + optKey, pass);
       }
       const u = pass.u;
       u.under.value = { tex: /** @type {any} */ (under).tex ?? under, __tex: true };

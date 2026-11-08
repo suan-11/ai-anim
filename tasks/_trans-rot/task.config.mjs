@@ -9,6 +9,7 @@ export default {
     { type: 'title', title: 'SWIRL', dur: 3, overlap: 1, transition: 'spin', handlesTransition: true, id: 'b' },
     { type: 'title', title: 'CAROUSEL', dur: 3, overlap: 1, transition: 'swirl', handlesTransition: true, id: 'c' },
     { type: 'title', title: 'SHATTER', dur: 3, overlap: 1, transition: 'carousel', handlesTransition: true, id: 'd' },
-    { type: 'outro', dur: 3, overlap: 1, transition: 'shatter', handlesTransition: true, id: 'e' },
+    // 段级 transitionOpts 透传的活证据：碎片变粗（4 片/边）、种子换成 3、飞得更猛
+    { type: 'outro', dur: 3, overlap: 1, transition: 'shatter', transitionOpts: { shards: 4, seed: 3, power: 1.4 }, handlesTransition: true, id: 'e' },
   ],
 };
