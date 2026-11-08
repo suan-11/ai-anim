@@ -225,20 +225,10 @@ const DEFAULT_SCAN_NF = 30;
 const argv = process.argv.slice(2);
 const cmd = argv[0] && !argv[0].startsWith('-') ? argv[0] : 'help';
 const rest = cmd === 'help' ? argv : argv.slice(1);
+import { opt, flag, pickTask, setRest } from './lib/cli/args.mjs';
+setRest(rest);
 
 /* ------------------------------------------------------------------ 参数解析 */
-
-function opt(name, def) {
-  const i = rest.indexOf(`--${name}`);
-  if (i >= 0) return rest[i + 1];
-  // 单字母短选项：-t 2.5 / -o dir / -n 12
-  if (name.length === 1) {
-    const j = rest.indexOf(`-${name}`);
-    if (j >= 0) return rest[j + 1];
-  }
-  return def;
-}
-function flag(name) { return rest.includes(`--${name}`); }
 
 /**
  * 产物目录：`out/<任务>`，带 `--variant` 时是 `out/<任务>/<变体>`（BACKLOG 1-23）。
@@ -254,11 +244,11 @@ function taskOut(task, ...parts) {
   const root = path.join('out', String(task));
   return v ? path.join(root, v, ...parts) : path.join(root, ...parts);
 }
-function positional(i = 0) { return rest.filter((a) => !a.startsWith('-'))[i]; }
+export function positional(i = 0) { return rest.filter((a) => !a.startsWith('-'))[i]; }
 
 const log = (...a) => console.log(...a);
 const warn = (...a) => console.error(...a);
-function die(msg, code = 1) { warn(`✗ ${msg}`); process.exit(code); }
+export function die(msg, code = 1) { warn(`✗ ${msg}`); process.exit(code); }
 
 /**
  * 本进程直接拉起的子进程（Vite），退出时统一收掉。
@@ -912,25 +902,13 @@ function isProtectedOutFile(name) {
 
 /* ------------------------------------------------------------------ 任务发现 */
 
-function taskNames() {
+export function taskNames() {
   const dir = path.join(ROOT, 'tasks');
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
     .filter((d) => d.isDirectory() && existsSync(path.join(dir, d.name, 'task.config.mjs')))
     .map((d) => d.name)
     .sort();
-}
-
-function pickTask() {
-  const t = positional(0) ?? opt('task');
-  const names = taskNames();
-  if (t) {
-    if (!names.includes(t)) die(`没有任务 "${t}"。现有：${names.join(', ') || '(空)'}`);
-    return t;
-  }
-  if (names.length === 1) return names[0];
-  if (!names.length) die('还没有任何任务。先跑：node scripts/anim.mjs new 我的第一个动画');
-  die(`有多个任务，请指定一个：${names.join(', ')}`);
 }
 
 /* ------------------------------------------------------------------ 浏览器会话 */
