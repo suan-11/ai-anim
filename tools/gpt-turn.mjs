@@ -14,7 +14,7 @@
  * GPT 的回报不走这个脚本 —— 它自己跑 agent-mail send，所以「它先开口」不需要任何长驻进程。
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inbox, send } from './agent-mail.mjs';
@@ -62,8 +62,26 @@ const args = [relay, '--brief', briefPath, '--cd', ROOT, '--timeout', timeout];
 if (session === 'last') args.push('--resume-last');
 else if (session) args.push('--session', session);
 
+/**
+ * **writer 守卫**：同一个 Codex thread 只能有一个会话在写。
+ * 踩过：旧会话还没退出时我又派了一次 ⇒ relay 报 `thread already has an active writer`，
+ * 而那条纠正消息就此**静默丢失**（我以为是「已发」）。所以派发前先看锁。
+ */
+const lockFile = path.join(ROOT, 'out', '_mail', 'thread-' + (session || 'new') + '.lock');
+if (existsSync(lockFile)) {
+  const ageMin = (Date.now() - Number(readFileSync(lockFile, 'utf8') || 0)) / 60000;
+  if (ageMin < 120) {
+    console.error('✗ 这个 thread 还有会话在写（锁 ' + Math.round(ageMin) + ' 分钟前创建）：' + lockFile);
+    console.error('  等它退出，或 kill 掉那个 relay，再派。**不要**并发派 —— 你的消息会静默丢失。');
+    process.exit(3);
+  }
+  console.error('（旧锁已过期 ' + Math.round(ageMin) + ' 分钟，覆盖）');
+}
+writeFileSync(lockFile, String(Date.now()));
 console.log('派发一轮：话题 ' + topic + '，消息 ' + fresh.length + ' 条，' + (session ? '续会话 ' + session : '新会话'));
 const r = spawnSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
+try { unlinkSync(lockFile); } catch { /* 已经被删了也无所谓 */ }
+if (r.status === 1) console.error('（若上面出现 already has an active writer：说明另一个会话还占着这个 thread，本次消息没送达）');
 
 writeFileSync(cursorFile, JSON.stringify({ topic, lastRead: fresh[fresh.length - 1].id, at: new Date().toISOString() }, null, 2) + String.fromCharCode(10));
 process.exit(r.status ?? 1);
