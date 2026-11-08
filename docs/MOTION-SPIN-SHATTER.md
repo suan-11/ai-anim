@@ -174,6 +174,13 @@ shatterIn(ctx, { seed: 7, shards: 7, t: f.lt, dur: 1.2, power: 0.8 });  // 在 c
 ```
 
 与转场版**共用同一个 hash**（同 seed = 同碎片形状），但 k 从 1 降到 0（飞回吸合），且只作用于当前层。
+
+> **已实现**（2026-11-09）：`src/kit/shatter.js` 的 `shatterIn(ctx, opts)`。
+> 计划层 `shatterPlan()` 是纯函数（`tools/test-shatter-in.mjs` 5 条离线断言）；
+> 绘制层照 `views.js` 的 `applyView` 走「拷进离屏 RT → Pass 采样 → 画回 ctx.out」，**源与目标不能是同一张纹理**。
+> ⚠ 边缘光的系数与转场版**相反**：那边是 `1 - kk`（kk→1 = 旧帧走完），这边是 `smoothstep(0, 0.15, kk)`
+> （kk→0 = 吸合完成）—— 照抄会让静止帧上留一层永久裂缝（出图才发现）。
+> 夹具：`tasks/_shatter-lab`，`node scripts/anim.mjs still _shatter-lab -t 0.15,0.6,1.3`。
 这样一条片子里「碎出去 / 碎回来」形状一致 —— 观众会觉得是同一块玻璃。**这是这套设计里最值钱的一条。**
 
 ## 4. 确定性检查清单（这几个效果最容易破 render(t)）

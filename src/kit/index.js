@@ -1,6 +1,6 @@
 export { makeParticles, PARTICLE_PRESETS, MAX_PARTICLES } from './particles.js';
 // 镜头级镜碎的**计划层**（纯函数：h2 与 shader 同表达式、k 方向与转场版相反）；绘制层见 docs/MOTION-SPIN-SHATTER.md §3.3
-export { h2 as shatterH2, fract as shatterFract, shatterPlan } from './shatter.js';
+export { h2 as shatterH2, fract as shatterFract, shatterPlan, shatterIn } from './shatter.js';
 // @ts-check
 /**
  * `src/kit/` —— 引擎自带的镜头工具。
