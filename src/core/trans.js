@@ -308,8 +308,13 @@ export function transitionPass(gl, opts = {}) {
   const shards = opts.shards ?? 7;
   const seed = opts.seed ?? 7;
   const power = opts.power ?? 0.8;
+  // 默认值必须让**已提交的观感逐像素不变**：turns = 1 才是「转满一圈」，0.9 会变成 324°；
+  // tilt = 1 才是「压到 90°」，0.8 会让圆筒永远压不到位；swirlAmount 同理。
+  const turns = opts.turns ?? 1;
+  const tilt = opts.tilt ?? 1;
+  const swirlAmount = opts.swirlAmount ?? 1;
   const pass = /** @type {Pass & { collision: ReturnType<typeof planCollision> | null, mode: string }} */ (
-    new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt, shards, seed, power },
+    new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt, shards, seed, power, turns, tilt, swirlAmount },
       { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true, jitter: false }));   // 重采样已有内容：不吃抖动
   /** 这一笔用的是哪一套比例（没传 `victimRatio` 时是 `null` = 老行为） */
   pass.collision = collision;

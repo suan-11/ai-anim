@@ -183,19 +183,19 @@ export const TRANSITION_FRAG = {
       col += vec3(0.07, 0.065, 0.055) * burn;
       fragColor = vec4(col, m);   // 同上：噪声门限就是时间轴
     }`,
-  spin: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+  spin: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt, turns;
     vec2 r02(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(c*p.x-s*p.y,s*p.x+c*p.y);}
-    void main(){float kk=clamp(k,0.0,1.0),e=kk*kk*(3.0-2.0*kk); float a=-6.2831853*e; float sc=mix(1.0,1.42,e);
+    void main(){float kk=clamp(k,0.0,1.0),e=kk*kk*(3.0-2.0*kk); float a=-6.2831853*turns*e; float sc=mix(1.0,1.42,e);
       vec2 d=r02((vUv-0.5)*sc,a)+0.5; float inside=step(0.0,d.x)*step(d.x,1.0)*step(0.0,d.y)*step(d.y,1.0);
       vec3 col=texture(under,clamp(d,0.0,1.0)).rgb; fragColor=vec4(col,inside*(1.0-smoothstep(1.0,1.35,length((vUv-0.5)*2.0))));}
   `,
-  carousel: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
-    void main(){float kk=clamp(k,0.0,1.0),th=kk*1.5707963,xc=vUv.x-0.5,xw=xc*cos(th); float shade=1.0-0.55*abs(sin(th))*abs(xc);
+  carousel: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt, tilt;
+    void main(){float kk=clamp(k,0.0,1.0),th=kk*1.5707963*tilt,xc=vUv.x-0.5,xw=xc*cos(th); float shade=1.0-0.55*abs(sin(th))*abs(xc);
       vec3 col=texture(under,vec2(clamp(xw+0.5,0.0,1.0),vUv.y)).rgb*shade; float a=smoothstep(0.5,0.42,abs(xw))*(1.0-smoothstep(0.9,1.0,kk)); fragColor=vec4(col,a);}
   `,
-  swirl: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+  swirl: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt, swirlAmount;
     vec2 r02(vec2 p,float a){float c=cos(a),s=sin(a);return vec2(c*p.x-s*p.y,s*p.x+c*p.y);}
-    void main(){float kk=clamp(k,0.0,1.0); vec2 d=vUv-0.5; float r=max(length(d),0.02); float a=kk*3.0*(1.0-smoothstep(0.0,0.5,r)); vec2 q=r02(d,a)+0.5; float sc=mix(1.0,1.25,kk); vec3 col=texture(under,clamp((q-0.5)*sc+0.5,0.0,1.0)).rgb; fragColor=vec4(col,1.0-smoothstep(0.35,0.62,kk));}
+    void main(){float kk=clamp(k,0.0,1.0); vec2 d=vUv-0.5; float r=max(length(d),0.02); float a=kk*3.0*swirlAmount*(1.0-smoothstep(0.0,0.5,r)); vec2 q=r02(d,a)+0.5; float sc=mix(1.0,1.25,kk); vec3 col=texture(under,clamp((q-0.5)*sc+0.5,0.0,1.0)).rgb; fragColor=vec4(col,1.0-smoothstep(0.35,0.62,kk));}
   `,
   shatter: /* glsl */ `    uniform sampler2D under; uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
     // 只有这一支用（共用 uniform 对象里带着默认 7 / 7 / 0.8）；别的 shader 里不许出现这三个名字
