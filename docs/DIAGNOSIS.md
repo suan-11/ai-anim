@@ -263,6 +263,7 @@
 | `status: {"state":"ready",…}` + 一段 JSON<br>`tools/probe-colorspace.mjs:46` `:67` | `probe-colorspace` **只打印** `export` / `display` 两个颜色值 | ⚠ 它**不判定、不比较**（退出码只反映"页面是否 ready"）—— 自己比 `export` vs `display` 三个分量。见 §3 |
 | `判定：PASS ✓ 两个倍率下几何的逻辑位置/尺寸一致` / `FAIL ✗ SCALE=2 下矢量几何不对`<br>`tools/probe-ribbon.mjs:94` | 4K（`--scale 2`）下矢量几何是否与 1080p 同位同尺寸 | FAIL ⇒ `LineBatch` 顶点着色器拿物理像素当逻辑像素用了；见 `docs/history/STATUS-rounds-1-6.md` §6.3 |
 | `判定：PASS ✓ 任务字体确实加载并生效` / `FAIL ✗` + `faces: ["BrandFont 600 loaded", …]` + `--- console ---`<br>`tools/probe-fonts.mjs:63` `:49` `:59` | 任务自带字体（`task.fonts`）是否真的进浏览器、真的被用上 | `faces` 里的 `status` 是 `loaded` / `unloaded` / `error`：不是 `loaded` 就是"字体被跳过"，画面会退化成回退字体（"文字是方框"的同类）。查 `task.fonts` 路径（相对任务目录，文件要真存在）。`AGENTS.md` §10 末行 |
+| `=== scale 1 (1920×1080) ===` + `亮像素(>180) N   中亮像素(60..180) M   最亮 255`（scale 1 / 2 各一组）<br>`tools/probe-app-scale.mjs:42` `:43` | **症状：4K（`--scale 2`）出图里矢量线 / 白边框 / 方块突然没了或细了一半** → 跑 `node tools/probe-app-scale.mjs` | 它走**真实应用路径**（`api.frame(12)` → `png()` + `engine.readPixels()`），对 `_calib` 的 xf 段同一帧在 scale 1/2 各数一遍亮像素；两个倍率应约 **4×**（面积比），掉到 1× 附近 = 4K 下矢量那层没画出来。**位置/尺寸**的判据在上一行 `probe-ribbon`（这条查「还画不画得出」）。⚠ 不在 `regress-all` 里（要 GPU，约 1–2 min），图落 `out/_calib/scale/` |
 | `文件：<png>  W×H  N 字节（期望 W*H*4）` / `最亮 x.xxx @ {"x":…,"y":…}   亮度>0.5 的像素 N` / `x=900 列上亮度>0.5 的 y 区间：360–440（高 81）`<br>`tools/png-rows.mjs:28` `:36` `:49` | 直接量一张 PNG：某根线 / 某个色块到底在不在 | 用它取代"盯着图猜"；`用法: node tools/png-rows.mjs <png> [x列]`（无参数时退出码 2） |
 
 ### 1.11 离线跑场（`tools/scene-harness.mjs`，不需要 GPU）

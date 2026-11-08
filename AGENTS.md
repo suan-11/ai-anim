@@ -302,7 +302,7 @@ export default makeShot('chart', {
 | Three.js 真网格镜头 | `makeThreeShot(...)`（见 §5.5 ③） |
 | **填充面**（圆/多边形/扇环/带洞） | `lines.fillCircle` / `fillPoly` / `fillSector`（先填充后描边；角度 π/2 朝**下**） |
 | **换成像方式**（半调/字符画/雕版/排线） | `instrumented(ctx, { mode, cell }, fn)`（整帧先画进离屏目标，最后一步） |
-| 像素风 / 手绘笔迹 / 零状态 GPU 粒子 | `src/kit/pixel.js` · `stroke.js` · `particles.js` |
+| 像素风（`pixelText` 像素字 / 块栅格 / 抖动）/ 手绘笔迹 / 零状态 GPU 粒子 | `src/kit/pixel.js` · `stroke.js` · `particles.js` |
 | 带回弹的落位 | `spring(f.lt - t0)`（指数弹簧解析解） |
 
 > **其余 20+ 条元件（面板/眉标/页脚/准星、`paperStack` 纸艺、`stickerShot`、`codeRow`、`withAlpha`/`mul`…）见 [`docs/KIT.md`](KIT.md)** —— 带「写错不报错」的坑。
