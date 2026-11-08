@@ -36,7 +36,12 @@ if (!fresh.length) {
 }
 
 const briefPath = path.join(ROOT, 'out', '_mail', 'brief-' + topic + '.md');
-const base = path.join(ROOT, 'out', '_handoff', '5B-brief.md');
+// 任务摘要默认按话题取（out/_handoff/<topic>-brief.md）；没有就退回 5B 那份。
+// ⚠ 之前这里写死 5B-brief.md，结果 trans 话题的会话拿到 5B 的工作单，回的也是 5B 的报告。
+const base = opt('base')
+  || (existsSync(path.join(ROOT, 'out', '_handoff', topic + '-brief.md'))
+    ? path.join(ROOT, 'out', '_handoff', topic + '-brief.md')
+    : path.join(ROOT, 'out', '_handoff', '5B-brief.md'));
 const parts = [];
 if (existsSync(base)) parts.push(readFileSync(base, 'utf8'));
 parts.push('', '---', '', '## 信箱里给你的新消息（按时间顺序）', '');
