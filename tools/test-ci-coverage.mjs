@@ -142,6 +142,22 @@ if (!existsSync(REGRESS)) {
   }).filter(Boolean);
   check('清单项可解析', items.length > 50, '解析到 ' + items.length + ' / ' + entries.length + ' 条');
 
+/**
+ * A5 守门：**依赖外部程序却没声明的条目** = 以后缺 ffmpeg 时又会满屏 ENOENT。
+ * 判据只认「cmd 里出现 ffmpeg/ffprobe/playwright」这种**字面证据** —— 不做语义猜测。
+ * （真正会用到 ffmpeg 的 anim 子命令无法静态确定，所以只守显式出现的，配合 regress-all 的 needs 机制。）
+ */
+{
+  const needRe = /ffmpeg|ffprobe|playwright|chrome/i;
+  const undeclared = entries
+    .map((body, i) => ({ body, item: items[i] }))
+    .filter(({ body }) => needRe.test(body) && !/needs\s*:/.test(body));
+  check('依赖外部程序的条目都声明了 needs（A5）', undeclared.length === 0,
+    undeclared.length
+      ? '漏标 ' + undeclared.length + ' 条：' + undeclared.slice(0, 5).map(({ item }) => item?.name ?? '?').join(' / ')
+      : '扫到 ' + entries.filter((b) => needRe.test(b)).length + ' 条显式依赖，都有 needs');
+}
+
   const inGroup = items.filter((it) => groups.some((g) => it.name.indexOf(g) === 0));
   const excluded = inGroup.filter((it) => /ciExclude:\s*true/.test(it.body));
   const covered = inGroup.length - excluded.length;
