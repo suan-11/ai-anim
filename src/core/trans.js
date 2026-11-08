@@ -305,8 +305,11 @@ export function transitionPass(gl, opts = {}) {
   const collision = hasRatio ? planCollision({ enterDur: 1, ratio: opts.victimRatio }) : null;
   /** 没给 fadeAt 也没给 ratio ⇒ 按**模式**取默认（`'push'` 仍是 0.55，逐像素不变）。 */
   const fadeAt = opts.fadeAt ?? (collision ? collision.fadeAt : transitionFadeAt(mode));
+  const shards = opts.shards ?? 7;
+  const seed = opts.seed ?? 7;
+  const power = opts.power ?? 0.8;
   const pass = /** @type {Pass & { collision: ReturnType<typeof planCollision> | null, mode: string }} */ (
-    new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt },
+    new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt, shards, seed, power },
       { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true, jitter: false }));   // 重采样已有内容：不吃抖动
   /** 这一笔用的是哪一套比例（没传 `victimRatio` 时是 `null` = 老行为） */
   pass.collision = collision;
