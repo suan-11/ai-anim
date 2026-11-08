@@ -16,7 +16,7 @@
  * wait 是轮询（1s），不依赖文件系统事件 —— 跨沙箱跨平台都稳；
  * 退出码：inbox 有消息 0 / 空 1；wait 等到 0 / 超时 2（超时不算错，方便写循环）。
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,11 +81,27 @@ if (isMain) {
   } else if (cmd === 'wait') {
     const who = opt('for');
     const timeout = Number(opt('timeout', '300')) * 1000;
-    const after = opt('after');
+    /**
+     * 游标：没有游标时 `wait` 会把**历史消息再吐一次** —— 守望任务醒来看到的是一条早就处理过的消息。
+     * 三种取法：显式 --after <id> / --cursor（记在 out/_mail/cursor-watch-<for>.json）/ 都不给（老行为，会把历史都算上）。
+     */
+    const cursorFile = path.join(DIR, 'cursor-watch-' + (who || 'any') + '.json');
+    const useCursor = argv.includes('--cursor');
+    let after = opt('after');
+    if (!after && useCursor && existsSync(cursorFile)) {
+      try { after = JSON.parse(readFileSync(cursorFile, 'utf8')).lastSeen; } catch { after = undefined; }
+    }
     const t0 = Date.now();
     while (Date.now() - t0 < timeout) {
       const list = inbox({ for: who, thread: opt('thread'), after });
-      if (list.length) { for (const m of list) console.log(fmt(m) + '\n'); process.exit(0); }
+      if (list.length) {
+        for (const m of list) console.log(fmt(m) + '\n');
+        if (useCursor) {
+          if (!existsSync(DIR)) mkdirSync(DIR, { recursive: true });
+          writeFileSync(cursorFile, JSON.stringify({ lastSeen: list[list.length - 1].id, at: new Date().toISOString() }, null, 2) + '\n');
+        }
+        process.exit(0);
+      }
       await new Promise((r) => setTimeout(r, 1000));
     }
     console.log('（等了 ' + Math.round(timeout / 1000) + 's 没有新消息）');
