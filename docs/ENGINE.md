@@ -524,9 +524,23 @@ render(ctx) {
 | `'wipe' / 'iris' / 'sweep' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
 
 - 模式名在 `TRANSITION_MODES`（`src/core/trans.js`）里定义**一次**，写错当场抛并列出可用值。
-- 七支 shader 共用六个 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
-  ⚠ **`'sweep'` 没有新增 uniform**：旋转中心固定画面中心，起始角由 `dir` 推出来（所以扫描方向跟摄影机一致、竖屏不反）；
-  **`fragColor` 的 alpha = "旧帧还剩多少"**。
+- 十一支 shader 共用六个基础 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
+  **`fragColor` 的 alpha = 「旧帧还剩多少」**。
+  ⚠ **`'sweep'` 没有新增 uniform**：旋转中心固定画面中心，起始角由 `dir` 推出来（扫描方向跟摄影机一致、竖屏不反）；
+- **旋转族与镜碎的旋钮**（段上写 `transitionOpts`，默认值 = 现状，不改就是逐像素不变）：
+
+  | 键 | 作用 | 默认 | 谁用 |
+  |---|---|---|---|
+  | `turns` | 转几圈 | `1` | `spin` |
+  | `tilt` | 圆筒压到多深（×90°） | `1` | `carousel` |
+  | `swirlAmount` | 卷多狠 | `1` | `swirl` |
+  | `shards` | 镜碎每边片数 | `7` | `shatter` |
+  | `seed` | 碎片形状的随机源（同 seed 同形状） | `7` | `shatter` |
+  | `power` | 飞散强度 | `0.8` | `shatter` |
+
+  ⚠ 这些值在**创建 Pass 时**烘进 uniform，所以引擎的缓存键带上了 `mode#shards/seed/power` —— 逐段改设置才会生效。
+  ⚠ 新旋钮的默认值必须等于「现在这支片子的样子」：`turns` 默认给 0.9 就等于把已提交的画面改成转 324°。
+  ⚠ `push` 的源码被 `tools/test-transition-collision.mjs` 用字符串钉着（已交付画面）—— 加旋钮只许改**目标那一支**的声明行。
 - 引擎按模式缓存 Pass（`this._transPasses`）—— 别在场景里每帧新建 `Pass`，编译一次几十毫秒。
 - `transitionFadeAt(mode)` 给每种模式一个"旧帧最晚什么时候退干净"的默认值（`push` 仍是 **0.55**）。
   ⚠ 掩码型转场（wipe/iris/pixel/dissolve）**不要**再叠全局淡出：两个 fade 相乘会让中段发灰。
