@@ -85,6 +85,38 @@ export const TRANSITION_FRAG = {
       col += vec3(0.10, 0.09, 0.07) * rim;
       fragColor = vec4(col, a);
     }`,
+  /**
+   * 角度扫描（旋转转场族的第一支）：新画面从一个角度开始、绕中心扫一圈露出来。
+   *
+   * 只吃**共用 uniform**（不新增 anchor/turns）—— 中心固定画面中心，起始角由 `dir` 推出来，
+   * 于是「扫描方向跟着摄影机走」，而且在竖屏里也不会反（`dir` 已经是屏幕空间的）。
+   *
+   * 与 `wipe`（横竖直线）/ `iris`（同心圆）的区别：圆环状露出，节奏是「转」而不是「推」。
+   * ⚠ 圆心是 `atan` 的奇点：`fwidth(ang)` 在那里炸开 ⇒ 必须按半径把中心那一小块单独处理。
+   */
+  sweep: /* glsl */ `    uniform sampler2D under;
+    uniform float k;
+    uniform vec2 dir;
+    uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      vec2 d = vUv - 0.5;
+      d.x *= RES_LOGICAL.x / RES_LOGICAL.y;          // 角度要按圆算，不按矩形
+      float r = length(d);
+      float ang = atan(d.y, d.x) / 6.2831853 + 0.5;  // 0..1，0 在 +x
+      // 起始角跟着摄影机方向走（dir 已是屏幕空间），于是扫描方向与甩镜一致
+      float start = atan(dir.y, dir.x) / 6.2831853 + 0.5;
+      float edge = fract(start + kk);                 // 扫到哪个角度了
+      float dd = fract(ang - edge + 1.0);             // 还没扫到的角度差（环形）
+      float aa = max(fwidth(dd), 1e-4) * 1.5;
+      float m = 1.0 - smoothstep(0.0, aa, dd);        // 1 = 旧帧还没被扫到
+      // 扫过的那道边给一圈暖光（是光，不是描边）
+      float rim = (1.0 - smoothstep(0.0, aa * 5.0, dd)) * (1.0 - kk);
+      // 圆心奇点：atan 无定义、fwidth 爆掉 ⇒ 半径 < 0.02 处直接按 kk 线性过渡，不给 rim
+      float c = smoothstep(0.0, 0.02, r);
+      vec3 col = texture(under, vUv).rgb + vec3(0.09, 0.08, 0.06) * rim * c;
+      fragColor = vec4(col, mix(1.0 - kk, m, c));
+    }`,
   /** 故障：横向切片错位 + RGB 分离 + 极短闪白（全由 t 哈希，可 seek） */
   glitch: /* glsl */ `    uniform sampler2D under;
     uniform float k;

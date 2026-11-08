@@ -514,17 +514,18 @@ render(ctx) {
 | 新内容从**反方向**落位 | `enterOffset(f.t, k, 220)` → `[dx, dy]` 直接加到坐标上 |
 | 摄影机此刻的运动方向 | `cameraDir(t, dt)` |
 
-**八种转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
+**九种转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
 
 | 名字 | 走哪条路 | shader |
 |---|---|---|
 | `'push'`（默认） | `transitionPass` → `_pushTransition` | `TRANSITION_FRAG.push`（**与 2026-10-30 之前逐字符相同**） |
 | `'mix'` | `compositor.mixTo`（交叉溶解） | `compositor_mix` |
 | `'none'` | 什么都不做（硬切） | — |
-| `'wipe' / 'iris' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
+| `'wipe' / 'iris' / 'sweep' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
 
 - 模式名在 `TRANSITION_MODES`（`src/core/trans.js`）里定义**一次**，写错当场抛并列出可用值。
-- 六支 shader 共用六个 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
+- 七支 shader 共用六个 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
+  ⚠ **`'sweep'` 没有新增 uniform**：旋转中心固定画面中心，起始角由 `dir` 推出来（所以扫描方向跟摄影机一致、竖屏不反）；
   **`fragColor` 的 alpha = "旧帧还剩多少"**。
 - 引擎按模式缓存 Pass（`this._transPasses`）—— 别在场景里每帧新建 `Pass`，编译一次几十毫秒。
 - `transitionFadeAt(mode)` 给每种模式一个"旧帧最晚什么时候退干净"的默认值（`push` 仍是 **0.55**）。
