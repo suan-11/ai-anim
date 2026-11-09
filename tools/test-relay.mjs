@@ -248,7 +248,7 @@ ok('resolveRelayMove：缺省 = glide、合法名返回曲线、未知名/非字
 
 ok("TRANSITION_MODES 里有 'relay'（10 个）；isPassTransition('relay') === false（无 shader）", () => {
   A.ok(TRANSITION_MODES.includes('relay'), '表里有 relay');
-  A.equal(TRANSITION_MODES.length, 14, '一共 10 个模式');
+  A.equal(TRANSITION_MODES.length, 10, '一共 10 个模式');
   A.equal(isPassTransition('relay'), false, 'relay 不走 transitionPass');
 });
 

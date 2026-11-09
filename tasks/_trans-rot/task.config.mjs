@@ -1,16 +1,14 @@
-// 旋转转场族的看图夹具：四段各用一种新模式，交叠 1s，取交叠中点出图。
-//   node scripts/anim.mjs still _trans-rot -t 2,5,8,11
+// 转场看图夹具：三种「遮挡型」转场（wipe / iris / sweep）——
+// 旋转与镜碎那一族已经从转场层删掉（整帧 UV 变形做不出玻璃，见 docs/MOTION-SPIN-SHATTER.md 的复盘）。
+//   node scripts/anim.mjs still _trans-rot -t 2.5,5.5,8.5
 export default {
-  title: '旋转转场',
+  title: '转场夹具',
   width: 1920, height: 1080, fps: 60,
   style: 'print',
   timeline: [
-    { type: 'title', title: 'SPIN', dur: 3, id: 'a' },
-    // turns: 2 = 转两圈（默认 1 是原来那支）；改这里能看出段级 opts 真的落到 shader
-    { type: 'title', title: 'SWIRL', dur: 3, overlap: 1, transition: 'spin', transitionOpts: { turns: 2 }, handlesTransition: true, id: 'b' },
-    { type: 'title', title: 'CAROUSEL', dur: 3, overlap: 1, transition: 'swirl', handlesTransition: true, id: 'c' },
-    { type: 'title', title: 'SHATTER', dur: 3, overlap: 1, transition: 'carousel', handlesTransition: true, id: 'd' },
-    // 段级 transitionOpts 透传的活证据：碎片变粗（4 片/边）、种子换成 3、飞得更猛
-    { type: 'outro', dur: 3, overlap: 1, transition: 'shatter', transitionOpts: { shards: 4, seed: 3, power: 1.4 }, handlesTransition: true, id: 'e' },
+    { type: 'title', title: 'WIPE', dur: 3, id: 'a' },
+    { type: 'title', title: 'IRIS', dur: 3, overlap: 1, transition: 'wipe', handlesTransition: true, id: 'b' },
+    { type: 'title', title: 'SWEEP', dur: 3, overlap: 1, transition: 'iris', handlesTransition: true, id: 'c' },
+    { type: 'title', title: 'END', dur: 3, overlap: 1, transition: 'sweep', handlesTransition: true, id: 'd' },
   ],
 };

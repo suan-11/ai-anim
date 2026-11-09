@@ -198,14 +198,14 @@ export function victimSpan(enterDur = 1, ratio = VICTIM_RATIO_DEFAULT) {
  * | 'relay' | 相机接力：位姿混合 + 交叠窗换手，由 engine composite 拦截，不走 transitionPass | 相邻两段都声明了 relayPose（手写 camera3 / makeThreeShot）的镜头之间 |
  */
 export const TRANSITION_MODES = /** @type {const} */ ([
-  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'spin', 'carousel', 'swirl', 'shatter', 'glitch', 'pixel', 'dissolve',
+  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'glitch', 'pixel', 'dissolve',
   // 相机接力（BACKLOG 1-12）：位姿混合 + 交叠窗换手，由 engine composite 的 relay 分支
   // 拦截（见 src/core/relay.js），不走 transitionPass —— 所以没有 shader、
   // isPassTransition('relay') 为 false（与 'mix' / 'none' 同一类）。
   'relay',
 ]);
 
-const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'spin', 'carousel', 'swirl', 'shatter', 'glitch', 'pixel', 'dissolve']);
+const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'glitch', 'pixel', 'dissolve']);
 
 /**
  * 校验转场模式名。**写错当场抛**（并列出可用清单）。
@@ -305,6 +305,8 @@ export function transitionPass(gl, opts = {}) {
   const collision = hasRatio ? planCollision({ enterDur: 1, ratio: opts.victimRatio }) : null;
   /** 没给 fadeAt 也没给 ratio ⇒ 按**模式**取默认（`'push'` 仍是 0.55，逐像素不变）。 */
   const fadeAt = opts.fadeAt ?? (collision ? collision.fadeAt : transitionFadeAt(mode));
+  // 镜碎那一族已从转场层删掉（整帧 UV 变形做不出玻璃，见 docs/MOTION-SPIN-SHATTER.md 的复盘）。
+  // 这三个 uniform 保留只为兼容：没有 shader 声明就没人读它们；别再往这里加新旋钮。
   const shards = opts.shards ?? 7;
   const seed = opts.seed ?? 7;
   const power = opts.power ?? 0.8;
