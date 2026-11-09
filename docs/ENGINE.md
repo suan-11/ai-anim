@@ -514,19 +514,21 @@ render(ctx) {
 | 新内容从**反方向**落位 | `enterOffset(f.t, k, 220)` → `[dx, dy]` 直接加到坐标上 |
 | 摄影机此刻的运动方向 | `cameraDir(t, dt)` |
 
-**九种转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
+**十种转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
 
 | 名字 | 走哪条路 | shader |
 |---|---|---|
 | `'push'`（默认） | `transitionPass` → `_pushTransition` | `TRANSITION_FRAG.push`（**与 2026-10-30 之前逐字符相同**） |
 | `'mix'` | `compositor.mixTo`（交叉溶解） | `compositor_mix` |
 | `'none'` | 什么都不做（硬切） | — |
-| `'wipe' / 'iris' / 'sweep' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
+| `'wipe' / 'iris' / 'sweep' / 'turn' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
 
 - 模式名在 `TRANSITION_MODES`（`src/core/trans.js`）里定义**一次**，写错当场抛并列出可用值。
 - 十一支 shader 共用六个基础 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
   **`fragColor` 的 alpha = 「旧帧还剩多少」**。
   ⚠ **`'sweep'` 没有新增 uniform**：旋转中心固定画面中心，起始角由 `dir` 推出来（扫描方向跟摄影机一致、竖屏不反）；
+  ⚠ **`'turn'`（百叶翻面）** 有两个旋钮：`cols`（竖条数，默认 10）/ `stagger`（错峰，默认 0.35）。**不做整帧旋转** ——
+  整帧旋转是把一张图拧一遍（用户原话「旋转指画面切换」）；竖条各自绕自己的轴转，才有「一片片翻过去」的观感。
 - **旋转族与镜碎的旋钮**（段上写 `transitionOpts`，默认值 = 现状，不改就是逐像素不变）：
 
   | 键 | 作用 | 默认 | 谁用 |

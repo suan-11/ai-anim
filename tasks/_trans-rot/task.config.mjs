@@ -8,7 +8,9 @@ export default {
   timeline: [
     { type: 'title', title: 'WIPE', dur: 3, id: 'a' },
     { type: 'title', title: 'IRIS', dur: 3, overlap: 1, transition: 'wipe', handlesTransition: true, id: 'b' },
-    { type: 'title', title: 'SWEEP', dur: 3, overlap: 1, transition: 'iris', handlesTransition: true, id: 'c' },
+    { type: 'title', title: 'SWEEP', dur: 3, overlap: 1, transition: 'turn', transitionOpts: { cols: 10, stagger: 0.6 }, id: 'c' },
     { type: 'title', title: 'END', dur: 3, overlap: 1, transition: 'sweep', handlesTransition: true, id: 'd' },
   ],
 };
+
+

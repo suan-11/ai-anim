@@ -118,6 +118,42 @@ export const TRANSITION_FRAG = {
       fragColor = vec4(col, mix(1.0 - kk, m, c));
     }`,
   /** 故障：横向切片错位 + RGB 分离 + 极短闪白（全由 t 哈希，可 seek） */
+  /**
+   * 百叶翻面（`turn`）：把画面切成 N 条竖条，每条**各自绕自己的竖轴转**，逐条错峰合上。
+   *
+   * 为什么不做「整帧旋转」：那是把一张图拧一遍，用户原话是「旋转指画面切换」「拉伸特别笨」。
+   * 竖条各自转的时候，每条都有**自己的轴与自己的遮挡**，观感是「一片片翻过去」而不是橡皮筋。
+   *
+   * 数学：第 i 条的进度 `kk_i = clamp(k*(1+stagger) - i/N*stagger)`，θ = kk_i·π/2，
+   * 宽度因子 `w = |cosθ|`，采样 `u' = 0.5 + (u-0.5)/max(w, 1e-3)`，越界即透明（露出新画面）。
+   * 侧向受光：`lit = 1 - 0.55·sinθ`（转过去的那一下变暗，像纸/玻璃的背光）。
+   */
+  turn: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    uniform float cols, stagger;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      float n = max(2.0, floor(cols));
+      float u = vUv.x * n;
+      float i = floor(u);
+      float fu = fract(u);                       // 条内坐标 0..1
+      // 错峰：第 i 条晚开始，方向由 dir.x 决定（跟摄影机一致）
+      float order = dir.x < 0.0 ? (n - 1.0 - i) : i;
+      float kkI = clamp(kk * (1.0 + stagger) - (order / n) * stagger, 0.0, 1.0);
+      float th = kkI * 1.5707963;                // 0 → 90°
+      float w = cos(th);                         // 投影后的宽度因子
+      float lit = 1.0 - 0.55 * sin(th);           // 侧向受光
+      vec2 p = vUv;
+      p.x = (i + 0.5 + (fu - 0.5) / max(abs(w), 0.02)) / n;   // 反算采样位置
+      float inside = step(abs(fu - 0.5), 0.5 * abs(w));       // 条宽收缩 ⇒ 两侧露出新画面
+      vec3 col = texture(under, clamp(p, 0.0, 1.0)).rgb * lit;
+      // 侧过去时给「背面」压暗：缝隙里别露出白底，否则中段整帧发灰
+      col = mix(col, vec3(0.07, 0.065, 0.06), smoothstep(0.55, 0.05, abs(w)));
+      // 条的边缘给一道极细的亮线（纸的侧面），只在「正在转」时出现
+      float edge = smoothstep(0.5 * abs(w), 0.5 * abs(w) - 0.02, abs(fu - 0.5)) * (1.0 - kkI) * 0.5;
+      col += vec3(0.06, 0.058, 0.05) * edge;
+      fragColor = vec4(col, inside);
+    }`,
   glitch: /* glsl */ `    uniform sampler2D under;
     uniform float k;
     uniform vec2 dir;
