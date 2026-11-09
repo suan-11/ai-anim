@@ -61,6 +61,7 @@
 | # | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
 | 1-49 | **母题库**：`sodium` 积木 / `spectrum` 波形格阵 / `bikeshed` 会议室 抽进 `src/kit/motifs/` | 画面变化用 `hashes --accept --note` 记录 | 同 §5 Phase 2 |
+| 1-74 | **`outro` 模板 + `world: 'auto'` 被背景守门判成「没铺底」**（2026-11-09 在做转场样片时撞到）：`outro` 自己 `gl.clear(ctx.out, P.bg)` 且声明 `outputs.visual = 'full-frame'`，但在配置档节点上同时写 `world: 'auto'` + `handlesTransition: true` 时，`check` 的「背景守门」把它列进 `missing`。换成 `title` 模板同样的写法就通过 ⇒ 怀疑是 `outro` 的清屏路径没被守门的计数器认到（或它与 `world` 铺底的顺序/目标不一致）。复现：`tasks/trans-showcase` 的 `e` 段改回 `type: 'outro'` 跑 `check --quick` |
 | 1-56 | **绿幕 / 透明导出**（**2026-11-01 拍板：立项要做，排在 1-12 之后**）（2026-10-26 从 `REFERENCE-jizura.md` 拆出，**不排期**）：`video --alpha` 背景层出纯色、文字层单独出一条，后期合成用 | 判据：两条轨帧数与主片一致（ffprobe 复核）；`qtrle` 或 PNG 序列两种可选。对"一个人做片子"收益中等，先登记 | [`docs/REFERENCE-jizura.md`](REFERENCE-jizura.md) §4 |
 
 ---
