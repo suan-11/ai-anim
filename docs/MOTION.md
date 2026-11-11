@@ -220,7 +220,11 @@ this.wk = makeWorldKit(ctx, { victimRatio: 0.45 });
 | `'wipe'` | 一条软边沿摄影机方向横扫，前沿一道暖光 | 段落推进、"翻页" | 0 |
 | `'split'` | 两个半幅向外对开，保持纹理比例，露出下一镜头 | 从整体进入内部、展开结构 | 单次纹理采样 |
 | `'slats'` | 八条带错峰向相反方向滑出；按摄影机主方向选横/竖轴 | 分层、组装之后的节奏收束 | 单次纹理采样 |
+| `'diamond'` | 菱形从中心张开，四条斜边把旧画面推开 | 数字/结构类内容往里收 | 0 |
+| `'frame'` | 方框四边同时退开 | 网格、标题卡之间的切换 | 0 |
 | `'iris'` | 正圆从中心张开（按 `RES_LOGICAL` 长宽比校正，不是椭圆） | 聚焦一件事、开场/收尾 | 0 |
+| `'sweep'` | 绕画面中心**扫一圈**：角度边转过，旧帧被扫掉 | 同一画面里「换个视角继续说」 | 0（起始角取自 `dir`，无新增 uniform） |
+| `'turn'` | **百叶翻面**：N 条竖条各自绕自己的轴转、错峰合上，侧过去时压暗 | 段落级「翻过去一页」；不要整帧旋转 | 0（`cols` / `stagger` 可调） |
 | `'glitch'` | 横向切片错位 + RGB 分离 + 极短闪白 | 冲击、故障、数据感 | 每像素 3 次采样 |
 | `'pixel'` | 格子由密到疏、逐格消失 | 数字化、降采样、"回忆" | 0 |
 | `'dissolve'` | 多尺度 fbm 阈值溶解，消融边缘微微发亮 | 梦境、时间流逝 | 1 次 fbm |
@@ -240,8 +244,9 @@ this.wk = makeWorldKit(ctx, { victimRatio: 0.45 });
 4. **方向约定**：`fragColor` 的 alpha = **"旧帧还剩多少"**。`wipe` / `iris` 的掩码必须随
    "旧帧所在的位置"取 1 —— 写反了不会报错，只会让光圈越开旧帧越多（也在出图时抓到的）。
 
-**实现**：`src/core/transition-frag.js`（六支 shader，共用 `under`/`k`/`dir`/`push`/`blur`/`fadeAt`
-六个 uniform）+ `src/core/trans.js` 的模式表。引擎在 `composite()` 里读 `item.transition`，
+**实现**：`src/core/transition-frag.js`（**十二支** shader，共用 `under`/`k`/`dir`/`push`/`blur`/`fadeAt`
+六个基础 uniform；旋转族与滑出族另有 `cols` / `stagger` / `bands` / `shards` / `seed` / `power` 六个**可选**旋钮，走段上的 `transitionOpts`）+
+`src/core/trans.js` 的模式表。GPU 回归：`node tools/probe-slide-transitions.mjs`（首尾端点 / 覆盖单调 / UV 不拉伸 / 乱序 seek，横竖屏 × 四方向）。引擎在 `composite()` 里读 `item.transition`，
 按模式缓存 Pass（每帧新建 Pass 会把编译时间乘进渲染时间）。
 ⚠ 别在 shader 里重复声明 `GLSL_COMMON` 已有的东西（`vnoise` / `fbm` / `hash12` / `sat` / `luma`…）——
 GLSL 会报 `function already has a body`，而这个错在第一版 `dissolve` 上就踩过一次。
