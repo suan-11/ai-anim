@@ -215,6 +215,7 @@ const ITEMS = [
   { name: 'check:promo', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'promo'], note: '48s 一镜到底 / 6 段；raymarch 大厅 + 晶格隧道，完整三点两路径', timeout: 30 * 60e3 },
 
   // ── 引擎级探针 ──
+  { name: 'probe:slide-transitions', needs: ['chrome'], cmd: ['tools/probe-slide-transitions.mjs'], note: '对开/条带：横竖屏、四向、首尾、覆盖单调、UV不拉伸与乱序seek', timeout: 5 * 60e3 },
   { name: 'probe:alpha', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'probe-alpha', '_calib'], note: 'P0-1 数值型 alpha + P1-5 旁白接线（9 项）', timeout: 20 * 60e3 },
   { name: 'probe:ribbon', needs: ['chrome'], cmd: ['tools/probe-ribbon.mjs', '11.2', '1,2'], note: '真 4K 矢量几何一致', timeout: 20 * 60e3 },
   { name: 'probe:raymarch', needs: ['chrome'], cmd: ['tools/probe-raymarch.mjs'], note: 'raymarch 通电 + 手性/朝向 + 非有限值判据（14 项）', timeout: 20 * 60e3 },

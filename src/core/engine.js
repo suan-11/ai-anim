@@ -595,6 +595,10 @@ export class Engine {
         under = rt; outTex = rt;
         continue;
       }
+      // Timeline overrides must agree with auditUnderUsage/worldAuditPlan.
+      // In particular, explicit false opts a self-transitioning template into
+      // engine compositing; do not also hand its kit the old frame to push away.
+      const handlesTransition = item.handlesTransition ?? scene.handlesTransition;
 
       // 场景必须整帧覆盖 out；先清一遍兜底（场景忘了画就是纯黑，肉眼可见地错）
       this.gl.clear(rt, [0, 0, 0]);
@@ -633,7 +637,7 @@ export class Engine {
         }
       }
       item._relayPose = relayPose;   // 每子帧都是本帧的新值（诊断/工具可读；换手用下面的局部值）
-      const ctx = this._ctxFor(item, t, idx, { out: rt, dt: subDt, tin, tout, under: k > 0 ? under : null, seeked });
+      const ctx = this._ctxFor(item, t, idx, { out: rt, dt: subDt, tin, tout, under: k > 0 && item.handlesTransition !== false ? under : null, seeked });
       // 共享背景（一等地基，见 load() 的注释）：声明了 world 的段由引擎先铺底，
       // 场景只管前景。'auto' = task.worldPass；对象 = 这一段专用；false = 本段自己负责。
       ctx.world = resolveWorld(this, item);
@@ -830,7 +834,7 @@ export class Engine {
         }
         // k === 0 / under 缺失：没有交叠语义，什么都不做（与 'mix' 在同一位置的老行为一致）。
       }
-      if (!relayed && k > 0 && !scene.handlesTransition && under) {
+      if (!relayed && k > 0 && !handlesTransition && under) {
         if (transMode === 'mix') {
           this.comp.mixTo(this.gl, under, outTex, tin, this.mixRT);
           outTex = this.mixRT;

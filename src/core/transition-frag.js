@@ -117,7 +117,76 @@ export const TRANSITION_FRAG = {
       vec3 col = texture(under, vUv).rgb + vec3(0.09, 0.08, 0.06) * rim * c;
       fragColor = vec4(col, mix(1.0 - kk, m, c));
     }`,
-  /** 故障：横向切片错位 + RGB 分离 + 极短闪白（全由 t 哈希，可 seek） */
+  /** 菱形扩散：中心先露出，四条斜边向外推开旧画面。 */
+  diamond: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 d = abs(vUv - 0.5);
+      d.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float r = d.x + d.y;
+      float rad = kk * 0.98;
+      float aa = max(fwidth(r), 1e-4) * 1.5;
+      float m = smoothstep(rad - aa, rad + aa, r);
+      float rim = (1.0 - smoothstep(0.0, aa * 7.0, abs(r - rad))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.08, 0.07, 0.05) * rim;
+      fragColor = vec4(col, m);
+    }`,
+  /** 方框扩散：四条边同时退开，适合网格与标题卡之间的切换。 */
+  frame: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 d = abs(vUv - 0.5);
+      d.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float r = max(d.x, d.y);
+      float rad = kk * 0.96;
+      float aa = max(fwidth(r), 1e-4) * 1.5;
+      float m = smoothstep(rad - aa, rad + aa, r);
+      float rim = (1.0 - smoothstep(0.0, aa * 7.0, abs(r - rad))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.07, 0.065, 0.05) * rim;
+      fragColor = vec4(col, m);
+    }`,
+  /** 对开：两个半幅向外移走，纹理保持原比例；缝隙直接露出下一帧。 */
+  split: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 axis = abs(dir.x) >= abs(dir.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+      float s = dot(vUv, axis);
+      float side = s < 0.5 ? -1.0 : 1.0;
+      float move = kk*kk*kk*(kk*(kk*6.0-15.0)+10.0) * 0.5;
+      vec2 uv = vUv - axis * side * move;
+      float source = dot(uv, axis);
+      // Each half only samples its own original half: no repeated edge pixels.
+      float inside = step(0.0, source) * step(source, 1.0) * step(0.0, side*(source-0.5));
+      fragColor = vec4(texture(under, clamp(uv,0.0,1.0)).rgb, inside);
+    }`,
+  /** 条带交错滑出：8 条独立平移，保留文字形状；竖向运动时自动转为竖条。 */
+  slats: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    uniform float bands;                       // 条数（transitionOpts.bands，默认 8）
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 axis = abs(dir.x) >= abs(dir.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+      vec2 crossAxis = vec2(axis.y, axis.x);
+      float n = max(2.0, floor(bands));
+      float lane = min(n - 1.0, floor(dot(vUv,crossAxis) * n));
+      float p = clamp(kk*1.24 - lane/(n-1.0)*0.24,0.0,1.0);
+      float move = p*p*p*(p*(p*6.0-15.0)+10.0);
+      float signDir = dot(dir,axis) < 0.0 ? -1.0 : 1.0;
+      float side = (mod(lane,2.0) < 1.0 ? 1.0 : -1.0) * signDir;
+      vec2 uv = vUv - axis * side * move;
+      float source = dot(uv,axis);
+      float inside = step(0.0,source) * step(source,1.0);
+      fragColor = vec4(texture(under,clamp(uv,0.0,1.0)).rgb,inside);
+    }`,
   /**
    * 百叶翻面（`turn`）：把画面切成 N 条竖条，每条**各自绕自己的竖轴转**，逐条错峰合上。
    *

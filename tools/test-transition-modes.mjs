@@ -49,14 +49,14 @@ function t(name, fn) {
 
 /* ═══════════════ 1. 模式表本身 ═══════════════ */
 
-t('TRANSITION_MODES 覆盖 11 个模式（3 个老 + 7 个新 + relay），没有重复、都是非空字符串', () => {
+t('TRANSITION_MODES 覆盖全部内置模式，没有重复、都是非空字符串', () => {
   assert.ok(Array.isArray(TRANSITION_MODES));
   assert.equal(new Set(TRANSITION_MODES).size, TRANSITION_MODES.length, '有重复的模式名');
   for (const m of TRANSITION_MODES) {
     assert.equal(typeof m, 'string');
     assert.ok(m.length > 0);
   }
-  const expected = ['dissolve', 'glitch', 'iris', 'mix', 'none', 'pixel', 'push', 'relay', 'sweep', 'turn', 'wipe'];
+  const expected = ['diamond', 'dissolve', 'frame', 'glitch', 'iris', 'mix', 'none', 'pixel', 'push', 'relay', 'slats', 'split', 'sweep', 'turn', 'wipe'];
   assert.deepEqual([...TRANSITION_MODES].sort(), expected);
 });
 

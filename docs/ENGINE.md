@@ -514,7 +514,7 @@ render(ctx) {
 | 新内容从**反方向**落位 | `enterOffset(f.t, k, 220)` → `[dx, dy]` 直接加到坐标上 |
 | 摄影机此刻的运动方向 | `cameraDir(t, dt)` |
 
-**十种转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
+**转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
 
 | 名字 | 走哪条路 | shader |
 |---|---|---|
@@ -522,11 +522,14 @@ render(ctx) {
 | `'mix'` | `compositor.mixTo`（交叉溶解） | `compositor_mix` |
 | `'none'` | 什么都不做（硬切） | — |
 | `'wipe' / 'iris' / 'sweep' / 'turn' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
+| `'diamond' / 'frame'` | `transitionPass({ mode })`：菱形 / 方框**从中心张开**旧画面 | 纯遮挡（mask），`k` 的端点显式返回原帧/全透明 |
+| `'split' / 'slats'` | `transitionPass({ mode })`：两半对开 / 多条交错滑出 | 纹理按原比例平移，空隙露出下一镜头；运动轴取 `dir` 主方向 |
 
 - 模式名在 `TRANSITION_MODES`（`src/core/trans.js`）里定义**一次**，写错当场抛并列出可用值。
-- 十一支 shader 共用六个基础 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
+- 转场 shader 共用六个基础 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
   **`fragColor` 的 alpha = 「旧帧还剩多少」**。
   ⚠ **`'sweep'` 没有新增 uniform**：旋转中心固定画面中心，起始角由 `dir` 推出来（扫描方向跟摄影机一致、竖屏不反）；
+  ⚠ **`'slats'`** 的条数走 `bands`（`transitionOpts.bands`，默认 8）；它和 `turn` 的 `cols` **各管各的**（一个平移、一个旋转）。
   ⚠ **`'turn'`（百叶翻面）** 有两个旋钮：`cols`（竖条数，默认 10）/ `stagger`（错峰，默认 0.35）。**不做整帧旋转** ——
   整帧旋转是把一张图拧一遍（用户原话「旋转指画面切换」）；竖条各自绕自己的轴转，才有「一片片翻过去」的观感。
 - **旋转族与镜碎的旋钮**（段上写 `transitionOpts`，默认值 = 现状，不改就是逐像素不变）：
@@ -544,6 +547,8 @@ render(ctx) {
   ⚠ 新旋钮的默认值必须等于「现在这支片子的样子」：`turns` 默认给 0.9 就等于把已提交的画面改成转 324°。
   ⚠ `push` 的源码被 `tools/test-transition-collision.mjs` 用字符串钉着（已交付画面）—— 加旋钮只许改**目标那一支**的声明行。
 - 引擎按模式缓存 Pass（`this._transPasses`）—— 别在场景里每帧新建 `Pass`，编译一次几十毫秒。
+- `split` / `slats` 由几何边界退出，不叠全局淡出，`fadeAt` 不参与这两支 shader。样片 `tasks/_trans-structure/`；GPU 回归 `node tools/probe-slide-transitions.mjs` 验首尾、覆盖单调、UV 不拉伸和乱序 seek（横竖屏 × 四个方向）。
+- 模板自带 `handlesTransition: true` 时，时间线可显式写 `handlesTransition: false` 把衔接交给引擎；此时场景的 `ctx.under` 为空，避免模板再叠一次甩镜。不写这个覆盖值，保持模板原行为。
 - `transitionFadeAt(mode)` 给每种模式一个"旧帧最晚什么时候退干净"的默认值（`push` 仍是 **0.55**）。
   ⚠ 掩码型转场（wipe/iris/pixel/dissolve）**不要**再叠全局淡出：两个 fade 相乘会让中段发灰。
 - 与 `victimRatio` **正交**：两个都给就都生效（模式决定"长什么样"，比例决定"旧的走多快"）。
