@@ -2435,6 +2435,71 @@ async function cmdCheck() {
     }
   }
 
+  // 1.542a) **运动人格**（tools/lint-motion-persona.mjs）：可选声明，没写就 exit 2 → skipped。
+  //
+  // 为什么在 check 里：风格管视觉、不管运动 —— 而「太快像抖、太慢像卡住」是观众最先说出口的那句。
+  // 三条判据（时长档 / 缓动族 / 回弹）都是**区间 + 可豁免**，默认只报；`--strict` 才进 staticErrs。
+  // ⚠ 退出码 2 有两种含义，都必须进 skipped 而不是失败：① 没声明 motion；② 声明了但一条判据都没跑起来。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-motion-persona.mjs');
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '运动人格（motion-persona）', '工具不存在：tools/lint-motion-persona.mjs');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, task, '--json'], { encoding: 'utf8', timeout: 60000 });
+        let j = null;
+        try { j = JSON.parse((r.stdout ?? '') + (r.stderr ?? '')); } catch { j = null; }
+        // 退出码语义：2 = 没得判/没验 → skipped；0 / 1 = 真跑过（1 只在 --strict 下）
+        if (j && Array.isArray(j.problems) && r.status !== 2) {
+          if ((j.problems ?? []).length) {
+            warn('⚠ 运动人格：' + j.problems.length + ' 条（默认只报；--strict 才当门）');
+            for (const p of j.problems.slice(0, 3)) warn('  · ' + p);
+            if (strict) staticErrs.push('[运动人格] ' + j.problems.length + ' 条超出「' + (j.motion?.persona ?? '?') + '」的参考区间');
+          } else {
+            log('  ✓ 运动人格：' + j.evaluated + ' 条判据都在「' + (j.motion?.persona ?? '?') + '」的区间内'
+              + ((j.skipped ?? []).length ? '（另有 ' + j.skipped.length + ' 条没验）' : ''));
+          }
+        } else if (r.status === 2) {
+          pushSkipped(skipped, '运动人格（motion-persona）', '没声明 motion，或声明了但三条判据一条都没跑起来（看 node tools/lint-motion-persona.mjs ' + task + '）');
+        }
+      } catch (err) {
+        pushSkipped(skipped, '运动人格（motion-persona）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
+
+  // 1.542a2) **缓动方向**（tools/lint-easing-direction.mjs）：位移别配线性、入场别用 ease-out、出场别用 ease-in。
+  // 与「运动人格」互补：人格判「这一档该用什么」，方向判「这一处的搭配是不是反的」。
+  // 纯静态（扫场景源码里的 prog / keys），不需要渲染；行内可 `// motion:allow easing` 豁免。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-easing-direction.mjs');
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '缓动方向（easing-direction）', '工具不存在：tools/lint-easing-direction.mjs');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, task, '--json'], { encoding: 'utf8', timeout: 60000 });
+        let j = null;
+        try { j = JSON.parse((r.stdout ?? '') + (r.stderr ?? '')); } catch { j = null; }
+        if (j && typeof j.progCount === 'number') {
+          if (j.progCount === 0) {
+            pushSkipped(skipped, '缓动方向（easing-direction）', '扫了 ' + j.files + ' 个文件但一处 prog 都没有 —— 这一项没得判');
+          } else if ((j.issues ?? []).length) {
+            warn('⚠ 缓动方向：' + j.issues.length + ' 处（默认只报；--strict 才当门）');
+            for (const it of j.issues.slice(0, 3)) warn('  · ' + (it.file ?? '') + ':' + (it.line ?? '?') + ' ' + (it.kind ?? ''));
+            if (strict) staticErrs.push('[缓动方向] ' + j.issues.length + ' 处搭配是反的（位移配线性 / 方向与出入场相反）');
+          } else {
+            log('  ✓ 缓动方向：' + j.progCount + ' 处 prog 没有反配');
+          }
+        } else if (r.status === 2) {
+          pushSkipped(skipped, '缓动方向（easing-direction）', '这一项没得判：' + firstLine((r.stdout ?? '') + (r.stderr ?? '')));
+        }
+      } catch (err) {
+        pushSkipped(skipped, '缓动方向（easing-direction）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
   // 1.542b) **色系**：这支片子的颜色在不在一个色系里（tools/lint-color-family.mjs）。
   //
   // 为什么在 check 里：换风格最常翻的车不是「配色丑」，是**色系散了** ——
