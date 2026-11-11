@@ -583,12 +583,21 @@ export class GL {
     return p;
   }
 
-  /** 清屏（线性色）。 */
+  /**
+   * 清屏（线性色）。
+   *
+   * ⚠ **整帧清屏算一次「整帧覆盖绘制」**（`_notePaint`）：`AGENTS.md` §3 教场景写的第一句就是
+   *   `gl.clear(ctx.out, …)`，而背景守门原来只数 `Pass.render` —— 于是「只靠 clear 铺底」的模板
+   *   （`outro` 就是）被误判成「没铺背景」（BACKLOG 1-74）。
+   *   引擎自己在 `beginPaint` **之前**还清一次兜底黑屏，那时 `paint` 还是 null，不会被数进去。
+   *   代价：「清成黑底 + 画一点东西」现在算铺过底 —— 但「整段近黑」由逐段亮度守门（15/50/85%）接住。
+   */
   clear(rt, color = [0, 0, 0], alpha = 1) {
     const g = this.ctx;
     if (rt) rt.bind(); else { g.bindFramebuffer(g.FRAMEBUFFER, null); g.viewport(0, 0, this.pw, this.ph); }
     g.clearColor(color[0], color[1], color[2], alpha);
     g.clear(g.COLOR_BUFFER_BIT | (rt && rt.depth ? g.DEPTH_BUFFER_BIT : 0));
+    this._notePaint(g, rt ?? null, { blend: false });   // 清屏 = 整帧覆盖
   }
 
   /**
