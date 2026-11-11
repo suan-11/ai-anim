@@ -2500,6 +2500,44 @@ async function cmdCheck() {
       }
     }
   }
+  // 1.542a3) **同时运动**（tools/lint-concurrency.mjs）：一帧里有三分之一的画面在动，眼睛就不知道看哪。
+  //
+  // ⚠ 它必须读**成片**（解码 mp4 算变化块的连通分量），所以只在 out/<任务>/ 里已经有 mp4 时才跑；
+  //   没有成片就进 skipped —— 这正是「这一项没验」，不是通过。
+  {
+    const tool = path.join(ROOT, 'tools', 'lint-concurrency.mjs');
+    const outDir = path.join(ROOT, 'out', task);
+    const vids = existsSync(outDir)
+      ? readdirSync(outDir).filter((f) => f.endsWith('.mp4') && !/^part_|_stitched/.test(f))
+      : [];
+    if (!existsSync(tool)) {
+      pushSkipped(skipped, '同时运动（concurrency）', '工具不存在：tools/lint-concurrency.mjs');
+    } else if (!vids.length) {
+      pushSkipped(skipped, '同时运动（concurrency）', '还没有成片（先 anim video）；它从 mp4 解帧算连通分量');
+    } else {
+      try {
+        const { spawnSync } = await import('node:child_process');
+        const r = spawnSync(process.execPath, [tool, task, '--json'], { encoding: 'utf8', timeout: 180000 });
+        let j = null;
+        try { j = JSON.parse((r.stdout ?? '') + (r.stderr ?? '')); } catch { j = null; }
+        if (j && typeof j.medShare === 'number') {
+          const info = '面积中位 ' + (j.medShare * 100).toFixed(0) + '% / 最大 ' + (j.maxShare * 100).toFixed(0)
+            + '% · 主体中位 ' + j.medBlocks + ' / 最大 ' + j.maxBlocks + ' 个';
+          if ((j.problems ?? []).length) {
+            warn('⚠ 同时运动：' + info + '（默认只报；--strict 才当门）');
+            for (const p of j.problems.slice(0, 1)) warn('  · ' + p);
+            if (strict) staticErrs.push('[同时运动] ' + j.problems.length + ' 条超参考（' + info + '）');
+          } else {
+            log('  ✓ 同时运动：' + info);
+          }
+        } else if (r.status === 2) {
+          pushSkipped(skipped, '同时运动（concurrency）', '跑不了：' + firstLine((r.stdout ?? '') + (r.stderr ?? '')));
+        }
+      } catch (err) {
+        pushSkipped(skipped, '同时运动（concurrency）', '起不了这个子进程：' + firstLine(err));
+      }
+    }
+  }
   // 1.542b) **色系**：这支片子的颜色在不在一个色系里（tools/lint-color-family.mjs）。
   //
   // 为什么在 check 里：换风格最常翻的车不是「配色丑」，是**色系散了** ——
