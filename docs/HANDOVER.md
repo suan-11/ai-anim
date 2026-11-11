@@ -26,6 +26,24 @@
 - 验证：完整 CI 76/76；`probe-slide-transitions.mjs` 横竖屏 × 四方向 × 两模式共 16 场景通过（首尾、覆盖单调、纹理坐标、乱序 seek），另验真实时间线 split/slats 路由及模板不重复甩镜。探针已登记回归清单，需 Chrome，不在 CI 上运行。
 - 完整 `check _trans-structure` 三时刻 × 单/多子帧共 18 帧通过，另有无音轨等五项跳过；事件密度对新版草稿读数通过。尚未出正式版。
 
+
+### 2026-11-11 夜（引擎侧收口）
+
+- **BACKLOG 1-74 已修**：`gl.clear()` 现在算一次「整帧覆盖绘制」（`src/core/gl.js` 的 `clear` 调 `_notePaint`）。
+  背景守门原来只数 `Pass.render`，而 `AGENTS.md` §3 教场景写的第一句正是 `gl.clear(ctx.out, …)` ——
+  于是「只靠 clear 铺底」的模板（`outro`）被误判成没铺底。引擎在 `beginPaint` **之前**那次兜底黑屏不会被数。
+- **协作者的四个转场 + 引擎覆盖修复已提交**（`1efc05c` / `df8f402`）：`diamond` / `frame` / `split` / `slats`；
+  `handlesTransition` 改为「时间线覆盖优先」，显式 `false` 时不再把旧帧交给场景（避免叠两次甩镜）；
+  GPU 探针 `tools/probe-slide-transitions.mjs` 32 场景通过（首尾 / 覆盖单调 / UV 不拉伸 / 乱序 seek），需 Chrome、不在 CI 跑。
+- **三条审美判据全部接进 `anim check`**（`f718734` / `233dbbb`）：运动人格、缓动方向（源码级）、
+  同时运动（需要成片 mp4，没有就 skipped）。**退出码 2 一律记 skipped —— 没验 ≠ 通过**；默认只报，`--strict` 才当门。
+- **`docs/MOTION.md` §3.6 转场表补全到 15 种**（`1cd42f2`），并写明六个可选旋钮（`cols`/`stagger`/`bands`/`shards`/`seed`/`power`）。
+- **新工具 `tools/retime-lyrics.mjs`**（`9a0e00f`）：预测把歌词句首吸附到人声起音后的中位/p90。
+  ⚠ 实测结论：**逐句吸附不安全** —— pv-kattachi 从 中位 103 / p90 525 变成 92 / 602（更差），
+  因为它会把人声起音认成「别的字」的起音。所以默认 dry-run，`--apply` 只在整片统一偏移时用。
+- **`pv-kattachi` 仍然红**：`lint-lyric-sync` 中位 103ms（过）、p90 525ms（超），最差 229.32s +1346ms。
+  它的配置改动还在工作区**未提交**（不是本轮产物）；要收口得人工核听最后几句 + 重渲（约 100 分钟）。
+
 ## 0. 一句话现状
 
 引擎侧 16 条判据、75/75 回归全绿；四支片子有交付物（两支 PV 已发、两支 lab 只作样本）；
