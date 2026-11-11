@@ -3,8 +3,28 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-08**（拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) A4 重写）。
+> **最后更新：2026-11-10**。下方 §0–§10 是 11-08 的交接快照；分支、工作区、回归项数以本节续接记录和实时 Git 状态为准。
+> 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) A4 重写。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
+
+### 2026-11-10 续接
+
+- 接手基点 `29635e7`，已有 `turn` 百叶翻面；旋转/镜碎的旧方案已撤回，参见 [`MOTION-SPIN-SHATTER.md`](MOTION-SPIN-SHATTER.md) §7，别按旧会话表重新加回来。
+- 解构模板从同步径向展开改为 **Y 分层 → X 分列 → Z 展开纵深**，按逆序归位；三轴都有间隙才轻微转动，先退转角再合拢。相机提前退让、展开后侧看，标注错峰，页脚等归位后出现。
+- `tools/test-action-motion.mjs` 9/9：包括三档 spread × 201 时刻的保守包围盒无交叠与倒序 seek；镜头库测试 243/243；完整 `check _deconstruct-lab` 通过（三时刻 × 单/24 子帧；无音轨、无交叠等六项按工具报告跳过）。
+- 草稿 `out/_deconstruct-lab/deconstruct-staged-draft.mp4`：960×540 / 60fps / 10.8s / 648 帧，ffprobe 复核通过；已看拆层、展开、收拢关键帧与草稿末帧。事件密度显式指定这份文件：最长静止 0.5s、稀薄窗口 20%（旧片 40%）。草稿为 samples=1，供审节奏，未出正式版。
+- 接手时 CI 回归 75/76；唯一失败 `mix-loudnorm` 是沙箱临时目录 rename EPERM，沙箱外复跑 53/53 通过。
+- `pv-kattachi` 配置和本页在接手前已有未提交修改，保留；歌词最后一句起音仍需人工核听，lint 下降本身不证明歌词语义对齐。
+- 解构观察阶段续改：引线按弧长连续经过折点，到达后才揭示文字；核心/外层标注、材质高亮共用纯函数时序。外层被指向的网格使用独立材质，观察结束恢复原色；其余结构引线在聚焦时适度减弱。动作测试现为 10/10（新增折点连续性、文字不抢跑与高亮互斥）。
+- 续改验证：沙箱外完整 CI **76/76** 全绿，完整 `check` 单/24 子帧路径通过（仍有上列六项跳过）。新版草稿 `out/_deconstruct-lab/deconstruct-inspect-draft.mp4`（648 帧，ffprobe 复核通过）；已看 5.9/6.8/7.05s 关键帧和草稿抽帧，显式对这份 mp4 跑事件密度 `--strict` 通过（最长静止 0.5s、稀薄窗口 20%）。
+
+### 转场续改（2026-11-10）
+
+- 新增 `transition: 'split'`（两半对开）和 `'slats'`（八条交错滑出）。保持原纹理比例，间隙露出下一镜头；随摄影机主方向选择横/竖轴。不改默认 push shader。
+- 修正时间线 `handlesTransition: false` 覆盖模板标记失效的问题：引擎遵守段上覆盖，显式 false 时不给模板 `ctx.under`，避免先甩镜再叠转场。不写覆盖值时保持旧路径。
+- 样片：`tasks/_trans-structure/`；草稿 `out/_trans-structure/structure-transitions-draft.mp4`，14.15s / 960×540 / 60fps / 849 帧，ffprobe 复核通过，已看转场关键帧和草稿抽帧。
+- 验证：完整 CI 76/76；`probe-slide-transitions.mjs` 横竖屏 × 四方向 × 两模式共 16 场景通过（首尾、覆盖单调、纹理坐标、乱序 seek），另验真实时间线 split/slats 路由及模板不重复甩镜。探针已登记回归清单，需 Chrome，不在 CI 上运行。
+- 完整 `check _trans-structure` 三时刻 × 单/多子帧共 18 帧通过，另有无音轨等五项跳过；事件密度对新版草稿读数通过。尚未出正式版。
 
 ## 0. 一句话现状
 
@@ -130,8 +150,7 @@ node scripts/anim.mjs stamp           # 交付物是否还作废
 
 ## 8. 欠账（按优先级，每条都能直接开工）
 
-1. **`pv-kattachi` 尾段歌词错位**（唯一红着的片子）：`lint-lyric-sync` 报 217.08s `+2620ms`、223.77s `-2578ms`、229.32s `+1346ms`。
-   原因：QQ 音乐 LRC 只到 115.34s，尾段三句**按字数外推**。修法 = 按人声起音重排尾段 + 重渲（约 100 分钟）。
+1. **`pv-kattachi` 尾段歌词错位**（仍是唯一红着的片子）：已按 `analysis.vocal` 重排 213.67s 之后的四个尾段窗口（214.46 / 220.36 / 226.35 / 227.18），原来的 `+2620ms / -2578ms` 两个大错位读数已消失；当前 `lint-lyric-sync` 为中位 103ms / p90 525ms，最后一句仍报 1346ms，疑似低音量起音未被默认阈值捕获，尚需人工核听，不能仅凭最近起音判定歌词语义对齐。总时长仍为 236s。
 2. **两支 PV 的音轨都没有音效**：`anim mix <任务> --sfx auto` 已能出（`out/pv-king/_sfx-test.mp3` 试过），进成片需改 `audio.mix` + 重渲。
 3. **反 PPT 的 P1/P2 剩项**：非均匀时长模板、环境音层、真三维视差、C7 接入 `anim check`（三类运动模板与 `TextKit.reveal` 已由 PR #5 落地）。
 4. **PLAN 的 A 线**：`anim.mjs` 拆分（8025 行）、AGENTS 瘦身（94.5%，且部分宿主只注入 24 KB）、BACKLOG 归档（106 KB）。
@@ -159,3 +178,11 @@ node scripts/anim.mjs stamp           # 交付物是否还作废
 3. 读 `docs/PLAN-2026-11-08.md` §1「待定事项」——有几条是留给开发者拍板的，别替他决定。
 4. 挑一件：**修 `pv-kattachi` 尾段**（片子侧，最影响观众）或 **PLAN A 线第一条**（工程侧，最影响 agent 效率）。
 5. 想做新选题就从 `tasks/_ideas.md` 抽一条，按 §6 的四条建议优先。
+
+### 动态切入切出续改（2026-11-11）
+
+- `tasks/_trans-structure/scenes/dynamic.js` 给三段全屏镜头加了确定性的镜头层运动：入场带 92px 推入与 5.5% overscan 后落定，出场在交叠窗内带 34px 方向性带速并轻抬画面。变换只作用于场景前景，`split` / `slats` 的纹理坐标与默认 push shader 保持不变。
+- `_trans-structure` 改为 `seq(dynamicTimeline())`，保留原来的 2.4 / 10.8 / 2.7 秒时长和两个转场模式。新草稿 `out/_trans-structure/structure-dynamic-draft.mp4`：960×540 / 60fps / 14.15s / 849 帧，ffprobe 复核通过；已抽查两个切点的导出帧。
+- 验证：`check _trans-structure` 18/18 单帧与多子帧通过，`probe-slide-transitions.mjs` 16/16 GPU 场景通过，真实时间线 split/slats 路由通过。该草稿仍是审节奏用的 samples=1 预览，尚未出正式版。
+
+- 动态草稿后续精修：把 `_trans-structure` 的切点从整屏对开 / 交错条带换为 `iris` 中心扩散与 `sweep` 角度扫描，镜头层运动收窄为 46px 入场、18px 出场和 2.6% overscan。草稿 `out/_trans-structure/structure-refined-draft.mp4` 已完成 849 帧、ffprobe 通过，并抽查连续切点帧。`probe-slide-transitions.mjs` 保留 split/slats 的 GPU 覆盖测试，同时改验真实时间线的 iris/sweep 路由。

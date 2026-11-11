@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { smooth, phase, recoil, cascadePose, contourPoint, deconstructPose } from '../src/kit/action-motion.js';
+import { smooth, phase, recoil, cascadePose, contourPoint, deconstructPose, deconstructInspection, traceLeader } from '../src/kit/action-motion.js';
 import { TextKit } from '../src/core/text.js';
 import { shot } from '../src/shots/index.js';
 
@@ -94,5 +94,51 @@ test('解构保留模块身份与核心锚点，错峰分离、首尾精确归�
   assert.ok(deconstructPose(0,.2).open>deconstructPose(26,.2).open);
   for(const index of [-1,27,NaN,1.5]) assert.throws(()=>deconstructPose(index,.5));
   assert.throws(()=>shot('deconstruct',{spread:0}));
+});
+test('解构分层后再展开纵深，归位先对齐纵深；夹紧与倒序 seek 不穿模',()=>{
+  const early=deconstructPose(26,.25),closing=deconstructPose(26,.86);
+  assert.ok(early.axisOpen[1]>early.axisOpen[0]);
+  assert.equal(early.axisOpen[2],0);
+  assert.equal(closing.axisOpen[2],0);
+  assert.ok(closing.axisOpen[1]>closing.axisOpen[0]);
+  for(const spread of [1.4,2.15,2.8]) {
+    const samples=Array.from({length:201},(_,i)=>i/200);
+    const forward=samples.map(p=>Array.from({length:27},(_,i)=>deconstructPose(i,p,spread)));
+    for(let n=samples.length-1;n>=0;n--) {
+      const poses=Array.from({length:27},(_,i)=>deconstructPose(i,samples[n],spread));
+      assert.deepEqual(poses,forward[n]);
+      // Conservative world AABB around each rotated .94 cube. A separating
+      // world axis proves the real meshes cannot intersect, including during seating.
+      const radii=poses.map(v=>.47*Math.exp(v.rotation.reduce((s,a)=>s+Math.abs(a),0)));
+      poses.forEach((a,i)=>{
+        a.axisOpen.forEach(v=>assert.ok(v>=0 && v<=1));
+        poses.slice(i+1).forEach((b,j)=>assert.ok(
+          a.position.some((v,k)=>Math.abs(v-b.position[k])>=radii[i]+radii[i+1+j]),
+          `modules ${i}/${i+1+j} overlap at ${samples[n]}, spread ${spread}`));
+      });
+    }
+  }
+});
+test('解构引线沿折点连续画出，文字不抢跑，材质聚焦互不重叠',()=>{
+  const path=[[0,0],[3,4],[6,4]];
+  assert.deepEqual(traceLeader(path,0),[]);
+  assert.deepEqual(traceLeader(path,5/8),[[0,0],[3,4]]);
+  assert.deepEqual(traceLeader(path,.75),[[0,0],[3,4],[4,4]]);
+  assert.deepEqual(traceLeader(path,1),path);
+  for(let n=0;n<=1000;n++) {
+    const p=n/1000, cues=deconstructInspection(p);
+    for(const cue of Object.values(cues)) {
+      if(cue.label>0) assert.equal(cue.leader,1,'caption preceded the leader');
+      for(const v of Object.values(cue)) assert.ok(v>=0 && v<=1);
+    }
+    assert.equal(cues.core.focus*cues.shell.focus,0,'two simultaneous material highlights');
+    if(p<.5 || p>=.7) for(const cue of Object.values(cues)) close(cue.focus,0);
+    const prefix=traceLeader(path,p);
+    let length=0;
+    for(let i=1;i<prefix.length;i++) length+=Math.hypot(prefix[i][0]-prefix[i-1][0],prefix[i][1]-prefix[i-1][1]);
+    close(length,8*p);
+  }
+  assert.deepEqual(traceLeader([[1,2],[1,2],[1,2]],.5),[[1,2]]);
+  for(const p of [.64,.515,.7,0,.56,1]) assert.deepEqual(deconstructInspection(p),deconstructInspection(p));
 });
 console.log(`通过 ${passed}/${passed}`);

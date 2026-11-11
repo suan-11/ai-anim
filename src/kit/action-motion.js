@@ -1,9 +1,29 @@
 // @ts-check
 // Action timing is normalized to the shot, so even a short shot reaches its final pose.
-import { clamp, lerp } from '../core/util.js';
+import { clamp, lerp, polylineLengths, pointAtLength } from '../core/util.js';
 
 export const smooth = (p) => { const u = clamp(p); return u * u * u * (u * (u * 6 - 15) + 10); };
 export const phase = (p, a, b) => smooth((p - a) / (b - a));
+
+/** Material, leader and caption share one clock; the caption follows the leader. */
+export function deconstructInspection(p) {
+  const cue = (a, b, c, d, e) => {
+    const leader = clamp(phase(p, a, b));
+    const opacity = clamp(1 - phase(p, d, e));
+    return { leader, label: clamp(phase(p, b, c)), opacity, focus: leader * opacity };
+  };
+  return { core: cue(.50,.52,.535,.585,.61), shell: cue(.61,.63,.645,.68,.70) };
+}
+
+/** Prefix of a leader at a fraction of its arc length, including its bend. */
+export function traceLeader(points, progress) {
+  const p = clamp(progress);
+  if (p <= 0) return [];
+  if (p >= 1) return points.map(point => [...point]);
+  const acc = polylineLengths(points), distance = p * acc.at(-1);
+  const prefix = points.filter((_, i) => acc[i] < distance);
+  return [...prefix, pointAtLength(points, acc, distance).slice(0, 2)];
+}
 
 /** Analytic impulse: zero before contact, finite and continuous at contact, settles to zero. */
 export function recoil(age, damping = 9, frequency = 18) {
@@ -44,11 +64,19 @@ export function deconstructPose(index, p, spread = 2.15) {
   if (!Number.isFinite(spread) || spread < 1.4 || spread > 2.8) throw new Error('deconstruct: spread 必须在 1.4..2.8 内');
   const home = [index % 3 - 1, Math.floor(index / 3) % 3 - 1, Math.floor(index / 9) - 1];
   const rank = (home[1] + 1) * .022 + (home[0] + 1) * .012 + (home[2] + 1) * .008;
-  const open = phase(p, .12 + rank, .37 + rank) * (1 - phase(p, .70 + rank * .35, .93 + rank * .35));
-  const distance = 1 + (spread - 1) * open;
+  // Read the topology in order: layers (Y), columns (X), then depth (Z).
+  // Close in reverse order so each layer is aligned before it seats. Keep the
+  // same delay within a row: neighbouring modules must never overtake each other.
+  const delay = rank * .5;
+  const axes = [[.21, .37, .74, .82], [.12, .28, .80, .88], [.30, .46, .68, .76]];
+  const axisOpen = axes.map(([a, b, c, d]) =>
+    clamp(phase(p, a + delay, b + delay) * (1 - phase(p, c + delay * .5, d + delay * .5))));
+  const open = Math.max(...axisOpen);
+  // Only tilt once ALL axes have clearance; unwind before the first axis closes.
+  const tilt = phase(Math.min(...axisOpen), .15, .85);
   return {
-    home, open, core: index === 13,
-    position: home.map(v => v * distance),
-    rotation: home.map((v, i) => v * open * [ .055, .085, -.045 ][i]),
+    home, open, axisOpen, core: index === 13,
+    position: home.map((v, i) => v * (1 + (spread - 1) * axisOpen[i])),
+    rotation: home.map((v, i) => v * tilt * [ .055, .085, -.045 ][i]),
   };
 }
