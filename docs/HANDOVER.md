@@ -213,3 +213,10 @@ node scripts/anim.mjs stamp           # 交付物是否还作废
 - 验证结果：`node tools/test-transition-modes.mjs` 24 项通过，`node tools/probe-slide-transitions.mjs` 32/32 GPU 场景通过，`node scripts/anim.mjs check _trans-structure` 18/18 单帧与多子帧通过。探针覆盖横竖画布、四方向、首尾、覆盖单调、UV 坐标和乱序 seek，并验真实时间线 `diamond` / `frame` 路由。
 - 工作区仍有 `tasks/pv-kattachi/task.config.mjs` 的既有未提交修改，属于歌词同步工作，不要在本轮转场交接里覆盖或重置。
 - 下一步若继续优化，优先观察 `structure-handover-draft.mp4` 的两个交叠窗，再决定是否把 `frame` 的边缘亮度或 `diamond` 的边缘宽度收窄。正式版仍需用户明确要求后再去掉 `--draft`。
+
+### 2026-11-12 续做转场
+
+- 新增 `corners` 转场：四角的旧画面沿圆弧向中心收紧，片尾卡使用 `diamond → corners`，文案改为 `02 / CORNERS`。
+- GPU 探针扩展到横竖画布 × 四方向 × 五种几何模式，共 **40/40** 场景通过。`test-transition-modes` 24 项通过。
+- 最新草稿 [`structure-corners-draft.mp4`](../out/_trans-structure/structure-corners-draft.mp4)：960×540 / 60fps / 14.15s / 849 帧，ffprobe 通过。抽帧检查 `11.7s / 11.9s / 12.2s`，四角边缘连续，片尾标题在过渡中仍可读。
+- 当前任务完整 `check _trans-structure` 通过 18/18 单帧与多子帧路径。正式版仍需用户明确要求后再去掉 `--draft`。

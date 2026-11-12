@@ -51,8 +51,8 @@ export function dynamicTimeline() {
     cut(dynamicDeconstruct({ id: 'structure', title: '拆开，才看见结构', label: '分离 · 观察 · 重组' }), {
       dur: 10.8, overlap: .85, transition: 'diamond', handlesTransition: false, world: false,
     }),
-    cut(dynamicLockup({ id: 'close', mark: 'square', name: '重新归位', tagline: '角度扫描', kicker: '02 / SWEEP', meta: '' }), {
-      dur: 2.7, overlap: .9, transition: 'frame', handlesTransition: false, world: false, focus: 'center',
+    cut(dynamicLockup({ id: 'close', mark: 'square', name: '重新归位', tagline: '四角退场', kicker: '02 / CORNERS', meta: '' }), {
+      dur: 2.7, overlap: .9, transition: 'corners', handlesTransition: false, world: false, focus: 'center',
     }),
   ];
 }

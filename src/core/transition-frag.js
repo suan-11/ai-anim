@@ -151,6 +151,24 @@ export const TRANSITION_FRAG = {
       vec3 col = texture(under, vUv).rgb + vec3(0.07, 0.065, 0.05) * rim;
       fragColor = vec4(col, m);
     }`,
+  /** 四角退场：四个角先打开，旧画面向中心收紧。 */
+  corners: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 q = vUv - 0.5;
+      q.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float d = min(min(length(q - vec2(-.889, -.5)), length(q - vec2(.889, -.5))),
+                    min(length(q - vec2(-.889, .5)), length(q - vec2(.889, .5))));
+      float rad = kk * .88;
+      float aa = max(fwidth(d), 1e-4) * 1.5;
+      float m = smoothstep(rad - aa, rad + aa, d);
+      float rim = (1.0 - smoothstep(0.0, aa * 7.0, abs(d - rad))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.075, 0.067, 0.05) * rim;
+      fragColor = vec4(col, m);
+    }`,
   /** 对开：两个半幅向外移走，纹理保持原比例；缝隙直接露出下一帧。 */
   split: /* glsl */ `    uniform sampler2D under;
     uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;

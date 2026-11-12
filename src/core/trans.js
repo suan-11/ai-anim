@@ -198,14 +198,14 @@ export function victimSpan(enterDur = 1, ratio = VICTIM_RATIO_DEFAULT) {
  * | 'relay' | 相机接力：位姿混合 + 交叠窗换手，由 engine composite 拦截，不走 transitionPass | 相邻两段都声明了 relayPose（手写 camera3 / makeThreeShot）的镜头之间 |
  */
 export const TRANSITION_MODES = /** @type {const} */ ([
-  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'diamond', 'frame', 'turn', 'split', 'slats', 'glitch', 'pixel', 'dissolve',
+  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'diamond', 'frame', 'corners', 'turn', 'split', 'slats', 'glitch', 'pixel', 'dissolve',
   // 相机接力（BACKLOG 1-12）：位姿混合 + 交叠窗换手，由 engine composite 的 relay 分支
   // 拦截（见 src/core/relay.js），不走 transitionPass —— 所以没有 shader、
   // isPassTransition('relay') 为 false（与 'mix' / 'none' 同一类）。
   'relay',
 ]);
 
-const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'diamond', 'frame', 'turn', 'split', 'slats', 'glitch', 'pixel', 'dissolve']);
+const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'diamond', 'frame', 'corners', 'turn', 'split', 'slats', 'glitch', 'pixel', 'dissolve']);
 
 /**
  * 校验转场模式名。**写错当场抛**（并列出可用清单）。
@@ -252,6 +252,7 @@ export function transitionFadeAt(mode) {
   case 'sweep': return 0.85;
     case 'diamond': return 0.92;
     case 'frame': return 0.92;
+    case 'corners': return 0.92;
   // turn 的旧帧是**几何**消失的（每条转到 90° 就不画），不需要全局淡出；叠上去中段会发灰
   case 'turn': return 1;
     case 'split': return 1;

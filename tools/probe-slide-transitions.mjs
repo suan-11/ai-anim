@@ -15,7 +15,7 @@ try {
       const pattern = new Pass(gl,'void main(){fragColor=vec4(vUv.x,0.1,vUv.y,1.0);}',{}, {blend:false,jitter:false});
       pattern.render(gl,under);
       const reference = gl.readPixels(under).slice();
-      for(const mode of ['split','slats','diamond','frame']) for(const dir of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      for(const mode of ['split','slats','diamond','frame','corners']) for(const dir of [[1,0],[-1,0],[0,1],[0,-1]]) {
         const pass = transitionPass(gl,{mode});
         pass.u.under.value = {tex:under.tex,__tex:true};
         pass.u.dir.value = dir;
@@ -41,15 +41,19 @@ try {
             let offset;
             const smooth=p=>p*p*p*(p*(p*6-15)+10);
             if(mode==='split') offset=(s<.5?-1:1)*smooth(k)*.5;
-            else if (mode==='diamond' || mode==='frame') {
+            else if (mode==='diamond' || mode==='frame' || mode==='corners') {
               // shader 读的是 RES_LOGICAL = 引擎画布（1920×1080），不是探针自建的 RT 尺寸：
               // aspect 恒为画布的 W/H，与 RT 是横是竖无关。
               const aspect = 1920 / 1080;
               const dx = (horizontal ? src : u) - .5;
               const dy = (horizontal ? v : src) - .5;
-              const r = mode === 'diamond' ? Math.abs(dx * aspect) + Math.abs(dy) : Math.max(Math.abs(dx * aspect), Math.abs(dy));
-              if (r < .01 || r > .97) continue;
-              const rad = k * (mode === 'diamond' ? .98 : .96);
+              const r = mode === 'diamond'
+                ? Math.abs(dx * aspect) + Math.abs(dy)
+                : mode === 'frame'
+                  ? Math.max(Math.abs(dx * aspect), Math.abs(dy))
+                  : Math.min(...[[-.889,-.5],[.889,-.5],[-.889,.5],[.889,.5]].map(([cx,cy]) => Math.hypot(dx * aspect - cx, dy - cy)));
+              if (r < .01 || r > 1.0) continue;
+              const rad = k * (mode === 'diamond' ? .98 : mode === 'frame' ? .96 : .88);
               const i=(y*W+x)*4;
               // shader 在边界带给一圈 rim 高光（|r-rad| < aa*7，aa≈fwidth*1.5）——
               // 探针在 CPU 上没有 fwidth，取一个保守带宽（W/180）把 rim 豁免：
@@ -98,9 +102,9 @@ try {
     await api.frame(1.98,{samples:1});
     const diamond=[...engine._transPasses.values()].some(p=>p.mode==='diamond');
     await api.frame(11.9,{samples:1});
-    const frame=[...engine._transPasses.values()].some(p=>p.mode==='frame');
-    return {diamond,frame,kitDraws};
+    const corners=[...engine._transPasses.values()].some(p=>p.mode==='corners');
+    return {diamond,corners,kitDraws};
   });
-  assert.deepEqual(routing,{diamond:true,frame:true,kitDraws:0});
-  console.log('PASS 真实时间线：diamond / frame 路由正确，模板不叠第二次甩镜');
+  assert.deepEqual(routing,{diamond:true,corners:true,kitDraws:0});
+  console.log('PASS 真实时间线：diamond / corners 路由正确，模板不叠第二次甩镜');
 } finally { await probe.close(); }
