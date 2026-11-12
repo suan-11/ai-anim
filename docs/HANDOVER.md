@@ -204,3 +204,12 @@ node scripts/anim.mjs stamp           # 交付物是否还作废
 - 验证：`check _trans-structure` 18/18 单帧与多子帧通过，`probe-slide-transitions.mjs` 16/16 GPU 场景通过，真实时间线 split/slats 路由通过。该草稿仍是审节奏用的 samples=1 预览，尚未出正式版。
 
 - 动态草稿后续精修：把 `_trans-structure` 的切点从整屏对开 / 交错条带换为 `iris` 中心扩散与 `sweep` 角度扫描，镜头层运动收窄为 46px 入场、18px 出场和 2.6% overscan。草稿 `out/_trans-structure/structure-refined-draft.mp4` 已完成 849 帧、ffprobe 通过，并抽查连续切点帧。`probe-slide-transitions.mjs` 保留 split/slats 的 GPU 覆盖测试，同时改验真实时间线的 iris/sweep 路由。
+
+### 2026-11-12 交接补充 1：转场库与样片状态
+
+- 当前工作区基于提交 `1627466`，转场实现已在提交 `1efc05c` 入库。新增 `diamond` 与 `frame` 两种中心几何转场，保留 `iris`、`sweep`、`split`、`slats` 以及默认 `push`。
+- `tasks/_trans-structure/` 当前真实时间线使用 `diamond` 进入解构镜，使用 `frame` 进入片尾卡。镜头层运动是 46px 入场、18px 出场和 2.6% overscan，代码位于 [`scenes/dynamic.js`](../tasks/_trans-structure/scenes/dynamic.js)。
+- 最新交接草稿 [`structure-handover-draft.mp4`](../out/_trans-structure/structure-handover-draft.mp4)：960×540、60fps、14.15s、849 帧，ffprobe 已复核。关键抽帧位于 `out/_trans-structure/stills/f_0001.980.png` 与 `f_0011.900.png`。
+- 验证结果：`node tools/test-transition-modes.mjs` 24 项通过，`node tools/probe-slide-transitions.mjs` 32/32 GPU 场景通过，`node scripts/anim.mjs check _trans-structure` 18/18 单帧与多子帧通过。探针覆盖横竖画布、四方向、首尾、覆盖单调、UV 坐标和乱序 seek，并验真实时间线 `diamond` / `frame` 路由。
+- 工作区仍有 `tasks/pv-kattachi/task.config.mjs` 的既有未提交修改，属于歌词同步工作，不要在本轮转场交接里覆盖或重置。
+- 下一步若继续优化，优先观察 `structure-handover-draft.mp4` 的两个交叠窗，再决定是否把 `frame` 的边缘亮度或 `diamond` 的边缘宽度收窄。正式版仍需用户明确要求后再去掉 `--draft`。
