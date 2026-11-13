@@ -19,6 +19,7 @@ out/
 
 # ── 会话 / 工具临时目录 ──────────────────────────────────────
 .dsh-vision-toolkit/
+.dsh-ops/
 
 # ── 音频 ─────────────────────────────────────────────────────
 # `.wav` 全是"先写 wav、再用 ffmpeg 编码成 mp3"的**中间物**，
@@ -53,6 +54,12 @@ tasks/sodium-preview/
 tasks/nekoseek/
 # · 认知科学科普片（《车棚》；带旁白成片，只留本地）
 tasks/bikeshed/
+# · 微波炉门金属网那支科普片（2026-11；成片 715MB + 分块 + 配乐 + 封面，只留本地）
+tasks/wave-wall/
+# · 上面这支的封面任务（同一套纸面语言，出封面静帧用）
+tasks/wave-wall-cover/
+# · 调试用的单镜头脚手架（直接 import wave-wall 的场景，跟着片子留本地）
+tasks/wave-preview/
 
 # 只服务上面那几支片子的配乐脚本，跟着片子一起留在本地。
 scripts/make-sodium-audio.mjs
