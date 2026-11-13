@@ -8,39 +8,78 @@
 ## 一、总量
 
 ```
-47 个提交 · 465 个文件 · +74,591 / −1,001 行
-基线 237e985　当前 3af444c fix(motion): 收 review —— P3 取参、空≠干净、嵌套括号、sine 幽灵名、vendor 合规
+85 个提交 · 552 个文件 · +98,718 / −1,453 行
+基线 237e985　当前 f0b02db docs(backlog): 归档瘦身 106KB→18.6KB —— 已完成记录原样迁 history，61 个外部引用编号留指针（PLAN A3）
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
-| tasks | 261 | 52,778 | 301 |
-| src | 58 | 7,353 | 169 |
-| tools | 52 | 6,459 | 42 |
-| docs | 55 | 3,851 | 77 |
-| scripts | 10 | 2,003 | 53 |
-| skills | 19 | 1,666 | 0 |
-| (root) | 5 | 345 | 359 |
-| .github | 2 | 108 | 0 |
+| tasks | 303 | 55,398 | 308 |
+| assets | 14 | 16,801 | 0 |
+| tools | 64 | 8,046 | 185 |
+| src | 66 | 8,029 | 167 |
+| docs | 64 | 5,396 | 365 |
+| scripts | 12 | 2,819 | 68 |
+| skills | 20 | 1,724 | 0 |
+| (root) | 5 | 375 | 360 |
+| .github | 2 | 114 | 0 |
 | .githooks | 1 | 16 | 0 |
-| assets | 2 | 12 | 0 |
+| public | 1 | 0 | 0 |
 
 ## 二、提交一览
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| f0b02db | 2026-11-13 | docs(backlog): 归档瘦身 106KB→18.6KB —— 已完成记录原样迁 history，61 个外部引用编号留指针（PLAN A3） |
+| c0970da | 2026-11-13 | chore(tools): 清理 7 个孤儿工具 —— nuomi 五件迁 tasks/nuomi/tools/，删两个过期探针（PLAN A6） |
+| 9a65c4a | 2026-11-13 | feat(regress): 前置依赖体检 —— 缺 ffmpeg/Chrome 一行说清，不再满屏 ENOENT（PLAN A5） |
+| 615a98e | 2026-11-13 | chore: 忽略 wave-wall 这支片子和 .dsh-ops 本地目录 |
+| 2bf56b4 | 2026-11-13 | refine(fish-print): time the approach, press and impression |
+| 35dd70f | 2026-11-13 | fix(fish-print): construct canvas paths during scene setup |
+| ce823b3 | 2026-11-13 | feat(fish-print): tell a woodblock printing story through the split |
+| 02cee2b | 2026-11-13 | feat(rough-cut): choreograph a continuous split, hold and reassembly |
+| 9bd271a | 2026-11-08 | docs(ideas): 补充 43 条跨方向创新选题至选题池 |
+| c72e1ea | 2026-11-08 | docs(plan): 落盘改进计划（工程健康 / 出片效率 / 画面下限）并在 BACKLOG 挂入口 |
+| 36872a7 | 2026-11-07 | chore: 删掉误提交的临时提交信息文件（.msg-stamp.txt） |
+| ef76dd5 | 2026-11-07 | feat(stamp): 成片版本戳 —— 交付物不作废，用戳记版本而不是逼整批重渲（1-73） |
+| 0c939ec | 2026-11-07 | fix(ci): --check 只判「不矛盾」，不判「逐字节相同」 |
+| 9e291a1 | 2026-11-07 | fix(ci): 生成物跳过 merge commit —— PR 上的 HEAD 是临时对象，不是过期 |
+| 00b3fda | 2026-11-07 | fix(ci): fetch-depth 0 —— CI 红在「拿不到基线」，不是清单过期 |
 | 3af444c | 2026-11-07 | fix(motion): 收 review —— P3 取参、空≠干净、嵌套括号、sine 幽灵名、vendor 合规 |
+| 4cafeff | 2026-11-06 | feat: add action and deconstruction motion shots |
 | 71c062f | 2026-11-06 | feat(motion): 运动人格可选声明 + 三条审美判据（缓动方向 / 同时运动 / 时长档） |
+| 297567a | 2026-11-06 | 同时运动判据（1/3 规则的片子版）+ MOTION.md §8 §9 |
+| 30192cf | 2026-11-06 | 运动人格（可选声明，不僵化）+ 缓动方向判据 |
+| 6171f70 | 2026-11-06 | vendor LottieFiles motion-design-skill（MIT）+ 评估文档：与我们已有判据的重叠/差异、四件值得抄、三件不该抄 |
+| a1ca4fb | 2026-11-04 | 交接：docs/HANDOVER.md（现状 / 这轮做了什么 / 怎么验证 / 环境坑 / 欠账） |
+| 8969182 | 2026-11-04 | 反 PPT 味：state / relayTo 进时间线 + lint-anti-ppt 七条判据（P0 落地） |
+| 62f633c | 2026-11-03 | 音效语义规则：按段选声（标题撞击+闪 / 数据 UI 声 / 歌词换族才给风 / 片尾断电 / 大字前 riser）+ 再拉 5 条库存到 10 条 + test-sfx 30 项 |
+| 3454291 | 2026-11-03 | 音效：SoundDino 索引 2081 条（36 分类）+ 共享库 5 条 + anim mix --sfx（自动摆位/峰归一/侧链让路）+ test-sfx 17 项 |
+| d027754 | 2026-11-02 | 色系判据接进 check + 撞色系对比（--compare） |
+| fd719ff | 2026-11-02 | 引擎：色系判据 lint-color-family（主色系/前二/对比/信号色）+ 强调色跟着 signal 旋转（风格只改 signal 也不散） |
+| ce7ea0e | 2026-11-02 | 判据修完：亮底风格的「底色不符」三层原因（2 层是判据自己的错） |
+| 98e8592 | 2026-11-02 | 修引擎：编码器「能不能真的编一帧」+ 底色 bg 缺省 + 回归清单整治 |
+| 3fd755a | 2026-11-01 | 引擎夜班：lint-lyric-sync（词句对得上人声，已接进 check）+ gen-changes（改动清单生成物，--check 防过期）+ 播放器 P 键截帧 |
+| 29daf26 | 2026-11-01 | 融 OpenFilm 的「一个 HTML 文件就是一支片子」：anim film-html（esbuild 打包 + 音轨内联 + 单页播放器）+ 量具 probe-film-html + agent skill 包 |
+| 4605745 | 2026-11-01 | KING PV: 片门晃动 1.6px + 曝光闪烁 0.18 + 呼吸推近 1.028——白底静止段不再被判据当静帧 |
+| 60215a6 | 2026-11-01 | KING PV: 片头 14.4s 静态大字拆成三段（mask → キング竖排 → glitch 署名），修掉事件密度红灯 |
+| 272b7e7 | 2026-11-01 | 新 PV：KING（Kanaria feat. GUMI）· Cotton 翻唱 —— QQ音乐逐行 LRC + 线性拟合（0.99974）+ 起音吸附；bauhaus 白底、文字自适应深色、几何底纹 |
 | fb2ecd6 | 2026-11-01 | feat(relay): 相机接力 —— transition: relay，相机在两段位姿间飞、内容换手窗交接（1-12） |
 | e8dcc4b | 2026-11-01 | docs: 归档已完成的交接文档 —— 8 份入库 + 3 份本地随移（docs/history/） |
+| 280ad7f | 2026-11-01 | PV: 间奏空拍改成 interlude（拍尺 + 罗马音慢移 + kick/snare/hat 能量条），不再出现单音符空场 |
 | 9e1245c | 2026-11-01 | fix(sampling): 自适应梯子的采样窗几何错误 —— ternaryOffsets 改层级序（1-72） |
 | 95a500a | 2026-11-01 | fix(timeline): resolveDur 拒绝非有限 dur/tail + refRT 释放 + sampling 入回归清单 |
 | bc32a06 | 2026-10-31 | feat(杂活批次): 后处理/CLI/引擎杂活一次收账 —— 1-14/1-15/1-37/A-2/D-1/E-1/1-24① + 1-8 注入通道 |
 | f02541a | 2026-10-31 | feat(render): 多子帧亚像素抖动（真 4× 超采样）+ 填充面硬边带（1-71） |
+| 0d80c0d | 2026-10-31 | PV: 错误色加强（普通 0.22 / split 0.45 / glitch 0.85 + 随 kick 0.45），节拍扫描线压暗 |
+| 4a2d55a | 2026-10-31 | PV: 加错误色（post ca，随 kick 抖动；glitch/split 段更狠），准备带运动模糊重渲 |
 | 156ee82 | 2026-10-31 | docs(agents): 推仓库改用 Git 自带的 ssh（系统那个在本机返回 255 且无输出） |
 | 4057562 | 2026-10-31 | feat(segments): 引擎改动按 import 图收窄，改通用件不再整片重渲 |
 | fdaa967 | 2026-10-31 | feat(video): dry-run 按草稿/成片档预估，审片先草稿后全渲染 |
+| 580bb2c | 2026-10-31 | PV 改用 QQ音乐官方逐行 LRC 时间轴（songmid 0016bZbj0QvC1C）：首句 1.33s 与原曲一致；揭示类效果压到 0.42s 内，歌词到句即读' |
+| 633ecea | 2026-10-31 | PV: 句首改由人声起音驱动（DP 挑峰 + 80ms 内吸拍）+ 每拍可见的扫描线；片头合成一个镜头（标题+作者+署名） |
 | 582f234 | 2026-10-31 | docs: 计数同步 —— 模板 25 个 / 仪器九种 / CHANGES 刷新（37 提交 381 文件） |
+| 5fe36b8 | 2026-10-31 | PV 歌词版 + tools/lint-cut-beats.mjs（切点必须踩拍） |
 | c444859 | 2026-10-31 | docs(rules): P4 —— 合别人分支的纪律（预演 / 并集vs二选一 / 编号撞车） |
 | 3efea97 | 2026-10-31 | feat: 手绘笔迹 —— 中心线+压力 -> 轮廓多边形，曲率 < 半宽时自动退胶囊链（1-69） |
 | df5d91d | 2026-10-31 | feat: 像素精灵 + 多方向排线 —— 像素四件事齐全、木刻按明暗加方向（1-67 / 1-68） |

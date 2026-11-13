@@ -33,6 +33,7 @@
 | [`HANDOFF-2026-10-31.md`](HANDOFF-2026-10-31.md) | 同名 | AGENTS 瘦身 / 参数化转场 / 纸艺层叠 | 同上 |
 | [`HANDOFF-2026-10-31-pixel-hatch.md`](HANDOFF-2026-10-31-pixel-hatch.md) | 同名 | 像素精灵 + 多方向排线 | 同上 |
 | [`HANDOFF-2026-11-01-relay.md`](HANDOFF-2026-11-01-relay.md) | `docs/HANDOFF-2026-11-01-relay.md` | 相机接力 relay（BACKLOG 1-12）的设计取舍与验收读数 | [`../ENGINE.md`](../ENGINE.md) §3.7.7 · [`../BACKLOG.md`](../BACKLOG.md) 1-12（已销账） |
+| [`BACKLOG-done-2026-10.md`](BACKLOG-done-2026-10.md) | `docs/BACKLOG.md` 的已完成记录 | 2026-11-13 A3 瘦身归档：53+ 条已完成条目 + 顶部历史批次说明（**原样迁出**）；外部引用编号在主文件 §4 留指针 | [`../BACKLOG.md`](../BACKLOG.md)（唯一待办清单） |
 | [`HANDOFF-bikeshed-proposal.md`](HANDOFF-bikeshed-proposal.md) / [`HANDOFF-bikeshed-postmortem.md`](HANDOFF-bikeshed-postmortem.md) | `docs/HANDOFF-bikeshed-*.md` | 《车棚》选题方案与复盘（**本地文档**，不入库） | [`../BACKLOG.md`](../BACKLOG.md) §0 |
 | [`HANDOFF-sodium-feedback.md`](HANDOFF-sodium-feedback.md) | `docs/HANDOFF-sodium-feedback.md` | sodium 外部反馈（**本地文档**，不入库） | [`../STATUS.md`](../STATUS.md) §18 |
 

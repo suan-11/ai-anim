@@ -97,7 +97,7 @@ const ITEMS = [
   { name: 'unit:shots', needs: [], cmd: ['tools/test-shots.mjs'], note: 'A 档镜头库：模板登记/参数名/任务段名（写错就响）+ 选型元数据齐全（1-62 §2.6）' },
   { name: 'unit:shot-pick', cmd: ['tools/test-shot-pick.mjs'], note: '选型器（1-62，学 JIZURA 部件表）：筛的语义（energy/tags/角色锁/缺省放行）+ 抽的确定性 + 落空诊断（36 项）' },
   // 要 Chrome：它把页面真的渲一遍再比对像素
-{ name: 'style:palette', needs: ['chrome'], cmd: ['tools/test-style-palette.mjs'], note: '风格包的底色是否真的画到画面上（比对 __animPalette.hex.bg 与画面像素 + 亮/暗分档）· ⚠ 已知红：5 套亮底风格的 bg 与画面不符，见 docs/BACKLOG.md 末条', slow: true, ciExclude: true, ciWhy: '要 Chrome + 真 GPU（起私有 Vite 渲一帧再读回像素）' },
+{ name: 'style:palette', needs: ['chrome'], cmd: ['tools/test-style-palette.mjs'], note: '风格包的底色是否真的画到画面上（比对 __animPalette.hex.bg 与画面像素 + 亮/暗分档）· 曾已知红（5 套亮底风格 bg 不符），2026-11-02 已修，见 docs/history/BACKLOG-done-2026-10.md 末节', slow: true, ciExclude: true, ciWhy: '要 Chrome + 真 GPU（起私有 Vite 渲一帧再读回像素）' },
   { name: 'unit:event-density', needs: ['ffmpeg'], cmd: ['tools/test-event-density.mjs'], note: '事件密度判据回归（合成静止/运动片）：静止跨度与稀薄窗口必须分开报对，纯静止片必须被报成问题' },
   { name: 'unit:tempo', cmd: ['tools/test-tempo.mjs'], note: 'tempo 估计回归（合成鼓 80/96/120/140 + 半拍踩镲诱饵）：bpm 偏 ≤0.6%、网格间隔偏 ≤1% —— 修的是「analyze 把 80bpm 报成 83.3」那个 4% 偏差' },
   { name: 'unit:tasks-meta', needs: [], cmd: ['tools/test-tasks-meta.mjs'], note: 'tasks --json（1-58）的字段解析 + 变体块不许污染任务级字段 + 真实任务能解析；--table 表路径（1-23③）的接线自检' },
