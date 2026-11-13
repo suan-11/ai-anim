@@ -3,9 +3,46 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-10**。下方 §0–§10 是 11-08 的交接快照；分支、工作区、回归项数以本节续接记录和实时 Git 状态为准。
+> **最后更新：2026-11-13**。优先阅读下方“本次交接”一节。下方 §0–§10 是 11-08 的交接快照；分支、工作区、回归项数以最新续接记录和实时 Git 状态为准。
 > 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) A4 重写。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
+
+### 2026-11-13 本次交接，以本节为准
+
+用户最新决定为放弃黑白粗剪、九块拆合及其内容填充方案。“鱼印”也已放弃。前面关于继续加强相机呼吸、填充九块内容的建议已失效。此前用户认可解构效果，并要求转场避开常规 PPT 效果。接手后从解构镜头的内容、空间运动和镜头衔接重新设计。
+
+当前交接包含源码、历史和参考输出。废弃实验保留在 Git 中供追溯，代码留存与视觉方案认可分开记录。
+
+| 项目 | 交接时核实的状态 |
+|---|---|
+| 本地分支 | `master`，交接文档提交前为 `f078898`，比本地 `origin/master` 引用领先 44 个提交 |
+| PR | [PR #8](https://github.com/suan-11/ai-anim/pull/8) 已关闭且已合并，head 为 `2bf56b4` |
+| PR 内容 | `tasks/_rough-cut/` 与 `tasks/fish-print/`；合并发生后用户放弃方案 |
+| 工作区修改 | `tasks/pv-kattachi/task.config.mjs`，既有歌词尾段同步改动，6 行增加 / 4 行删除，尚待核听 |
+| Git 关系 | 本地 master 含更多引擎与转场提交，PR 分支为另行摘取的提交历史，SHA 不同 |
+| 当前转场示例 | `tasks/_trans-structure/scenes/dynamic.js` 实际使用 `seam → corners`，较早交接中写的 diamond 已过时 |
+
+本轮产生的代码与预览如下。
+
+- `1a2dd65` 修复黑白样片片尾合拢，输出 `out/_rough-cut/rough-cut-handoff-v3.mp4`。这条路线已放弃。
+- `327c2b6`、`a9032ee`、`f078898` 新增并修订鱼印手写场景、刻版图案及合成音效。输出 `out/fish-print/fish-print-preview.mp4`，12.4 秒、960×540、60fps、744 帧，含音轨。这条路线已放弃。
+- 鱼印检测的最后记录为单帧 / 多子帧共 30 个采样通过，事件密度 17%，反 PPT strict 通过。响度 -28.2 LUFS，8 项检查跳过，详见 `out/fish-print/check.txt`。这些是技术检查记录，用户已否定其视觉方案。
+- 转场模式测试本次交接重新运行，24 项通过。GPU 探针上轮为 48/48 通过，真实路径 seam/corners 通过，本次打包未重新运行 GPU 探针或完整 CI。
+- `out/_deconstruct-lab/deconstruct-inspect-draft.mp4` 可用于回看此前的解构方向。`out/_trans-structure/structure-corners-draft.mp4` 是已有 diamond/corners 草稿，与当前 seam/corners 源码存在版本差异。当前 seam 路径尚无对应的完整导出视频。
+
+接手入口及命令如下。Windows 机器依赖 Node、npm、Chrome 和 ffmpeg，依赖版本见 package-lock.json。项目内 `AGENTS.md` 提供渲染契约。
+
+```powershell
+git status --short --branch
+npm ci
+node tools/test-transition-modes.mjs
+node tools/probe-slide-transitions.mjs
+node scripts/anim.mjs check _deconstruct-lab
+node scripts/anim.mjs still _deconstruct-lab -t 2.5,5.9,7.05
+node scripts/anim.mjs video _trans-structure --draft
+```
+
+恢复工作区时先阅读交接包根目录 START-HERE.md。源码快照使用已提交版本，歌词同步修改另附完整文件和 patch，按需要恢复。后续创作先回看解构参考，并依据具体内容设计一条完整镜头。
 
 ### 2026-11-10 续接
 
