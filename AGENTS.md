@@ -537,7 +537,8 @@ node scripts/anim.mjs queue a b --segments 10 --gpu high # 睡前排队：顺序
 node scripts/anim.mjs verify <任务>     # 成片抽帧 vs 同 t 重渲，逐像素（拼接/帧数/色彩/旧版本一次查完）
 node scripts/anim.mjs qa <任务>         # 纯 ffmpeg 读数：解码 / 黑场 / 静帧 / 音量（--strict 才当门）
 
-# 画面基线 = **变更探测器**，不是"永远不许变"（docs/BACKLOG.md §4）：保画面 ⇒ --baseline 全绿；改画面 ⇒ --accept --note
+# 画面基线 = **变更探测器**，不是"永远不许变"（docs/BACKLOG.md §4）
+#   · 保画面（bug fix / 重构 / 性能）⇒ --baseline 全绿；改画面（有意的视觉改进）⇒ --accept --note "改了什么、为什么"
 node scripts/anim.mjs hashes <任务> --every 2 --save     # 首次存基线（已存在会拒绝覆盖）
 node scripts/anim.mjs hashes <任务> --baseline           # 变了 ⇒ 退出码 1 + hashes-diff.png
 node scripts/anim.mjs hashes <任务> --accept --note "…"

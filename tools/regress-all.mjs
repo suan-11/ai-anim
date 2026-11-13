@@ -23,6 +23,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { detectChrome, resolvePlaywrightExe } from './lib/env-probe.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -70,6 +71,7 @@ const isCiEligible = (it) => !it.ciExclude && CI_GROUPS.some((g) => it.name.star
 /** @type {Item[]} */
 const ITEMS = [
   { name: 'unit:cli-layout', cmd: ['tools/test-cli-layout.mjs'], note: 'CLI 入口小于 400 行、命令文件与分发表双向覆盖、会话私有与旧导出兼容' },
+  { name: 'unit:env-probe', cmd: ['tools/test-env-probe.mjs'], note: 'A5 浏览器判定：装了驱动包 ≠ 有浏览器；「只有安装包、没有浏览器」必须判 false（5 项离线夹具）' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
@@ -256,13 +258,7 @@ function probeBin(cmdline) {
   } catch { return false; }
 }
 
-const CHROME_PATHS = [
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-];
+// chrome 判定抽到 tools/lib/env-probe.mjs（可离线夹具测）：装了 playwright-core ≠ 有浏览器。
 
 /**
  * 探测结果只算一次（模块级缓存）。缺项时给出**最常见原因 + 修法**，
@@ -272,14 +268,8 @@ const ENV_PROBE = (() => {
   const ffmpegCmdline = process.env.ANIM_FFMPEG || 'ffmpeg';
   const hasFfmpeg = probeBin(ffmpegCmdline);
   const hasFfprobe = probeBin(process.env.ANIM_FFPROBE || 'ffprobe');
-  let hasChrome = CHROME_PATHS.some((p) => existsSync(p));
-  if (!hasChrome) {
-    try {
-      // playwright-core 在 devDependencies 里；解析得到就算「浏览器能力可用」（真正启动留给各测试自己报错）
-      spawnSync(node, ['-e', "require.resolve('playwright-core')"], { cwd: ROOT, encoding: 'utf8', timeout: 15000 });
-      hasChrome = existsSync(path.join(ROOT, 'node_modules', 'playwright-core'));
-    } catch { hasChrome = false; }
-  }
+  // 系统 Chrome 命中，或 playwright 真能指到一个**存在的**浏览器可执行文件（A5：只有安装包不算）
+  const hasChrome = detectChrome({ resolveExe: () => resolvePlaywrightExe(ROOT) });
   return { ffmpeg: hasFfmpeg, ffprobe: hasFfprobe, chrome: hasChrome, ffmpegCmdline };
 })();
 
