@@ -136,8 +136,8 @@ node scripts/anim.mjs video _trans-structure --draft
 
 ### PLAN 进度（`PLAN-2026-11-08.md`）
 
-- **已完成**：A1 CLI 拆分 / A2 AGENTS≤50KB / A3 BACKLOG 归档 / A4 HANDOVER 归档刷新 / A5 回归依赖体检（chrome 误判已修）/ A6 孤儿工具 / B0 分段计时 / C4 C7 进 check。**A 线 + B0 + C4 全收口，CI 78/78**。
-- **待做**：C1 版面守门 v2（overlap/offFrame/captionHit 接真实字幕 bbox）/ C2 分镜三件套 / C3 被拍摄感后处理预设。
+- **✅ PLAN 全部收口（2026-11-14）**：A1 CLI 拆分 / A2 AGENTS≤50KB / A3 BACKLOG 归档 / A4 HANDOVER 归档刷新 / A5 回归依赖体检 / A6 孤儿工具 / B0 分段计时 / C1 版面守门 v2 / C2 分镜三件套 / C3 被拍摄感预设 / C4 C7 进 check —— **11 项全完成，CI 80/80**。计划归档 `history/PLAN-2026-11-08.md`。
+- **新增能力**：`anim board`（分镜板）/ `placeholder` 占位镜头 / post 预设 `filmed·filmed-doc·filmed-super8` / 版面几何判据（字压字·出画·撞字幕）/ `anim perf --breakdown`。
 - **样片（2026-11-14 草稿，已出）**：`trans-showcase`（五种转场）/ `_lens-travel`（穿镜组运镜）/ `fish-print`（木刻鱼印）——都在各自 `out/<任务>/` 下，接触表 `sheet_*.png`。
 - **欠账**：`pv-kattachi` 尾段歌词（p90 525ms 超，需人工核听 + 重渲）；其余见 [`BACKLOG.md`](BACKLOG.md)。
 
