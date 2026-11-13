@@ -1,0 +1,14 @@
+{
+  "schema": "anim.render-stamp/1",
+  "task": "_lens-travel",
+  "at": "2026-11-13T11:47:42.925Z",
+  "engine": "cb38bea285f51c44",
+  "scene": "c03a87462c9efdee",
+  "video": "out/_lens-travel/lens-travel-motion-v1.mp4",
+  "frames": 540,
+  "fps": 60,
+  "draft": false,
+  "scale": 0.5,
+  "samples": "4",
+  "files": 7661321
+}
