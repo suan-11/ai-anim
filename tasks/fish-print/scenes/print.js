@@ -32,7 +32,7 @@ function drawMatrix(c, art, t) {
   c.translate(HINGE + SIDE * lift, Y - lift * 100);
   const projection = Math.cos(flip) * (1 - lift);
   c.transform(projection, -0.12 * Math.sin(flip), 0, 1, 0, 0);
-  c.translate(-SIDE / 2 - 66 * (1 - ease(t, 0, 3.8)), 0);
+  c.translate(-SIDE / 2 - 122 * (1 - ease(t, 0, 3.3)), 0);
   c.rotate(-0.23 * turn * (1 - settle));
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
