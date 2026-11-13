@@ -1,5 +1,7 @@
 import { makeThreeShot } from '../../../src/kit/three.js';
 import { phase } from '../../../src/kit/action-motion.js';
+import { createFlightPath, flightProgress, stageDepth, stageOpening } from './flight.js';
+import { sensorArt } from './sensor-art.js';
 
 export default function lensTravel() {
   return makeThreeShot('lens-travel', {
@@ -7,22 +9,36 @@ export default function lensTravel() {
     camera: { fov: 48, near: .045, far: 130, pos: [7.8, 3.4, 10], target: [0, 0, -3.5] },
     background: 'cover',
     bridge: { antialias: true },
-    async setup(ctx, { THREE, scene, palette, color }) {
+    async setup(ctx, { THREE, bridge, scene, palette, color }) {
       this.resources = [];
       const keep = resource => { this.resources.push(resource); return resource; };
+      const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+      const room = new RoomEnvironment();
+      const pmrem = new THREE.PMREMGenerator(bridge.renderer);
+      const studio = keep(pmrem.fromScene(room, .045));
+      scene.environment = studio.texture;
+      scene.environmentIntensity = .22;
+      room.dispose();
+      pmrem.dispose();
       const metal = keep(new THREE.MeshStandardMaterial({
-        color: palette('bone', .58), metalness: .72, roughness: .27,
+        color: palette('bone', .58), metalness: .82, roughness: .32,
       }));
       const dark = keep(new THREE.MeshStandardMaterial({
-        color: palette('ink2', .7), metalness: .62, roughness: .3,
+        color: palette('ink2', .7), metalness: .72, roughness: .24,
       }));
       const copper = keep(new THREE.MeshStandardMaterial({
-        color: palette('signal', .7), metalness: .64, roughness: .27,
+        color: palette('signal', .45), metalness: .64, roughness: .34,
       }));
       const rim = keep(new THREE.MeshStandardMaterial({
-        color: color([.12, .65, .61]), emissive: color([.04, .24, .21]),
-        emissiveIntensity: .36, metalness: .4, roughness: .21,
+        color: color([.12, .42, .39]), emissive: color([.02, .12, .10]),
+        emissiveIntensity: .08, metalness: .7, roughness: .24,
       }));
+      const glass = keep(new THREE.MeshPhysicalMaterial({
+        color: color([.65, .86, .83]), metalness: 0, roughness: .08,
+        transparent: true, opacity: .055, depthWrite: false,
+        clearcoat: 1, clearcoatRoughness: .07,
+      }));
+      const lensGeometry = keep(new THREE.SphereGeometry(1.24, 64, 24));
       const shell = new THREE.Shape();
       shell.absarc(0, 0, 2.05, 0, Math.PI * 2, false);
       const hole = new THREE.Path();
@@ -43,6 +59,10 @@ export default function lensTravel() {
         const inner = new THREE.Mesh(lip, rim);
         inner.position.z = .35;
         group.add(inner);
+        const lens = new THREE.Mesh(lensGeometry, glass);
+        lens.scale.z = .065;
+        lens.position.z = .16;
+        group.add(lens);
         const edge = new THREE.Mesh(outer, metal);
         edge.position.z = .32;
         group.add(edge);
@@ -64,22 +84,7 @@ export default function lensTravel() {
       const chip = new THREE.Mesh(chipGeometry, dark);
       chip.position.z = -24.15;
       scene.add(chip);
-      const screen = document.createElement('canvas');
-      screen.width = 1024; screen.height = 640;
-      const c = screen.getContext('2d');
-      c.fillStyle = '#263d47'; c.fillRect(0, 0, 1024, 640);
-      c.fillStyle = '#e6a075';
-      c.beginPath(); c.arc(704, 228, 90, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#80aea0';
-      c.beginPath(); c.moveTo(0, 480); c.lineTo(302, 199); c.lineTo(580, 507);
-      c.lineTo(833, 333); c.lineTo(1024, 510); c.lineTo(1024, 640); c.lineTo(0, 640); c.fill();
-      c.fillStyle = '#3e6c73';
-      c.beginPath(); c.moveTo(0, 540); c.lineTo(283, 417); c.lineTo(599, 580);
-      c.lineTo(830, 481); c.lineTo(1024, 562); c.lineTo(1024, 640); c.lineTo(0, 640); c.fill();
-      c.strokeStyle = '#0c252549'; c.lineWidth = 1;
-      for (let i = 0; i < 1024; i += 8) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, 640); c.stroke(); }
-      for (let i = 0; i < 640; i += 8) { c.beginPath(); c.moveTo(0, i); c.lineTo(1024, i); c.stroke(); }
-      const texture = keep(new THREE.CanvasTexture(screen));
+      const texture = keep(new THREE.CanvasTexture(sensorArt()));
       texture.colorSpace = THREE.SRGBColorSpace;
       const face = new THREE.Mesh(keep(new THREE.PlaneGeometry(4.1, 2.5625)),
         keep(new THREE.MeshBasicMaterial({ map: texture })));
@@ -94,41 +99,32 @@ export default function lensTravel() {
         }
       }
       const floor = new THREE.Mesh(keep(new THREE.PlaneGeometry(160, 160)),
-        keep(new THREE.MeshStandardMaterial({ color: palette('ink2'), roughness: .52, metalness: .12 })));
+        keep(new THREE.MeshStandardMaterial({ color: palette('ink2'), roughness: .86, metalness: .05 })));
       floor.rotation.x = -Math.PI / 2;
       floor.position.y = -2.65;
       scene.add(floor);
       scene.background = palette('ink');
       scene.fog = new THREE.Fog(palette('ink'), 24, 75);
-      scene.add(new THREE.HemisphereLight(color([.65, .83, 1]), palette('ink'), 2));
-      const key = new THREE.DirectionalLight(color([1, .82, .64]), 4.5);
+      scene.add(new THREE.HemisphereLight(color([.65, .83, 1]), palette('ink'), .85));
+      const key = new THREE.DirectionalLight(color([1, .82, .64]), 1.8);
       key.position.set(4, 8, 6); scene.add(key);
-      const fill = new THREE.DirectionalLight(color([.25, .75, 1]), 3);
+      const fill = new THREE.DirectionalLight(color([.25, .75, 1]), 1.1);
       fill.position.set(-4, 3, -14); scene.add(fill);
-      const light = new THREE.PointLight(color([.15, .7, .63]), 8, 24, 1.4);
+      const light = new THREE.PointLight(color([.15, .7, .63]), 2, 24, 1.4);
       light.position.set(0, .8, -11); scene.add(light);
-      this.route = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(7.8, 3.4, 10),
-        new THREE.Vector3(3.9, 1.45, 7),
-        new THREE.Vector3(.30, .1, 3),
-        new THREE.Vector3(.02, .08, -3),
-        new THREE.Vector3(.1, -.06, -10),
-        new THREE.Vector3(-.1, .05, -16),
-        new THREE.Vector3(.05, 0, -20.9),
-      ], false, 'centripetal');
+      this.route = createFlightPath(THREE);
       this.eye = new THREE.Vector3();
     },
     update(ctx, api) {
       const t = ctx.f.t;
       for (let i = 0; i < this.stages.length; i++) {
-        const open = phase(t, .65 + i * .075, 2.35 + i * .075);
+        const open = stageOpening(i, t);
         const group = this.stages[i];
-        group.position.z = -i * (.43 + 2.67 * open);
+        group.position.z = stageDepth(i, t);
         group.rotation.z = (i % 2 ? -1 : 1) * .13 * open;
       }
-      const u = phase(t, 0, 9);
-      this.route.getPoint(u, this.eye);
-      const roll = .025 * Math.sin(t * .62);
+      this.route.getPointAt(flightProgress(t), this.eye);
+      const roll = .025 * (1 - phase(t, 0, 4));
       this.camera.up.set(Math.sin(roll), Math.cos(roll), 0);
       api.setCamera({
         pos: this.eye.toArray(),

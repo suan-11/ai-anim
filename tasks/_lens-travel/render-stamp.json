@@ -1,14 +1,14 @@
 {
   "schema": "anim.render-stamp/1",
   "task": "_lens-travel",
-  "at": "2026-11-13T11:47:42.925Z",
+  "at": "2026-11-13T12:11:17.872Z",
   "engine": "cb38bea285f51c44",
-  "scene": "c03a87462c9efdee",
-  "video": "out/_lens-travel/lens-travel-motion-v1.mp4",
+  "scene": "b9c06d301d87f7ed",
+  "video": "out/_lens-travel/lens-travel-v2.mp4",
   "frames": 540,
   "fps": 60,
   "draft": false,
-  "scale": 0.5,
+  "scale": 1,
   "samples": "4",
-  "files": 7661321
+  "files": 24990774
 }
