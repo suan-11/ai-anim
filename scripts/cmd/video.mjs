@@ -634,6 +634,7 @@ async function cmdVideo(short = false) {
 
     const r = await renderToFile({
       info, out, from, to, fps, samples, shutter, withAudio, audioFile,
+      breakdown: flag('breakdown'),
     });
     const { code, frames, samplesHist, elapsed } = r;
 
@@ -751,6 +752,18 @@ async function cmdVideo(short = false) {
     }
     const st = statSync(out);
     log(`  文件大小 ${mb(st.size)}`);
+    if (r.breakdown) {
+      const b = r.breakdown;
+      const f1 = (x) => x.toFixed(1);
+      log(`  ── 分段计时（--breakdown，B0）──`);
+      log(`  页面 render   avg ${f1(b.page.renderAvg)}ms  p50 ${f1(b.page.renderP50)}  p95 ${f1(b.page.renderP95)}  (${b.page.n} 帧)`);
+      log(`  页面 readNV12 avg ${f1(b.page.readbackAvg)}ms  p95 ${f1(b.page.readbackP95)}`);
+      log(`  Node 收帧间隔 avg ${f1(b.node.recvGapAvg)}ms  p95 ${f1(b.node.recvGapP95)}`);
+      log(`  ffmpeg 背压   总 ${f1(b.node.ffBlockedTotalMs)}ms  占整段 ${f1(b.node.ffBlockedPct)}%`);
+      const renderShare = b.wallMs ? 100 * (b.page.renderAvg * b.frames) / b.wallMs : 0;
+      log(`  渲染占比 ≈ ${f1(renderShare)}%（>70% 优先查独显/子帧/着色器；传输+编码 >40% 才考虑 WebCodecs）`);
+      try { writeFileSync(out.replace(/\.mp4$/, '') + '.breakdown.json', JSON.stringify(b, null, 2)); } catch { /* ignore */ }
+    }
     /**
      * **成片版本戳**（1-73）：把「这份 mp4 是哪一版引擎 / 哪一版场景渲的」写进
      * `tasks/<任务>/render-stamp.json`。
@@ -815,7 +828,7 @@ function reportIntermediates(task, out) {
 }
 
 /** 用给定的浏览器会话逐帧渲染，并通过 WebSocket 推给 ffmpeg。 */
-async function renderToFile({ info, out, from, to, fps, samples, shutter, withAudio, audioFile, quiet, chunk }) {
+async function renderToFile({ info, out, from, to, fps, samples, shutter, withAudio, audioFile, quiet, chunk, breakdown }) {
   const pw = info.pw, ph = info.ph;
   const args = [
     '-y', '-loglevel', 'error',
@@ -1001,6 +1014,10 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
   let lastStdoutAt = Date.now();
   let lastFileSize = 0;
   let maxBlockedMs = 0;
+  // B0 分段计时（--breakdown，只测量）：Node 侧记「收帧间隔」与「ffmpeg 背压总时长」。
+  let bdFfBlockedTotal = 0;
+  let bdLastRecv = 0;
+  const bdGaps = [];
   const bump = (why) => { lastProgressAt = Date.now(); progressWhy = why; };
 
   /**
@@ -1046,6 +1063,7 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
   ff.stdin.on('drain', () => {
     const blockedMs = blockedSince ? Date.now() - blockedSince : 0;
     if (blockedMs > maxBlockedMs) maxBlockedMs = blockedMs;
+    if (breakdown) bdFfBlockedTotal += blockedMs;
     blockedSince = 0;
     ffBlocked = false;
     lastStdoutAt = Date.now();
@@ -1141,6 +1159,7 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
        * 这些帧**不计数也不写**：产物本来就要删掉，计进去只会让人以为"帧数是齐的"。
        */
       if (finished || stdinClosed) return;
+      if (breakdown) { const now = Date.now(); if (bdLastRecv) bdGaps.push(now - bdLastRecv); bdLastRecv = now; }
       frames++;
       consecErrFrames = 0;
       bump(`收到第 ${frames} 帧`);
@@ -1286,6 +1305,7 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
     samples: samples === 'auto' ? 'auto' : Number(samples), shutter, inflight: Number(opt('inflight', '4')),
     // 非有限值扫描的频率交给页面（页面按帧号决定扫哪几帧，见 src/app.js 的 stream()）
     scanNf,
+    breakdown: !!breakdown,
   });
   if (started.err) die(`无法启动推流：${started.err}`);
   log(`· 推流参数已下发 → ${wsUrl}（共 ${total} 帧）`);
@@ -1341,9 +1361,29 @@ async function renderToFile({ info, out, from, to, fps, samples, shutter, withAu
   if (!quiet) {
     reportNonFinite(nfHits, { scanNf, scanned: scanNf > 0 ? Math.ceil(frames / scanNf) : 0 });
   }
+  // B0：把页面侧 render/readNV12 分段取回来，和 Node 侧收帧间隔/背压拼成一张表。
+  let bd = null;
+  if (breakdown && frames > 0) {
+    try {
+      const page = await getSession().page.evaluate(() => {
+        const api = /** @type {any} */ (window).__anim;
+        return api && typeof api.perfBreakdown === 'function' ? api.perfBreakdown() : null;
+      });
+      const q = (arr, p) => { if (!arr.length) return 0; const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
+      const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      const renders = (page ?? []).map((x) => x.render);
+      const readbacks = (page ?? []).map((x) => x.readback);
+      const wall = Date.now() - t0;
+      bd = {
+        frames, wallMs: wall,
+        page: { renderAvg: avg(renders), renderP50: q(renders, 0.5), renderP95: q(renders, 0.95), readbackAvg: avg(readbacks), readbackP95: q(readbacks, 0.95), n: renders.length },
+        node: { recvGapAvg: avg(bdGaps), recvGapP95: q(bdGaps, 0.95), ffBlockedTotalMs: bdFfBlockedTotal, ffBlockedPct: wall ? 100 * bdFfBlockedTotal / wall : 0 },
+      };
+    } catch { bd = null; }
+  }
   return {
     code, frames, samplesHist: hist, elapsed: Date.now() - t0,
-    total, stalled: frames < total, everConnected, ffBlocked, maxBlockedMs,
+    total, stalled: frames < total, everConnected, ffBlocked, maxBlockedMs, breakdown: bd,
     exitSignal: ffExitSignal, progressWhy, renderErrors,
     /** 出片期间扫到的非有限值（`--scan-nf`，BACKLOG 1-4）；空数组 = 扫过、干净 */
     nonFinite: nfHits,

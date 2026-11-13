@@ -1,11 +1,26 @@
 // @ts-check
-import { opt } from "../lib/cli/args.mjs";
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { flag, opt } from "../lib/cli/args.mjs";
 import { log } from "../lib/cli/log.mjs";
-import { pickTask } from "../lib/cli/paths.mjs";
+import { ROOT, pickTask } from "../lib/cli/paths.mjs";
 import { closeSession, getSession, openSession } from "../lib/cli/session.mjs";
 async function cmdPerf() {
   const task = pickTask();
   const from = Number(opt('from', '0'));
+  // --breakdown：走**真实出片管线**（video 推流 + ffmpeg）分段计时，而不是 api.frame() 空转。
+  // 只测量不改出片路径；子进程跑 video --breakdown --draft，表由它打印。
+  if (flag('breakdown')) {
+    const to = opt('to', String(from + 5));
+    const args = [path.join(ROOT, 'scripts', 'anim.mjs'), 'video', task,
+      '--from', String(from), '--to', String(to), '--samples', opt('samples', 'auto'),
+      '--breakdown', '--draft'];
+    if (opt('only', undefined)) args.push('--only', opt('only'));
+    log(`perf --breakdown → 真实管线分段计时（video --draft --breakdown）`);
+    const r = spawnSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
+    process.exitCode = r.status ?? 1;
+    return;
+  }
   await openSession({ task, only: opt('only', undefined) });
   try {
     const info = getSession().info;
