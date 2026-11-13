@@ -73,6 +73,7 @@ const ITEMS = [
   { name: 'unit:cli-layout', cmd: ['tools/test-cli-layout.mjs'], note: 'CLI 入口小于 400 行、命令文件与分发表双向覆盖、会话私有与旧导出兼容' },
   { name: 'unit:env-probe', cmd: ['tools/test-env-probe.mjs'], note: 'A5 浏览器判定：装了驱动包 ≠ 有浏览器；「只有安装包、没有浏览器」必须判 false（5 项离线夹具）' },
   { name: 'unit:board', cmd: ['tools/test-board.mjs'], note: 'C2 分镜板排版纯函数：段中点采样 / id·时长·note 标注 / at 夹取 / 长 note 截断' },
+  { name: 'unit:post-presets', cmd: ['tools/test-post-presets.mjs'], note: 'C3 被拍摄感预设：零回归 / 覆盖优先级 / 写错抛错 / 只组合现有参数' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──

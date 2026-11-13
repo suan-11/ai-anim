@@ -1088,6 +1088,12 @@ render(ctx) {
 > 「开场从黑淡入」写成了 `fade: 1 - prog(...)` —— 以为 `fade` 是亮度，于是**整场都是黑的**。
 > `fade` 是「黑掉的量」，不是「亮度」（`docs/history/IMPROVEMENTS-1-3.md` P1-6）。
 
+**「被拍摄感」预设（C3，`src/core/post-presets.js`）**：`filmed` / `filmed-doc` / `filmed-super8` 三档，
+组合现有 `grain / halation / vignette / ca / weave / flicker / scratch`。三处入口：场景 `return { preset: 'filmed' }`、
+时间线 `post: { preset: 'filmed' }`、风格包 `post.preset`。**写错预设名当场抛**并列出可用清单（与 transition 同口径）。
+覆盖优先级：引擎默认 < 风格包 post < preset < 场景 return 显式字段；**不写 preset 逐像素不变**。
+标定夹具 `tasks/_filmed-lab`（off / filmed / filmed-doc / filmed-super8 四档同内容）。⚠ flicker 别开太大，免得把「闪烁」误当「事件」。
+
 | 参数 | 类型 | 默认 | 0 / 1 的含义与方向 | 该调它的场景 |
 |---|---|---|---|---|
 | `exposure` | number | `1` | **1 = 不变**，2 = 亮一倍，0.5 = 暗一半（线性乘子） | 整体亮度。跟音频呼吸：`1 + a.rms * 0.15` |
