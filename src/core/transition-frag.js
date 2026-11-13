@@ -169,6 +169,24 @@ export const TRANSITION_FRAG = {
       vec3 col = texture(under, vUv).rgb + vec3(0.075, 0.067, 0.05) * rim;
       fragColor = vec4(col, m);
     }`,
+  /** 裂缝：一条有轻微弯曲的结构缝从中心撑开，像材料沿受力线分离。 */
+  seam: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 q = vUv - 0.5;
+      q.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float bend = 0.24 * q.x + 0.10 * sin(q.x * 3.1 + q.y * 1.4 + kk * 0.55);
+      float distanceToSeam = abs(q.y - bend);
+      float width = kk * 1.15;
+      float aa = max(fwidth(distanceToSeam), 1e-4) * 1.5;
+      float m = smoothstep(width - aa, width + aa, distanceToSeam);
+      float rim = (1.0 - smoothstep(0.0, aa * 8.0, abs(distanceToSeam - width))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.10, 0.075, 0.045) * rim;
+      fragColor = vec4(col, m);
+    }`,
   /** 对开：两个半幅向外移走，纹理保持原比例；缝隙直接露出下一帧。 */
   split: /* glsl */ `    uniform sampler2D under;
     uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;

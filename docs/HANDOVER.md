@@ -220,3 +220,11 @@ node scripts/anim.mjs stamp           # 交付物是否还作废
 - GPU 探针扩展到横竖画布 × 四方向 × 五种几何模式，共 **40/40** 场景通过。`test-transition-modes` 24 项通过。
 - 最新草稿 [`structure-corners-draft.mp4`](../out/_trans-structure/structure-corners-draft.mp4)：960×540 / 60fps / 14.15s / 849 帧，ffprobe 通过。抽帧检查 `11.7s / 11.9s / 12.2s`，四角边缘连续，片尾标题在过渡中仍可读。
 - 当前任务完整 `check _trans-structure` 通过 18/18 单帧与多子帧路径。正式版仍需用户明确要求后再去掉 `--draft`。
+
+### 2026-11-13 交接补充 2：先写时间线，再填视觉
+
+- 根据本轮反馈，新增手写任务 `tasks/_rough-cut/`，没有使用 `src/shots/` 模板。它只包含黑底、一个持续变化的九模块主形状和一条缓慢相机呼吸曲线。
+- 时间结构分成四段：`seed 1.6s`、`split 3.0s`、`suspend 5.4s`、`return 2.4s`。总长 12.4s，段长 CoV 0.53。主形状依据整片绝对时间连续从单块拆成模块、悬停、再归位。
+- 黑白粗剪草稿 [`rough-cut-structure-draft-v2.mp4`](../out/_rough-cut/rough-cut-structure-draft-v2.mp4)：960×540 / 60fps / 12.4s / 744 帧，ffprobe 通过。它是后续添加声音、接力线和视觉词汇前的时间骨架。
+- `lint-anti-ppt _rough-cut` 已通过：状态差 4/4、接力物 4/4、钩子 2/2、无淡出转场。`check _rough-cut` 的单帧与多子帧路径通过，事件密度仍提示 33% 稀薄窗口，后续优先让 `suspend` 段的相机呼吸再明显一点。
+- 同轮新增 `seam` 转场，沿一条弯曲结构缝撑开旧画面。GPU 探针已扩展到 48/48 场景，转场模式测试 24 项通过。当前 `_trans-structure` 仍使用 `diamond → corners`，`seam` 先作为可选模式保留。
