@@ -8,11 +8,13 @@
 //   红 3 项，而 **CI 全绿**：因为 verify.yml 里手抄了 4 条测试，清单里已经有 43 条 unit。
 //   手抄必然漂移，而且漂移的方向永远是「少跑」—— 少跑是**看不见**的，没有任何输出会提醒你。
 //
-// 所以这里钉死四条：
+// 所以这里钉死五条：
 //   ① CI 的测试步骤必须调 `tools/regress-all.mjs --ci`，不许再手抄一串 node 命令；
 //   ② 组内（unit:/meta:/harness:/say:）的每一项，要么被 CI 收，要么带 `ciExclude + ciWhy`；
 //   ③ `ciWhy` 不许是空话（要 >= 8 个字）；
 //   ④ **反向**：CI 收的项数不许突然掉下来（`MIN_CI_ITEMS`）—— 防止有人一口气排掉一堆。
+//   ⑤ **needs 声明**（A5，2026-11-13）：依赖 ffmpeg/ffprobe/Chrome 的项必须显式声明 `needs`，
+//     否则缺依赖时前置体检认不出它，又会回到满屏 ENOENT 堆栈（PLAN-2026-11-08 §0 那次事故）。
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +26,8 @@ const REGRESS = path.join(ROOT, 'tools', 'regress-all.mjs');
 let pass = 0, fail = 0;
 /** `run:` 里出现的、疑似手抄的 node 命令（等清单解析出来之后再判到底抄没抄） */
 let handCopiedCmds = [];
+/** 清单解析结果（(2) 里解析，(5) 的 needs 守门也要用） */
+let parsedItems = [];
 const NL = String.fromCharCode(10);
 const check = (name, ok, detail) => {
   if (ok) { pass++; console.log('  PASS  ' + name + (detail ? '   ' + detail : '')); }
@@ -140,6 +144,7 @@ if (!existsSync(REGRESS)) {
     const m = /name:\s*'([^']+)'/.exec(body);
     return m ? { name: m[1], body } : null;
   }).filter(Boolean);
+  parsedItems = items;
   check('清单项可解析', items.length > 50, '解析到 ' + items.length + ' / ' + entries.length + ' 条');
 
   const inGroup = items.filter((it) => groups.some((g) => it.name.indexOf(g) === 0));
@@ -178,6 +183,39 @@ if (!existsSync(REGRESS)) {
   check('verify.yml 没有手抄清单里的工具', dup.length === 0,
     dup.length ? '这些已经由 --ci 跑到，别再单独列（会漂移）：' + NL + '            ' + dup.join(NL + '            ') : '');
 }
+
+/* -- (5) needs 声明守门（A5，2026-11-13）：依赖 ffmpeg/ffprobe/Chrome 的项必须显式声明 needs --
+ *
+ * 启发式（宁可多点名、不可漏）：工具源码（去注释）里出现 ffmpeg/ffprobe 字样，或
+ * playwright / probe-page / openSession / anim.mjs 这类「会起浏览器/CLI」的引用 ⇒ 必须写 needs。
+ * 确属纯 JS 的源码文本自检显式写 needs: []（声明「没有外部依赖」也是声明，作者负责）。
+ * 前置体检按 needs 把缺依赖的项记 skipped(env) —— 漏标就会回到满屏 ENOENT 堆栈。
+ * 自己是例外：本文件的判据代码里就含这些词（同 (4) 的先例）。
+ */
+const KNOWN_DEPS = ['ffmpeg', 'ffprobe', 'chrome'];
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+const needsProblems = [];
+for (const it of parsedItems) {
+  const cmdM = /cmd:\s*\[\s*'([^']+)'/.exec(it.body);
+  if (!cmdM || cmdM[1] === 'tools/test-ci-coverage.mjs') continue;
+  let tsrc = '';
+  try { tsrc = readFileSync(path.join(ROOT, cmdM[1]), 'utf8'); }
+  catch { needsProblems.push(it.name + '：工具文件读不到 ' + cmdM[1]); continue; }
+  const code = stripComments(tsrc);
+  const ff = /\bffmpeg\b|\bffprobe\b/.test(code);
+  const ch = /playwright|probe-page|launchBrowser|openSession|startVite|anim\.mjs/.test(code);
+  if (!ff && !ch) continue;
+  const needsM = /needs:\s*\[([^\]]*)\]/.exec(it.body);
+  if (!needsM) {
+    needsProblems.push(it.name + '：源码含 ' + (ff ? 'ffmpeg/ffprobe ' : '') + (ch ? '浏览器/CLI ' : '') + '引用但没写 needs（确属纯 JS 就显式写 needs: []）');
+    continue;
+  }
+  const deps = [...needsM[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const bad = deps.filter((d) => !KNOWN_DEPS.includes(d));
+  if (bad.length) needsProblems.push(it.name + '：needs 里有不认识的依赖 ' + bad.join(', ') + '（可用：' + KNOWN_DEPS.join('/') + '）');
+}
+check('依赖项都显式声明了 needs（漏标 ⇒ 缺依赖时满屏 ENOENT）', needsProblems.length === 0,
+  needsProblems.join(NL + '            '));
 
 console.log('');
 console.log(fail ? '✗ ' + fail + ' 项失败（共 ' + (pass + fail) + ' 项）' : '✓ ' + pass + ' 项全部通过（共 ' + pass + ' 项）');
