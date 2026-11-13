@@ -69,6 +69,7 @@ const isCiEligible = (it) => !it.ciExclude && CI_GROUPS.some((g) => it.name.star
 
 /** @type {Item[]} */
 const ITEMS = [
+  { name: 'unit:cli-layout', cmd: ['tools/test-cli-layout.mjs'], note: 'CLI 入口小于 400 行、命令文件与分发表双向覆盖、会话私有与旧导出兼容' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──

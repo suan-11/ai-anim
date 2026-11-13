@@ -14,13 +14,7 @@
  *   ③ **接线自检**：`cmdSubs` 真的调了 `assText`（纯函数对了但没接上 = 等于没做）。
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, '..');
-const ANIM = path.join(ROOT, 'scripts', 'anim.mjs');
+import { readCliSource } from './lib/cli-source.mjs';
 
 const { IS_MAIN, assText, assTime } = await import(new URL('../scripts/anim.mjs', import.meta.url).href);
 
@@ -96,7 +90,7 @@ t('assTime：负数夹到 0（不产出 `-1:-1` 这种坏时间戳）', () => {
 /* ---------------------------------------------------------------- 3. 接线自检 */
 
 t('接线：cmdSubs 的 Dialogue 行真的走了 `rows.map(assText)`', () => {
-  const src = readFileSync(ANIM, 'utf8');
+  const src = readCliSource();
   assert.ok(src.includes('rows.map(assText).join'), 'cmdSubs 里没有把每一行过 assText —— 转义函数等于没接上');
   assert.ok(!/[^)]rows\.join\('\\\\N'\)/.test(src), '还留着未转义的 `rows.join(\'\\\\N\')`');
 });

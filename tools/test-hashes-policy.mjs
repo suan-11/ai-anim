@@ -13,18 +13,18 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readCliSource } from './lib/cli-source.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-const ANIM = path.join(ROOT, 'scripts', 'anim.mjs');
 const AGENTS = path.join(ROOT, 'AGENTS.md');
 const ENGINE = path.join(ROOT, 'docs', 'ENGINE.md');
 const DIAGNOSIS = path.join(ROOT, 'docs', 'DIAGNOSIS.md');
 const REGRESS = path.join(ROOT, 'tools', 'regress-all.mjs');
 
-const anim = readFileSync(ANIM, 'utf8');
+const anim = readCliSource();
 const agents = readFileSync(AGENTS, 'utf8');
 const engine = readFileSync(ENGINE, 'utf8');
 const diagnosis = readFileSync(DIAGNOSIS, 'utf8');

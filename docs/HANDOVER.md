@@ -3,9 +3,36 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-13**。优先阅读下方“运镜认可与 PLAN 复核”一节。下方 §0–§10 是 11-08 的交接快照；分支、工作区、回归项数以最新续接记录和实时 Git 状态为准。
+> **最后更新：2026-11-13**。优先阅读下方“A1 拆分中途交接”一节。下方 §0–§10 是 11-08 的交接快照；分支、工作区、回归项数以最新续接记录和实时 Git 状态为准。
 > 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) A4 重写。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
+
+### 2026-11-13 A1 拆分中途交接（最新）
+
+用户要求按 PLAN 继续后，当前工作推进至 A1 的机械拆分阶段。用户随后要求准备交接，A1 仍为部分完成。
+
+已落盘的结构与验证如下。
+
+- `scripts/anim.mjs` 从 8531 行缩为 312 行，保留帮助文案、参数初始化、分发表、IS_MAIN 和旧导出转发。
+- `scripts/cmd/` 有 42 个命令模块，均导出 `run`。`scripts/lib/cli/` 新增 audio / gates / media / notes / paths / session / sheet / sources 八个共享模块，保留既有 args / log。
+- 会话状态在 session 模块内，其他模块使用 `getSession()`，避免异步开关会话后的旧值问题。相对 import 路径和帮助文本读取位置随模块迁移调整。
+- help、tasks --json、shots --json、styles 的 stdout / stderr / 退出码与迁移前逐字节一致，原入口 37 个导出均保留。对照脚本为 `out/_cli-split/compare.mjs`。
+- `tools/test-cli-layout.mjs` 已加入 regress-all 清单，检查入口行数、命令与文件双向覆盖、会话状态私有和旧导出。
+- 迁移前基线 CI 为 76/76。首次拆分后为 72/76，四个失败涉及旧源码读取位置和 import 路径断言。补齐 check-skipped / hashes-policy / subs 的拼接源码读取并适配 tier-estimate 的相对路径后，针对性测试已通过，断言未删除。当前 77 项完整交接复验的结果见下方验证记录。
+
+验证记录将在打包前更新。原始日志位于 `out/_cli-split/`，交接包也附此目录副本。
+
+接手后按以下顺序继续验收。
+
+1. 运行 `node tools/test-cli-layout.mjs` 与 `node tools/regress-all.mjs --ci`，对照 `before/*.log` 的原有测试断言条数。
+2. 完成迁移后的 `still demo -t 1,6`、`check demo --quick`、两秒草稿视频对拍。迁移前的两张图、check 日志与 120 帧视频已保存在 `out/_cli-split/before/`。视频输出使用 `-o out/_cli-split/after/demo.mp4`，避免覆盖现有完整成片。
+3. 对比静帧像素和视频解码帧。尚未执行这项验收，命令列表一致只覆盖 CLI 的只读入口。
+4. 更新 DIAGNOSIS 等文档中 `scripts/anim.mjs:旧行号` 的位置。多处行号在拆分前已过期，应按诊断消息与函数定位，不能直接按旧行数偏移映射。
+5. 核查命令的正常与错误路径、长行 import / export 的可读性，再将 A1 改为完成。
+
+本轮开始时已有 `pv-kattachi`、`trans-showcase` 两份任务配置改动，以及 anim.mjs 的三处 smoke 文件过滤修改。后者随代码迁到 `scripts/cmd/check.mjs` 两处和 `report.mjs` 一处，提交时单独保留为未提交差异。交接包包含这些工作区差异和原始 `before/existing.patch`。临时执行基线用的 `scripts/.anim-a1-baseline.mjs` 已清理，原文件副本保存在 `before/anim.mjs`。
+
+用户已认可的运镜继续保留在 `tasks/_lens-travel/`，9 秒有声版 `out/_lens-travel/lens-travel-v2.mp4`，对应 PR #9。黑白九块与鱼印方向仍已放弃。
 
 ### 2026-11-13 运镜认可与 PLAN 复核
 
