@@ -12,6 +12,8 @@ import { writeContactSheet } from "../lib/cli/sheet.mjs";
 import { blankJsComments as sharedBlankJsComments } from "../lib/js-source.mjs";
 import { describeNarrationError, narrationConfigProblem } from "../lib/narration-error.mjs";
 import { layoutReport, layoutSummary } from "../../src/layout.js";
+import { build } from "../../src/timeline.js";
+import { decodeDiffSeries, motionStats } from "../../tools/lib/diff-series.mjs";
 /* ---------------- 镜头模板的依赖前置校验（BACKLOG 1-21 / docs/ENGINE.md §14.9）：纯函数区 */
 
 /**
@@ -719,6 +721,49 @@ async function cmdCheck() {
         }
       } catch (err) {
         pushSkipped(skipped, '事件密度（event-density）', `起不了子进程：${firstLine(err)}`);
+      }
+    }
+  }
+
+  // 1.545b) **运动节奏（C7）**：成片帧间差的 CV + 最长静止（C4：与 anti-ppt C7 共用 diff-series）。
+  //
+  // 为什么在 check 里：匀速漂移（每帧都在动但方差极小）是"页面在动、世界没变"的典型，
+  // 事件密度看"有没有动"，C7 看"动得有有没有事件"。两条互补。
+  // ⚠ 量的是**成片**（mp4 帧间差）—— 没出片只报 skipped。歌词片（过半段带 params.mode）CV 不 gate。
+  {
+    const outDir = path.join(ROOT, 'out', task);
+    const mp4 = existsSync(outDir)
+      ? readdirSync(outDir).filter((f) => f.endsWith('.mp4') && !/^part_|_stitched|^smoke-/.test(f))[0]
+      : null;
+    if (!mp4) {
+      pushSkipped(skipped, '运动节奏（C7）', '还没有成片可量 —— 先跑 anim video（它看的是 mp4 的帧间差）');
+    } else {
+      try {
+        const series = decodeDiffSeries(path.join(outDir, mp4));
+        if (!series) {
+          pushSkipped(skipped, '运动节奏（C7）', '解码失败或帧数太少（<8）');
+        } else {
+          const m = motionStats(series.diff, series.fps);
+          let lyricFilm = false;
+          try {
+            const cfg = (await import(new URL('../../tasks/' + task + '/task.config.mjs', import.meta.url).href)).default;
+            const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
+            lyricFilm = segs.filter((s) => s?.params?.mode).length > segs.length * 0.5;
+          } catch { /* 读不到配置就当非歌词片 */ }
+          const reading = `CV ${m.cv.toFixed(2)} · 平均帧间差 ${m.mean.toFixed(2)} · 最长静止 ${m.staticSpan.toFixed(1)}s`;
+          const probs = [];
+          if (m.cv < 0.30 && !lyricFilm) probs.push(`像匀速漂移（CV ${m.cv.toFixed(2)} < 0.30）—— 一直动但没有事件`);
+          if (m.staticSpan > 3.5) probs.push(`最长静止 ${m.staticSpan.toFixed(1)}s > 3.5s`);
+          if (probs.length) {
+            warn(`⚠ 运动节奏（C7）：${reading}` + (lyricFilm ? '（歌词片：CV 不 gate）' : ''));
+            for (const p of probs) warn('  · ' + p);
+            if (strict) staticErrs.push(`[运动节奏C7] ${probs.join('；')}`);
+          } else {
+            log(`  ✓ 运动节奏（C7）：${reading}` + (lyricFilm ? '（歌词片）' : ''));
+          }
+        }
+      } catch (err) {
+        pushSkipped(skipped, '运动节奏（C7）', `起不了子进程：${firstLine(err)}`);
       }
     }
   }

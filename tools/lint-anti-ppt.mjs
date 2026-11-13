@@ -25,6 +25,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from '../src/timeline.js';
+import { decodeDiffSeries, motionStats } from './lib/diff-series.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -131,27 +132,11 @@ export function analyzeSegments(segs, opts = {}) {
   return { problems, info, stats: { coverage, cov, missRate, relayCount, worstRun, total } };
 }
 
-/** 成片帧间差的变异系数（匀速漂移 = 一直在动但方差极小） */
+/** 成片帧间差的变异系数（匀速漂移 = 一直在动但方差极小）。解码与统计走共享的 diff-series（C4）。 */
 export function motionVariance(mp4) {
-  const FPS = 4, W = 480, H = 270;
-  const r = spawnSync(process.env.ANIM_FFMPEG || 'ffmpeg',
-    ['-v', 'error', '-i', mp4, '-vf', `fps=${FPS},scale=${W}:${H}`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
-    { maxBuffer: 1 << 30 });
-  if (r.status !== 0) return null;
-  const raw = r.stdout, FS = W * H, n = Math.floor(raw.length / FS);
-  if (n < 8) return null;
-  const diff = [];
-  for (let i = 1; i < n; i++) {
-    let s = 0, c = 0;
-    const a = (i - 1) * FS, b = i * FS;
-    for (let k = 0; k < FS; k += 5) { s += Math.abs(raw[b + k] - raw[a + k]); c++; }
-    diff.push(s / c);
-  }
-  const mean = diff.reduce((a, b) => a + b, 0) / diff.length;
-  const sd = Math.sqrt(diff.reduce((a, b) => a + (b - mean) ** 2, 0) / diff.length);
-  let run = 0, worst = 0;
-  for (const d of diff) { if (d < 0.3) { run++; worst = Math.max(worst, run); } else run = 0; }
-  return { cv: mean > 0 ? sd / mean : 0, mean, staticSpan: worst / FPS, frames: n };
+  const s = decodeDiffSeries(mp4);
+  if (!s) return null;
+  return motionStats(s.diff, s.fps);
 }
 
 /* ------------------------------------------------------------------ CLI */
