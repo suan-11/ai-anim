@@ -2,7 +2,7 @@
 /**
  * 15 支小糯米短片：**日语台词 + 中文字幕**（Cotton 配音）。
  *
- *   node tools/nuomi-vo-ja.mjs [--only nuomi3]
+ *   node tasks/nuomi/tools/nuomi-vo-ja.mjs [--only nuomi3]
  *
  * 每支做五步：
  *   ① 按这一支**当前的段序**分配日语句子（表在 out/_ja_table.json，一段一句）；
@@ -16,7 +16,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const tablePath = path.join(ROOT, 'out', '_ja_table.json');
 if (!existsSync(tablePath)) { console.error('缺 out/_ja_table.json'); process.exit(2); }
 const TABLE = JSON.parse(readFileSync(tablePath, 'utf8'));

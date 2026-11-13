@@ -1,7 +1,14 @@
+/**
+ * 给 nuomi* 系列短片做段序轮换（首段保住，末段 lockup/outro 保住，中间循环移位）。
+ *
+ *   node tasks/nuomi/tools/nuomi-shuffle.mjs
+ *
+ * ⚠ 直接改写各支 task.config.mjs，没有 dry-run —— 跑之前先 git 提交。
+ */
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const tasks = readdirSync(path.join(ROOT, 'tasks')).filter((d) => /^nuomi\d*$/.test(d)).sort();
 
 /** 把 timeline: [ ... ] 里的段切成块（按顶层 { } 匹配），返回 { head, blocks, tail } */

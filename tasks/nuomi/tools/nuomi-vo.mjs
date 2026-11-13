@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-/** 给 15 支 nuomi 短片配中文旁白：写 narration.mjs → say → 用解出来的 slot 回写 dur → 挂 audio。 */
+/**
+ * 给 nuomi* 系列短片配中文旁白：写 narration.mjs → say → 用解出来的 slot 回写 dur → 挂 audio。
+ *
+ *   node tasks/nuomi/tools/nuomi-vo.mjs
+ */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const tasks = readdirSync(path.join(ROOT, 'tasks')).filter((d) => /^nuomi\d*$/.test(d)).sort();
 const pick = (src, key) => {
   const m = new RegExp(key + ":\\s*'([^']+)'").exec(src);

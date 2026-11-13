@@ -2,7 +2,7 @@
 /**
  * 给 15 支 nuomi 短片套上 mg-styles-15 的 15 种风格皮（近似实现）。
  *
- *   node tools/nuomi-skins.mjs [--dry]
+ *   node tasks/nuomi/tools/nuomi-skins.mjs [--dry]
  *
  * 参考：https://github.com/Vincentwei1021/mg-styles-15（15 种 MG 风格，各一支 10 秒片，附提示词与源码）
  *
@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const dry = process.argv.includes('--dry');
 
 /** clip → [参考风格, signal, post] */

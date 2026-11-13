@@ -2,7 +2,7 @@
 /**
  * 给 15 支 nuomi 短片**去同质化 + 配中文旁白**。
  *
- *   node tools/nuomi-vary.mjs [--dry]
+ *   node tasks/nuomi/tools/nuomi-vary.mjs [--dry]
  *
  * 做四件事（都只改 tasks/nuomi* 下的配置与音频，不碰引擎）：
  *   ① **主色轮换**：每支一个 palette.signal（橙/青/品红/黄/绿/紫…），一眼就分得开；
@@ -18,7 +18,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const dry = process.argv.includes('--dry');
 const PALETTE = ['#ff4d12', '#12a4ff', '#ff2d78', '#e8a300', '#1fb87a', '#7a5cff'];
 const tasks = readdirSync(path.join(ROOT, 'tasks')).filter((d) => /^nuomi\d*$/.test(d)).sort();
