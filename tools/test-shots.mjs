@@ -70,6 +70,8 @@ const TEMPLATES = [
   'handwrite',
   'reveal', 'cascade', 'transform',
   'deconstruct',
+  // C2 分镜三件套：占位卡
+  'placeholder',
 ];
 
 /** 任务侧的 8 个场景模块 → 它们必须保持的段名。 */
@@ -295,7 +297,12 @@ async function main() {
   /* ---------------- §2.5 用途元数据（1-42） ---------------- */
   console.log('\n§2.5 用途元数据（use / energy / avoid，1-42）');
   const ENERGY = Array.isArray(M.SHOT_ENERGY) ? M.SHOT_ENERGY : null;
-  check('SHOT_ENERGY 是五档且有序（低→高）', !!ENERGY && ENERGY.join('/') === '低/中低/中/中高/高',
+  // 五档必须有序（低→高）；C2 起允许在末尾附一个 'none' 占位档（分镜占位卡，不参与能量筛选）
+  const ENERGY_CORE = ['低', '中低', '中', '中高', '高'];
+  const energyOk = !!ENERGY && ENERGY.length >= 5
+    && ENERGY_CORE.every((e, i) => ENERGY[i] === e)
+    && ENERGY.slice(5).every((e) => e === 'none');
+  check('SHOT_ENERGY 五档有序（低→高），额外只允许 none 占位档', energyOk,
     ENERGY ? `实际：${ENERGY.join('/')}` : '没有导出 SHOT_ENERGY');
 
   const metaProblems = [];

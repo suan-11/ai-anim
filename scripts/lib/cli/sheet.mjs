@@ -16,7 +16,9 @@ async function writeContactSheet(times, out, opts = {}) {
   const samples = opts.samples ?? 1;
   const shutter = opts.shutter ?? 0.5;
   const marks = Array.isArray(opts.marks) ? opts.marks : null;
-  const dataUrl = await getSession().page.evaluate(async ({ times, cols, cell, samples, shutter, marks }) => {
+  // labels：每格自定义标注（C2 board 用「id · 时长 · note」）；不传就仍标时刻（向后兼容）
+  const labels = Array.isArray(opts.labels) ? opts.labels : null;
+  const dataUrl = await getSession().page.evaluate(async ({ times, cols, cell, samples, shutter, marks, labels }) => {
     const api = /** @type {any} */ (window).__anim;
     const w = cell, h = Math.round((cell * 9) / 16);
     const pad = 6, lab = 20;
@@ -35,14 +37,14 @@ async function writeContactSheet(times, out, opts = {}) {
       const y = pad + Math.floor(i / cols) * (h + lab + pad);
       c.drawImage(img, x, y + lab, w, h);
       c.fillStyle = '#ddd'; c.font = '14px monospace';
-      c.fillText(`${times[i].toFixed(2)}s`, x + 2, y + 15);
+      c.fillText(labels ? String(labels[i] ?? '') : `${times[i].toFixed(2)}s`, x + 2, y + 15);
       if (marks && marks.some((m) => Math.abs(m - times[i]) < 0.02)) {
         c.strokeStyle = '#ff4d12'; c.lineWidth = 3;
         c.strokeRect(x + 2, y + lab + 2, w - 4, h - 4);
       }
     }
     return cv.toDataURL('image/png');
-  }, { times, cols, cell, samples, shutter, marks });
+  }, { times, cols, cell, samples, shutter, marks, labels });
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, Buffer.from(String(dataUrl).split(',')[1], 'base64'));
 }

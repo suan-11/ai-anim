@@ -109,6 +109,8 @@ import { revealShot } from './reveal.js';
 import { cascadeShot } from './cascade.js';
 import { transformShot } from './transform.js';
 import { deconstructShot } from './deconstruct.js';
+// C2 分镜三件套：占位卡（不是成片画面，选型抽不到）
+import { placeholderShot } from './placeholder.js';
 
 // 选型词表从 `./pick.js` 转发（1-62 迁移）：老读者（anim.mjs / test-shots）从这里拿，不受影响。
 export {
@@ -157,6 +159,7 @@ const REGISTRY = [
   pixelShot, handwriteShot,
   revealShot, cascadeShot, transformShot,
   deconstructShot,
+  placeholderShot,
 ];
 
 /** 模板名 -> 工厂函数（键来自各工厂自报的 meta.name —— 缺了当场抛错，不会静默变成 titleShot）。 */

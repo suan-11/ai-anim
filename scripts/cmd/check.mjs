@@ -768,6 +768,21 @@ async function cmdCheck() {
     }
   }
 
+  // 1.545c) **分镜占位**（C2）：时间线里还有 placeholder 占位卡 ⇒ 这片子还没做完。
+  // 默认 warn，--strict 进 errs。占位卡是「写场景前先对齐意图」的草稿，不是交付画面。
+  {
+    try {
+      const cfg = (await import(new URL('../../tasks/' + task + '/task.config.mjs', import.meta.url).href)).default;
+      const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
+      const ph = segs.filter((s) => s?.scene?.isPlaceholder);
+      if (ph.length) {
+        warn(`⚠ 分镜占位：时间线里还有 ${ph.length} 段 placeholder（${ph.map((s) => s.id).join(' / ')}）—— 这是草稿，交付前逐段换成真镜头`);
+        warn('  → 协作顺序：分镜表 → placeholder 时间线 → anim board 确认 → 逐段替换（docs/SCENE-BRIEF-TEMPLATE.md §11）');
+        if (strict) staticErrs.push(`[分镜占位] 还有 ${ph.length} 段 placeholder 未替换`);
+      }
+    } catch { /* 读不到配置就不判 */ }
+  }
+
   // 1.55) 静态：**运动上限**（BACKLOG 1-33；判据与 src/kit/motion.js 的 waterfallOver 逐字一致）。
   //
   // 为什么放在 check 里：错峰跨度「items × stagger ≤ 0.5s」是"一组元素像一个节拍到达"的判据，
