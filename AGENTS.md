@@ -83,11 +83,9 @@ npm run dev                                     # 浏览器里实时预览（空
 > `ANIM_FFMPEG` / `ANIM_FFPROBE`）。CLI 自己起私有 Vite 并 spawn 无头 Chrome，用管道读回帧 ——
 > **受限沙箱（只允许写工作区那档）会 `spawn EPERM`**，报错点在 `openSession`，看不出是权限问题。
 > PowerShell 里**别用管道接原生程序输出**（`| Select-Object` 会以"命名管道"为由被拒）—— 直接跑。
-> 沙箱里推仓库：**用 Git 自带的 ssh，不是系统那个** —— 系统 `C:/Windows/System32/OpenSSH/ssh.exe`
-> 在本机实测**返回 255 且毫无输出**（连 `ssh -V` 都是），看不出原因，别在那里浪费时间。
-> 能用的是 `C:/Program Files/Git/usr/bin/ssh.exe`（`ssh -T git@github.com` 会说 "Hi suan-11!"）；
-> ⚠ **路径有空格，必须加引号**（不加会被拆成 `C:/Program`，报 "No such file or directory"）：
-> `git -c core.sshCommand='"C:/Program Files/Git/usr/bin/ssh.exe"' push origin HEAD`；
+> 沙箱里推仓库：**用 Git 自带的 ssh**（`C:/Program Files/Git/usr/bin/ssh.exe`），不是系统的
+> `C:/Windows/System32/OpenSSH/ssh.exe`（本机实测返回 255 且毫无输出，连 `ssh -V` 都是）。⚠ **路径有空格必须加引号**：
+> `git -c core.sshCommand='"C:/Program Files/Git/usr/bin/ssh.exe"' push origin HEAD`。
 > 预提交钩子（sh 脚本）起不来时用 `--no-verify`，但**手动跑一遍钩子里的三项自检**。
 > ⚠ **仓库搬过一次家**（`NekoHome-Studio/ai-anim` → `suan-11/ai-anim`）：GitHub 会重定向所以老远端照样能推，
 > 但每次打一行 `Please use the new location`。`git remote set-url origin git@github.com:suan-11/ai-anim.git` 一次就干净了。
@@ -428,10 +426,7 @@ export default makeThreeShot('cube', {
 | 几何本身是数学式子：无限重复晶格、圆角融合、掏空、雕版排线 | ② raymarch | 每像素几十次 SDF，出片时间会明显变长 |
 | **成百上千个同样的单元**（实例化）、材质 / 光照 / 阴影、真深度真遮挡、以后要导入 `.glb` | ③ Three.js 真网格（`three` 已在 `dependencies`，**不是"最后的备选"**） | 每子帧重渲一次 + 一次全屏合成；写法和另两种一样简单（`makeThreeShot`） |
 
-⚠ **能画出来 ≠ 画出来好看，也不等于一样快**。别为了"手写更纯粹"把本该用 ③ 的画面硬压成 ①/②：
-需要真遮挡、材质光照、或成百上千个单元时，③ 才是省事又好看的那条路。
-写法、三种合成模式、坑清单见 **`docs/THREE.md`**；实现在 `src/core/three-bridge.js`
-（桥）与 `src/kit/three.js`（镜头骨架）。
+⚠ **能画出来 ≠ 好看 ≠ 一样快**：要真遮挡 / 材质光照 / 成百上千单元就用 ③，别为"手写更纯粹"硬压成 ①/②。写法、三种合成模式、坑清单见 **`docs/THREE.md`**；实现 `src/core/three-bridge.js`（桥）+ `src/kit/three.js`（骨架）。
 
 五条**写错不报错、只出错画面**的（其余规格见 `docs/ENGINE.md` §3.7 ①② / §3.8 ③）：
 
@@ -457,10 +452,10 @@ node scripts/anim.mjs analyze <任务名>     # 生成 audio/<文件名>.analysi
 之后画面就能真的踩拍子（全表见 `docs/ENGINE.md` §10.2–§10.3）：
 
 ```js
-f.beat / f.beatPhase    // 连续拍号（3.4 = 第 3 拍走了 40%）/ 0→1 走向下一拍
-f.a.kick / snare / hat  // 打击事件强度（±60ms 窗口）· f.a.rms/low/mid/high/vocal/flux 是 0..1 包络
-music.timeOfBeat(16)    // 第 16 拍的时刻 —— 用它来定切割点；music.beatAt / nearestBeat 同理
-music.hit('kick', t, 0.12)   // 衰减脉冲（做撞击位移/闪白最省事）；music.hits('kick', t-2, t) 取一段内的
+f.beat / f.beatPhase         // 连续拍号（3.4 = 第 3 拍走 40%）/ 0→1 走向下一拍
+f.a.kick / snare / hat       // 打击强度（±60ms）；f.a.rms/low/mid/high/vocal/flux = 0..1 包络
+music.timeOfBeat(16)         // 第 16 拍时刻（定切点）；beatAt / nearestBeat 同理
+music.hit('kick', t, 0.12)   // 衰减脉冲（撞击/闪白）；hits('kick', t-2, t) 取一段
 ```
 
 **切镜头要对齐节拍**：用 `cut(scene, { dur: { beat: 16 } })` 或 `cut(scene, { at: music.timeOfBeat(16), dur: 8 })`，而不是手写秒数。`at` 和 `dur` 都接受 `{ beat: n }` / `{ bar: n }`（配置档节点上的 `at` / `dur` 同理，见 §3.2）。
@@ -480,34 +475,13 @@ node scripts/anim.mjs say <任务> --table en   # 表写到 audio/en.{timing,nar
 
 > 贴平台响度靶子要**显式**：`anim mix <任务> --target streaming`（默认只报数字、不动音轨；`docs/NARRATION.md` §7）。
 
-写法（`tasks/<任务>/narration.mjs`，**旁白是唯一的时间源**）：
-
-```js
-export const VOICE = 'zh-CN-YunxiNeural';   // 换音色只改这一行，重跑 say+mix（场景代码不用动）
-export const TAIL = 1.2;                    // 每段最后一句说完后至少留这么久画面
-export const MAX_STRETCH = 1.9;             // 画面最多放慢几倍（再慢就像卡住）
-export const SCENES = [
-  { id: 'hook', internal: 4.2,              // internal = 这个镜头画面最后一次揭晓的内部时刻
-    lines: [ { cue: 0.6, text: '先看一句话。' },        // cue = 说这句时画面该走到哪
-             { cue: 2.6, text: '这串「嗷呜啊」，叫「兽语」。' } ] },
-];
-```
+写法（`tasks/<任务>/narration.mjs`，**旁白是唯一的时间源**）：`VOICE` / `TAIL` / `MAX_STRETCH` / `SCENES`（每段 `internal` + 逐句 `cue`）——完整字段与示例见 [`docs/NARRATION.md`](NARRATION.md)。
 
 `say` 逐句合成、**量出真实时长**、解出每段的 `stretch`/`slot`，写 `audio/timing.{json,mjs}` + `narration.json` +
 `<任务>-vo.mp3` 并打印时长表；场景侧只写 `const t = f.lt / (ctx.params?.stretch ?? 1)`。
 它挡住的坑：**叠句**、放慢到 `MAX_STRETCH` 还不够、没有节拍源。⚠ 旁白尾巴自带约 0.9s 静音 —— 别用文件时长。
 
-`task.config.mjs` 里这样接（`duration` 直接用生成的表）：
-
-```js
-import timing from './audio/timing.mjs';
-export default {
-  audio: { music: './audio/bed.mp3', vo: './audio/x-vo.mp3', mix: './audio/x-mix.mp3' },
-  narration: './narration.json',              // 场景里 ctx.narration.at(f.t) / .recent(f.t, 1.2)
-  timeline: seq([ cut(hook, { dur: timing.scenes[0].slot, overlap: timing.overlap,
-                              params: { stretch: timing.scenes[0].stretch } }) ]),
-};
-```
+`task.config.mjs` 里接 `audio.{music,vo,mix}` + `narration` + 用 `timing.scenes[i].slot/stretch` 定段长（`duration` 直接用生成的表）——接线示例见 [`docs/NARRATION.md`](NARRATION.md)。
 
 **词级时间戳**（"唱到哪亮哪"）：`say` 把词级时间戳写进 `narration.json` 的 `lines[].words`（整片绝对时间），
 直接喂 `type.karaoke`；完整用法见 [`docs/NARRATION.md`](NARRATION.md)。
@@ -563,9 +537,7 @@ node scripts/anim.mjs queue a b --segments 10 --gpu high # 睡前排队：顺序
 node scripts/anim.mjs verify <任务>     # 成片抽帧 vs 同 t 重渲，逐像素（拼接/帧数/色彩/旧版本一次查完）
 node scripts/anim.mjs qa <任务>         # 纯 ffmpeg 读数：解码 / 黑场 / 静帧 / 音量（--strict 才当门）
 
-# 画面基线：它是**变更探测器**，不是"画面永远不许变"（docs/BACKLOG.md §4）
-#   · 保画面（bug fix / 重构 / 性能）⇒ --baseline 必须全绿，绿了才证明你没顺手改画面
-#   · 改画面（有意的视觉改进）⇒ --accept --note "改了什么、为什么"：先看前后对比图，再存基线
+# 画面基线 = **变更探测器**，不是"永远不许变"（docs/BACKLOG.md §4）：保画面 ⇒ --baseline 全绿；改画面 ⇒ --accept --note
 node scripts/anim.mjs hashes <任务> --every 2 --save     # 首次存基线（已存在会拒绝覆盖）
 node scripts/anim.mjs hashes <任务> --baseline           # 变了 ⇒ 退出码 1 + hashes-diff.png
 node scripts/anim.mjs hashes <任务> --accept --note "…"
