@@ -133,7 +133,7 @@ node scripts/anim.mjs hashes sodium --baseline
 ```
 ✗ RangeError: Invalid string length
     at JSON.stringify (<anonymous>)
-    at cmdHashes (scripts/anim.mjs:1258)
+    at cmdHashes (scripts/cmd/hashes.mjs:303)
 ```
 
 根因：基线**是一个 JSON 文件**，每帧存的是"整帧像素 delta 之后的 base64"（1920×1080 约 7.9MB/帧），
