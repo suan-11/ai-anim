@@ -246,9 +246,9 @@ ok('resolveRelayMove：缺省 = glide、合法名返回曲线、未知名/非字
 
 /* ══════════════ ④ trans.js 的 'relay' ══════════════ */
 
-ok("TRANSITION_MODES 里有 'relay'（15 个）；isPassTransition('relay') === false（无 shader）", () => {
+ok("TRANSITION_MODES 里有 'relay'（17 个）；isPassTransition('relay') === false（无 shader）", () => {
   A.ok(TRANSITION_MODES.includes('relay'), '表里有 relay');
-  A.equal(TRANSITION_MODES.length, 15, '一共 15 个模式');
+  A.equal(TRANSITION_MODES.length, 17, '含 corners / seam，一共 17 个模式');
   A.equal(isPassTransition('relay'), false, 'relay 不走 transitionPass');
 });
 
