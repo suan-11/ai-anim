@@ -1370,6 +1370,10 @@ const api = {
       id: ids[0] ?? '', t: t, blocks, focus: focusRects[0] ?? null, W, H,
       limits: layoutLimits(engine.style?.layout),
       paint, textLayerDrawn: textDrawn,
+      // C1 几何判据的数据：安全边距 / 此刻字幕矩形 / overlap 受控豁免
+      pad: engine.style?.grid?.pad ?? 0,
+      captionRect: engine.lastCaptionRect ?? null,
+      allowOverlap: engine.style?.layout?.allowOverlap ?? [],
     });
     // 返回整份 verdict（**含真实的 t**）：CLI 直接把它 push 进采样数组。
     // 曾返回过 { id, t: clock, verdict } —— CLI 那边照着旧字段名读，报告里全是 undefined。

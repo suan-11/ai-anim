@@ -352,6 +352,74 @@ function shortOf(g) {
  *   limits?: Partial<LayoutLimits>, paint?: any, textLayerDrawn?: boolean }} o
  *   `paint` / `textLayerDrawn` 是可选的：给了才有 `nonTextDraws` 那条读数（见 `countNonTextDraws`）
  */
+/**
+ * C1 版面守门 v2 的**几何判据**（纯函数）：字压字 / 出画 / 撞字幕。
+ * 数据 = textGroups 聚类后的块 bbox（x0/x1/y0/y1）。与数量判据同一本绘制账。
+ *
+ * · overlap   任意两块交叠面积 > 较小块的 15% ⇒ warn（保留区里的版式字不参与）；
+ * · off-frame bbox 越出画幅 0..W/0..H ⇒ error；off-safe 越出安全边距 pad ⇒ warn（保留区豁免）；
+ * · caption-hit 块与**此刻正在渲染的字幕**矩形相交 ⇒ warn（captionRect 为空 = 没字幕，不判）。
+ *
+ * 受控豁免：allowOverlap 是一组字符串，块的 sample 文本含其中任一 ⇒ 该块不参与 overlap 判
+ * （段级/任务级 layout.allowOverlap 声明，需显式说明关掉了什么）。
+ * @param {any[]} groups textGroups 的产物
+ * @param {{ W?:number, H?:number, pad?:number, captionRect?:any, allowOverlap?:string[] }} [o]
+ * @returns {any[]} violations（kind/level/detail）
+ */
+export function geometryViolations(groups, o = {}) {
+  const W = Number.isFinite(o.W) ? o.W : BASE_W;
+  const H = Number.isFinite(o.H) ? o.H : BASE_H;
+  const pad = Number.isFinite(o.pad) ? o.pad : 0;
+  const captionRect = o.captionRect ?? null;
+  const allowOverlap = Array.isArray(o.allowOverlap) ? o.allowOverlap : [];
+  const gs = Array.isArray(groups) ? groups : [];
+  const area = (g) => Math.max(0, g.x1 - g.x0) * Math.max(0, g.y1 - g.y0);
+  const short = (g) => String(g.sample ?? '').slice(0, 12) || '(字块)';
+  const exempt = (g) => allowOverlap.some((s) => s && String(g.sample ?? '').includes(s));
+  const inter = (a, b) => {
+    const ix = Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0));
+    const iy = Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+    return ix * iy;
+  };
+  /** @type {any[]} */ const v = [];
+  // 字压字（保留区里的页眉/脚注是版式，不算）
+  for (let i = 0; i < gs.length; i++) {
+    for (let j = i + 1; j < gs.length; j++) {
+      const a = gs[i], b = gs[j];
+      if (inReservedBand(a, H) || inReservedBand(b, H)) continue;
+      if (exempt(a) || exempt(b)) continue;
+      const smaller = Math.min(area(a), area(b));
+      const ov = inter(a, b);
+      if (smaller > 0 && ov > 0.15 * smaller) {
+        v.push({ kind: 'overlap', level: 'warn', got: ov / smaller, limit: 0.15,
+          detail: `字压字：「${short(a)}」与「${short(b)}」交叠 ${Math.round(100 * ov / smaller)}%（>15%）` });
+      }
+    }
+  }
+  // 出画 / 越安全边距
+  for (const g of gs) {
+    // 出画只判**锚点越界**（x0/y0 是绘制锚点）：右/下边缘 x1/y1 依赖实测宽度，而右对齐/居中字的
+    // 锚点不是左上角、宽度量的是 sans 近似 —— 拿 x1>W 判会在 beat 的 LOW/MID/HIGH 上刷假阳性（C1 校验后收紧）。
+    if (g.x0 < 0 || g.y0 < 0 || g.x0 > W || g.y0 > H) {
+      v.push({ kind: 'off-frame', level: 'error', detail: `出画：「${short(g)}」锚点越出画幅 ${W}×${H}` });
+    } else if (pad > 0 && !inReservedBand(g, H) && (g.size ?? 0) >= 32 && (g.x0 < pad || g.y0 < pad || g.x1 > W - pad || g.y1 > H - pad)) {
+      // 只判**成块的内容字**（size≥32）：贴边的计数器/角标/小标签（kinetic 的 079、beat 的 EQ 注记）
+      // 是版式装饰，不是「内容压边」—— 全判会在 demo/beat 上刷一片假阳性（C1 假阳性校验后收紧）。
+      v.push({ kind: 'off-safe', level: 'warn', detail: `越出安全边距 ${pad}px：「${short(g)}」` });
+    }
+  }
+  // 撞字幕（只有此刻真的在画字幕才判）
+  if (captionRect) {
+    for (const g of gs) {
+      // 字幕本身在顶部保留带里，但「内容块撞字幕」正是要抓的事 —— 不按保留区豁免；
+      // 字幕 x 范围居中，左右页眉天然不交，不会误伤。
+      if (inter(g, captionRect) > 0) {
+        v.push({ kind: 'caption-hit', level: 'warn', detail: `撞字幕：「${short(g)}」压进此刻的字幕` });
+      }
+    }
+  }
+  return v;
+}
 export function layoutVerdict(o = {}) {
   const limits = { ...LAYOUT_LIMITS, ...(o.limits ?? {}) };
   const W = Number.isFinite(o.W) ? o.W : BASE_W;
@@ -450,6 +518,10 @@ export function layoutVerdict(o = {}) {
             + subjectOutside.map((c) => shortOf(groups[c.ix[0]])).join(' / '),
         });
   }
+  // C1 几何判据：字压字 / 出画 / 撞字幕（与数量判据同一本绘制账；默认 warn，off-frame 是 error 级）
+  violations.push(...geometryViolations(groups, {
+    W, H, pad: o.pad ?? 0, captionRect: o.captionRect ?? null, allowOverlap: o.allowOverlap ?? [],
+  }));
   return {
     id: o.id ?? '',
     t: Number.isFinite(o.t) ? o.t : 0,

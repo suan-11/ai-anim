@@ -102,6 +102,7 @@ export class Engine {
      * 建在 `load()` 里（那时才知道 W/H/P/narration），每帧在**后处理之后**画一次。
      */
     this.captions = null;
+    this.lastCaptionRect = null;   // C1：此刻正在渲染的字幕矩形（版面守门 captionHit 用）
     /** 字幕专用的 Canvas2D 图层（与调试 HUD 分开：两者开关独立、生命周期独立）。 */
     this.cap2d = null;
     /** 装载期的错误（setup 失败、共享背景建不出来、--only 写错…） */
@@ -1414,6 +1415,8 @@ export class Engine {
       this.errors.push(`[字幕] t=${t.toFixed(3)} 出错: ${fmtErr(err)}`);
     }
     c.restore();
+    // C1：记下此刻字幕的实际矩形（band）供版面守门判「撞字幕」；没字幕 = null（不判）
+    this.lastCaptionRect = line ? (this.captions.band ?? null) : null;
     if (!line) return null;
     layer.upload();
     this.comp.draw(this.gl, layer, this.outRT, { premult: false });
