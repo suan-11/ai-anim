@@ -1,22 +1,23 @@
 // Draw the matrix and the impression from the same carving.
-const relief = new Path2D([
+const reliefOutline = [
   'M 41 166 C 58 149 79 121 117 111',
   'Q 143 82 173 66 Q 168 87 171 100 Q 190 82 209 81 Q 198 94 199 106',
   'C 246 105 279 130 309 141 Q 335 135 366 106',
   'Q 361 141 343 158 Q 364 177 375 201 Q 337 196 304 175',
   'C 271 179 251 200 204 209 Q 187 229 162 237 Q 166 223 164 213',
   'Q 109 218 75 197 Q 52 192 42 179 L 57 174 Z',
-].join(' '));
+].join(' ');
 
-const cuts = new Path2D([
+const incisions = [
   'M 98 132 Q 117 164 96 194 M 110 128 Q 133 160 112 193',
   'M 132 164 Q 152 170 163 191 Q 144 185 132 170',
   'M 321 151 L 350 127 M 326 157 L 355 142 M 324 166 L 358 184',
   'M 144 107 L 165 83 M 171 103 L 191 91 M 174 222 L 189 212',
   'M 54 177 L 71 175 M 61 185 L 77 181',
-].join(' '));
+].join(' ');
 
 function fish(c, ink, cutColor) {
+  const relief = new Path2D(reliefOutline);
   c.save();
   c.translate(-3, 1);
   c.rotate(-0.41);
@@ -27,7 +28,7 @@ function fish(c, ink, cutColor) {
   c.strokeStyle = cutColor;
   c.lineCap = 'round';
   c.lineWidth = 2.7;
-  c.stroke(cuts);
+  c.stroke(new Path2D(incisions));
   // The short cuts follow the flank. Stagger adjacent rows like real scales.
   for (let row = 0; row < 6; row++) {
     const y = 121 + row * 14;
