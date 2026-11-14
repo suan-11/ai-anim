@@ -18,7 +18,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const dry = process.argv.includes('--dry');
 const PALETTE = ['#ff4d12', '#12a4ff', '#ff2d78', '#e8a300', '#1fb87a', '#7a5cff'];
 const tasks = readdirSync(path.join(ROOT, 'tasks')).filter((d) => /^nuomi\d*$/.test(d)).sort();

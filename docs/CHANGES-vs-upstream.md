@@ -8,39 +8,135 @@
 ## 一、总量
 
 ```
-47 个提交 · 465 个文件 · +74,591 / −1,001 行
-基线 237e985　当前 3af444c fix(motion): 收 review —— P3 取参、空≠干净、嵌套括号、sine 幽灵名、vendor 合规
+142 个提交 · 659 个文件 · +109,886 / −8,732 行
+基线 237e985　当前 317d40e docs(backlog): 计划全收口销账 + 开 2-2 pv-kattachi 歌词同步收尾（待拍板 A/B/C）
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
-| tasks | 261 | 52,778 | 301 |
-| src | 58 | 7,353 | 169 |
-| tools | 52 | 6,459 | 42 |
-| docs | 55 | 3,851 | 77 |
-| scripts | 10 | 2,003 | 53 |
-| skills | 19 | 1,666 | 0 |
-| (root) | 5 | 345 | 359 |
-| .github | 2 | 108 | 0 |
+| tasks | 319 | 55,910 | 308 |
+| assets | 14 | 16,801 | 0 |
+| scripts | 66 | 10,661 | 7,292 |
+| tools | 86 | 8,819 | 143 |
+| src | 70 | 8,678 | 169 |
+| docs | 75 | 6,846 | 404 |
+| skills | 20 | 1,724 | 0 |
+| (root) | 5 | 317 | 416 |
+| .github | 2 | 114 | 0 |
 | .githooks | 1 | 16 | 0 |
-| assets | 2 | 12 | 0 |
+| public | 1 | 0 | 0 |
 
 ## 二、提交一览
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| 317d40e | 2026-11-14 | docs(backlog): 计划全收口销账 + 开 2-2 pv-kattachi 歌词同步收尾（待拍板 A/B/C） |
+| 15b2454 | 2026-11-14 | docs(handover): 2026-11-14 交接 —— PLAN 全收口 CI 80/80，pv-kattachi 待决 A/B/C 与核听入口 |
+| 4fe3eec | 2026-11-14 | fix(pv-kattachi): 尾段四句按人声起音重排 —— 歌词同步 p90 563→525ms |
+| 52bc746 | 2026-11-14 | docs(plan): 三线计划 11 项全部收口（CI 80/80）—— 归档 history/PLAN-2026-11-08.md，HANDOVER 更新 |
+| 0e746e8 | 2026-11-14 | C1：版面守门 v2 —— 字压字 / 出画 / 撞字幕 三条几何判据（纯函数 + 接 check） |
+| eee80e4 | 2026-11-14 | C3：「被拍摄感」后处理预设 —— filmed / filmed-doc / filmed-super8，零回归实证 |
+| 5b81120 | 2026-11-14 | C2：分镜三件套 —— placeholder 占位镜头 + anim board + brief §11.5 协作顺序 |
+| 4e5e8e0 | 2026-11-14 | docs(handover): A 线+B0+C4 全收口（CI 78/78），记录三支样片草稿 |
+| c589db3 | 2026-11-14 | A5：chrome 判定修掉「装了包≠有浏览器」误判 —— 抽到 env-probe.mjs 可夹具测，5 项离线回归进 CI（78/78） |
+| 9aef808 | 2026-11-13 | A4：HANDOVER 旧机器快照归档到 history/HANDOVER-2026-11-04.md，当前页重写为本机口径（AMD 核显/LGPL/CI 77） |
+| 3776200 | 2026-11-13 | A2：AGENTS 瘦身到 49912 B（≤50KB）—— 旁白/3D/音乐/ssh 查表内容下沉 docs，章节锚点与铁律不动 |
+| 3ddb3e3 | 2026-11-13 | C4：C7 运动节奏接入 anim check —— 共享 decodeDiffSeries，去掉两份重复解码 |
+| 041b57e | 2026-11-13 | B0：渲染分段计时（anim perf --breakdown / video --breakdown）+ 本机实测写入 PERF §8 |
+| 091ea56 | 2026-11-13 | docs(plan): A1 销账 —— 渲染对拍（src 逐字节未变 + determinism）/ 断言条数 / 文档行号三项收尾完成 |
+| a0afdfe | 2026-11-13 | docs: A1 收尾 —— DIAGNOSIS/STATUS/REFERENCE 里 74+3 处 anim.mjs 行号迁到拆分后的 cmd/lib 模块（按诊断文本锚定，非按旧行号） |
+| 247ba89 | 2026-11-13 | feat(task): trans-showcase 扩到五段 —— diamond / split / slats / turn / sweep 各一段，全部遮挡或滑出 |
+| 3969b6b | 2026-11-13 | A1-5B：拆 scripts/anim.mjs（8368 → 303 行）—— 一命令一文件，行为零改动 |
+| ca58211 | 2026-11-13 | docs(plan): audit implementation progress and fix stale relay assertion |
+| dbbc2d8 | 2026-11-13 | feat(lens-travel): finish the camera passage with materials and synced sound |
+| c101755 | 2026-11-13 | feat(motion): traverse a separated lens assembly in one camera move |
+| b34cfd6 | 2026-11-13 | docs(handover): record rejected direction and package entry points |
+| f078898 | 2026-11-13 | refine(fish-print): time the approach, press and impression |
+| a9032ee | 2026-11-13 | fix(fish-print): construct canvas paths during scene setup |
+| 327c2b6 | 2026-11-13 | feat(fish-print): tell a woodblock printing story through the split |
+| 1a2dd65 | 2026-11-13 | feat(rough-cut): carry the split shape into a solid landing |
+| 18b0957 | 2026-11-13 | feat(rough-cut): add template-free time structure and seam transition |
+| df93252 | 2026-11-12 | feat(trans): add corners transition and handoff |
+| 7779dfe | 2026-11-12 | docs(handover): add transition handoff 1 |
+| 1627466 | 2026-11-11 | docs(handover): 2026-11-11 夜 —— 1-74 已修 / 四条转场与覆盖修复入库 / 三条判据接进 check / retime 工具的实测结论 |
+| 233dbbb | 2026-11-11 | feat(check): 同时运动判据接进 anim check —— 只在有 mp4 时跑，没成片记 skipped（没验 ≠ 通过） |
+| f718734 | 2026-11-11 | feat(check): 把运动人格与缓动方向接进 anim check —— 退出码 2 一律记 skipped，默认只报、--strict 才当门 |
+| 1cd42f2 | 2026-11-11 | docs(motion): §3.6 转场表补全到 15 种（diamond / frame / sweep / turn），并写明六个可选旋钮与 GPU 探针 |
+| 9a0e00f | 2026-11-11 | feat(tools): retime-lyrics 诊断器 —— 预测歌词句首吸附后的中位/p90（默认 dry-run，附「自动吸附何时不安全」的实测） |
+| 55891e7 | 2026-11-11 | fix(gate): gl.clear 算一次整帧覆盖绘制 —— 修掉「只靠 clear 铺底」的模板被背景守门误判（BACKLOG 1-74） |
+| df8f402 | 2026-11-11 | feat(deconstruct): 解构镜改为 Y 分层 → X 分列 → Z 展开，引线按弧长连续、文字不抢跑 |
+| 1efc05c | 2026-11-11 | feat(trans): 四支遮挡/滑出型转场（diamond / frame / split / slats）+ 引擎 handlesTransition 覆盖修复 + GPU 探针 |
+| 29635e7 | 2026-11-09 | feat(trans): 新增 turn（百叶翻面）—— 旋转类里唯一站得住的做法：竖条各自绕轴转，不拧整帧 |
+| 51fe99a | 2026-11-09 | docs(motion): 复盘 —— 旋转/镜碎这一族为什么被删，以及元素级 drawQuad 原型的两处已知 bug |
+| cc619f7 | 2026-11-09 | revert(trans): 删掉 spin / carousel / swirl / shatter —— 整帧 UV 变形做不出旋转与玻璃 |
+| 51c8244 | 2026-11-09 | feat(task): trans-showcase 转场样片（config-only，四段四种转场）+ BACKLOG 1-74（outro+world:auto 被背景守门误判） |
+| 867ab24 | 2026-11-09 | docs(config-only): 转场模式补全到 13 个；transitionOpts 现在有两套旋钮（relay 曲线 + 旋转族/镜碎观感） |
+| 0225099 | 2026-11-09 | docs(history): 2026-11-08/09 会话记录 —— 转场族 + 镜头级镜碎 + GPT 协作基础设施（含六个坑的修法） |
+| 8736868 | 2026-11-09 | feat(kit): shatterIn 绘制层 —— 离屏 RT + Pass，边缘光方向与转场版相反（出图修正） |
+| 9701c9d | 2026-11-08 | fix(agents): gpt-turn 加 writer 守卫 —— 同一 thread 只能一个会话写（踩过：并发派发导致纠正消息静默丢失） |
+| a75a93b | 2026-11-08 | feat(kit): 镜头级镜碎的**计划层** —— h2 与 shader 同一条表达式（76/76） |
+| 2ffa128 | 2026-11-08 | docs(engine): 旋转族与镜碎的六个旋钮写进 §3.7.6（含「默认值 = 现状」与缓存键提醒） |
+| a595823 | 2026-11-08 | feat(trans): spin.turns / carousel.tilt / swirl.swirlAmount 可逐段调（默认 1/1/1 = 现状不变） |
+| 65332c7 | 2026-11-08 | feat(trans): 段级 transitionOpts 透传到 transitionPass —— shatter 的 shards/seed/power 可以逐段调 |
+| 6bdf8ef | 2026-11-08 | feat(trans): shatter 的 shards/seed/power 提到 uniform（默认 7/7/0.8，只在本支 shader 里声明） |
+| 81dc602 | 2026-11-08 | fix(agents): gpt-turn 的 base brief 按话题取 —— 之前写死 5B，导致 trans 会话拿到 5B 工作单并回了 5B 的报告 |
+| 877b27b | 2026-11-08 | feat(trans): 补齐旋转转场族 spin / carousel / swirl / shatter（GPT 实现，我验的图） |
+| c960819 | 2026-11-08 | fix(anim): 修掉 94773f5 的拆坏 —— die/opt/flag/positional/log/warn 全部按原文抽出，错误路径可跑 |
+| 9ebc2d0 | 2026-11-08 | fix(agents): agent-mail wait 加游标 —— 没有游标时守望任务会被历史消息唤醒（我踩过一次） |
+| 94773f5 | 2026-11-08 | A1-5B(1/40): 抽出 scripts/lib/cli/args.mjs —— opt / flag / pickTask（函数体逐字未改） |
+| a34e5ac | 2026-11-08 | feat(agents): gpt-turn 桥 —— 信箱里的新消息自动变成一轮 Codex 会话（带游标） |
+| f68a09e | 2026-11-08 | feat(agents): agent-mail 信箱 —— 让 GPT 能主动找我对接（append-only JSONL，四命令，含协议文档） |
+| 9a24cd0 | 2026-11-08 | feat(trans): 新增 sweep（角度扫描转场）—— 旋转转场族的第一支，不新增 uniform |
+| f512884 | 2026-11-08 | A1-5A: readCliSource() 接线 —— 12 个读 anim.mjs 源码的测试改读拼接视图（为 5B 拆分铺路） |
+| 4704ce3 | 2026-11-08 | docs(motion): 旋转式转场 × 镜碎的设计稿 —— 四转场一条公式 + Voronoi 镜碎 |
+| c94faa9 | 2026-11-08 | A6: 5 个 nuomi 工具迁入 tasks/nuomi/tools/，probe-app-scale 登记保留 |
+| b3882a8 | 2026-11-08 | A3: BACKLOG 归档瘦身 108,726 → 19,296 B（53 条已完成迁入 history/，41 个外部引用的编号留指针） |
+| 6445e37 | 2026-11-08 | A2: AGENTS.md 瘦身 61,934 → 51,207 B（下沉查表内容 + 前置必读摘要 + 注入截断判据） |
+| ce14f1e | 2026-11-08 | A5: regress-all 前置依赖体检 —— 缺 ffmpeg 不再满屏 ENOENT |
+| 280df73 | 2026-11-08 | docs(workorder): 给执行 agent 的 A 线工作单 —— 五阶段 + 每阶段门 + 回报格式 + 回滚 |
+| 2081e81 | 2026-11-08 | docs(handover): 按 PLAN A4 重写交接页 —— 现行状态 / 环境坑 / 16 条判据 / 43 条选题分档 |
+| 9bd271a | 2026-11-08 | docs(ideas): 补充 43 条跨方向创新选题至选题池 |
+| c72e1ea | 2026-11-08 | docs(plan): 落盘改进计划（工程健康 / 出片效率 / 画面下限）并在 BACKLOG 挂入口 |
+| 36872a7 | 2026-11-07 | chore: 删掉误提交的临时提交信息文件（.msg-stamp.txt） |
+| ef76dd5 | 2026-11-07 | feat(stamp): 成片版本戳 —— 交付物不作废，用戳记版本而不是逼整批重渲（1-73） |
+| 0c939ec | 2026-11-07 | fix(ci): --check 只判「不矛盾」，不判「逐字节相同」 |
+| 9e291a1 | 2026-11-07 | fix(ci): 生成物跳过 merge commit —— PR 上的 HEAD 是临时对象，不是过期 |
+| 00b3fda | 2026-11-07 | fix(ci): fetch-depth 0 —— CI 红在「拿不到基线」，不是清单过期 |
 | 3af444c | 2026-11-07 | fix(motion): 收 review —— P3 取参、空≠干净、嵌套括号、sine 幽灵名、vendor 合规 |
+| 4cafeff | 2026-11-06 | feat: add action and deconstruction motion shots |
 | 71c062f | 2026-11-06 | feat(motion): 运动人格可选声明 + 三条审美判据（缓动方向 / 同时运动 / 时长档） |
+| 297567a | 2026-11-06 | 同时运动判据（1/3 规则的片子版）+ MOTION.md §8 §9 |
+| 30192cf | 2026-11-06 | 运动人格（可选声明，不僵化）+ 缓动方向判据 |
+| 6171f70 | 2026-11-06 | vendor LottieFiles motion-design-skill（MIT）+ 评估文档：与我们已有判据的重叠/差异、四件值得抄、三件不该抄 |
+| a1ca4fb | 2026-11-04 | 交接：docs/HANDOVER.md（现状 / 这轮做了什么 / 怎么验证 / 环境坑 / 欠账） |
+| 8969182 | 2026-11-04 | 反 PPT 味：state / relayTo 进时间线 + lint-anti-ppt 七条判据（P0 落地） |
+| 62f633c | 2026-11-03 | 音效语义规则：按段选声（标题撞击+闪 / 数据 UI 声 / 歌词换族才给风 / 片尾断电 / 大字前 riser）+ 再拉 5 条库存到 10 条 + test-sfx 30 项 |
+| 3454291 | 2026-11-03 | 音效：SoundDino 索引 2081 条（36 分类）+ 共享库 5 条 + anim mix --sfx（自动摆位/峰归一/侧链让路）+ test-sfx 17 项 |
+| d027754 | 2026-11-02 | 色系判据接进 check + 撞色系对比（--compare） |
+| fd719ff | 2026-11-02 | 引擎：色系判据 lint-color-family（主色系/前二/对比/信号色）+ 强调色跟着 signal 旋转（风格只改 signal 也不散） |
+| ce7ea0e | 2026-11-02 | 判据修完：亮底风格的「底色不符」三层原因（2 层是判据自己的错） |
+| 98e8592 | 2026-11-02 | 修引擎：编码器「能不能真的编一帧」+ 底色 bg 缺省 + 回归清单整治 |
+| 3fd755a | 2026-11-01 | 引擎夜班：lint-lyric-sync（词句对得上人声，已接进 check）+ gen-changes（改动清单生成物，--check 防过期）+ 播放器 P 键截帧 |
+| 29daf26 | 2026-11-01 | 融 OpenFilm 的「一个 HTML 文件就是一支片子」：anim film-html（esbuild 打包 + 音轨内联 + 单页播放器）+ 量具 probe-film-html + agent skill 包 |
+| 4605745 | 2026-11-01 | KING PV: 片门晃动 1.6px + 曝光闪烁 0.18 + 呼吸推近 1.028——白底静止段不再被判据当静帧 |
+| 60215a6 | 2026-11-01 | KING PV: 片头 14.4s 静态大字拆成三段（mask → キング竖排 → glitch 署名），修掉事件密度红灯 |
+| 272b7e7 | 2026-11-01 | 新 PV：KING（Kanaria feat. GUMI）· Cotton 翻唱 —— QQ音乐逐行 LRC + 线性拟合（0.99974）+ 起音吸附；bauhaus 白底、文字自适应深色、几何底纹 |
 | fb2ecd6 | 2026-11-01 | feat(relay): 相机接力 —— transition: relay，相机在两段位姿间飞、内容换手窗交接（1-12） |
 | e8dcc4b | 2026-11-01 | docs: 归档已完成的交接文档 —— 8 份入库 + 3 份本地随移（docs/history/） |
+| 280ad7f | 2026-11-01 | PV: 间奏空拍改成 interlude（拍尺 + 罗马音慢移 + kick/snare/hat 能量条），不再出现单音符空场 |
 | 9e1245c | 2026-11-01 | fix(sampling): 自适应梯子的采样窗几何错误 —— ternaryOffsets 改层级序（1-72） |
 | 95a500a | 2026-11-01 | fix(timeline): resolveDur 拒绝非有限 dur/tail + refRT 释放 + sampling 入回归清单 |
 | bc32a06 | 2026-10-31 | feat(杂活批次): 后处理/CLI/引擎杂活一次收账 —— 1-14/1-15/1-37/A-2/D-1/E-1/1-24① + 1-8 注入通道 |
 | f02541a | 2026-10-31 | feat(render): 多子帧亚像素抖动（真 4× 超采样）+ 填充面硬边带（1-71） |
+| 0d80c0d | 2026-10-31 | PV: 错误色加强（普通 0.22 / split 0.45 / glitch 0.85 + 随 kick 0.45），节拍扫描线压暗 |
+| 4a2d55a | 2026-10-31 | PV: 加错误色（post ca，随 kick 抖动；glitch/split 段更狠），准备带运动模糊重渲 |
 | 156ee82 | 2026-10-31 | docs(agents): 推仓库改用 Git 自带的 ssh（系统那个在本机返回 255 且无输出） |
 | 4057562 | 2026-10-31 | feat(segments): 引擎改动按 import 图收窄，改通用件不再整片重渲 |
 | fdaa967 | 2026-10-31 | feat(video): dry-run 按草稿/成片档预估，审片先草稿后全渲染 |
+| 580bb2c | 2026-10-31 | PV 改用 QQ音乐官方逐行 LRC 时间轴（songmid 0016bZbj0QvC1C）：首句 1.33s 与原曲一致；揭示类效果压到 0.42s 内，歌词到句即读' |
+| 633ecea | 2026-10-31 | PV: 句首改由人声起音驱动（DP 挑峰 + 80ms 内吸拍）+ 每拍可见的扫描线；片头合成一个镜头（标题+作者+署名） |
 | 582f234 | 2026-10-31 | docs: 计数同步 —— 模板 25 个 / 仪器九种 / CHANGES 刷新（37 提交 381 文件） |
+| 5fe36b8 | 2026-10-31 | PV 歌词版 + tools/lint-cut-beats.mjs（切点必须踩拍） |
 | c444859 | 2026-10-31 | docs(rules): P4 —— 合别人分支的纪律（预演 / 并集vs二选一 / 编号撞车） |
 | 3efea97 | 2026-10-31 | feat: 手绘笔迹 —— 中心线+压力 -> 轮廓多边形，曲率 < 半宽时自动退胶囊链（1-69） |
 | df5d91d | 2026-10-31 | feat: 像素精灵 + 多方向排线 —— 像素四件事齐全、木刻按明暗加方向（1-67 / 1-68） |

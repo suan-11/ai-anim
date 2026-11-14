@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..'); // tasks/nuomi/tools/ → 仓库根
 const dry = process.argv.includes('--dry');
 
 /** clip → [参考风格, signal, post] */
