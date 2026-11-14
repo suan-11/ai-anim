@@ -8,20 +8,20 @@
 ## 一、总量
 
 ```
-142 个提交 · 659 个文件 · +109,886 / −8,732 行
-基线 237e985　当前 317d40e docs(backlog): 计划全收口销账 + 开 2-2 pv-kattachi 歌词同步收尾（待拍板 A/B/C）
+152 个提交 · 661 个文件 · +110,049 / −8,782 行
+基线 237e985　当前 3dea39b fix(shot-cards): placeholder 登记 board 分类 —— 修 CI gen-shot-cards --check（PR #10 炸的那条）
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
-| tasks | 319 | 55,910 | 308 |
+| tasks | 319 | 55,921 | 308 |
 | assets | 14 | 16,801 | 0 |
 | scripts | 66 | 10,661 | 7,292 |
-| tools | 86 | 8,819 | 143 |
+| tools | 87 | 8,821 | 193 |
 | src | 70 | 8,678 | 169 |
-| docs | 75 | 6,846 | 404 |
+| docs | 76 | 6,989 | 404 |
 | skills | 20 | 1,724 | 0 |
-| (root) | 5 | 317 | 416 |
+| (root) | 5 | 324 | 416 |
 | .github | 2 | 114 | 0 |
 | .githooks | 1 | 16 | 0 |
 | public | 1 | 0 | 0 |
@@ -30,6 +30,7 @@
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| 3dea39b | 2026-11-14 | fix(shot-cards): placeholder 登记 board 分类 —— 修 CI gen-shot-cards --check（PR #10 炸的那条） |
 | 317d40e | 2026-11-14 | docs(backlog): 计划全收口销账 + 开 2-2 pv-kattachi 歌词同步收尾（待拍板 A/B/C） |
 | 15b2454 | 2026-11-14 | docs(handover): 2026-11-14 交接 —— PLAN 全收口 CI 80/80，pv-kattachi 待决 A/B/C 与核听入口 |
 | 4fe3eec | 2026-11-14 | fix(pv-kattachi): 尾段四句按人声起音重排 —— 歌词同步 p90 563→525ms |
@@ -47,14 +48,23 @@
 | a0afdfe | 2026-11-13 | docs: A1 收尾 —— DIAGNOSIS/STATUS/REFERENCE 里 74+3 处 anim.mjs 行号迁到拆分后的 cmd/lib 模块（按诊断文本锚定，非按旧行号） |
 | 247ba89 | 2026-11-13 | feat(task): trans-showcase 扩到五段 —— diamond / split / slats / turn / sweep 各一段，全部遮挡或滑出 |
 | 3969b6b | 2026-11-13 | A1-5B：拆 scripts/anim.mjs（8368 → 303 行）—— 一命令一文件，行为零改动 |
+| fd8d15f | 2026-11-13 | docs(changes): 重生成改动清单（阶段 1 三个提交入表） |
+| 5b68189 | 2026-11-13 | docs(backlog): 归档瘦身 106KB→18.6KB —— 已完成记录原样迁 history，61 个外部引用编号留指针（PLAN A3） |
+| c0970da | 2026-11-13 | chore(tools): 清理 7 个孤儿工具 —— nuomi 五件迁 tasks/nuomi/tools/，删两个过期探针（PLAN A6） |
+| 9a65c4a | 2026-11-13 | feat(regress): 前置依赖体检 —— 缺 ffmpeg/Chrome 一行说清，不再满屏 ENOENT（PLAN A5） |
 | ca58211 | 2026-11-13 | docs(plan): audit implementation progress and fix stale relay assertion |
+| 615a98e | 2026-11-13 | chore: 忽略 wave-wall 这支片子和 .dsh-ops 本地目录 |
 | dbbc2d8 | 2026-11-13 | feat(lens-travel): finish the camera passage with materials and synced sound |
 | c101755 | 2026-11-13 | feat(motion): traverse a separated lens assembly in one camera move |
 | b34cfd6 | 2026-11-13 | docs(handover): record rejected direction and package entry points |
+| 2bf56b4 | 2026-11-13 | refine(fish-print): time the approach, press and impression |
+| 35dd70f | 2026-11-13 | fix(fish-print): construct canvas paths during scene setup |
 | f078898 | 2026-11-13 | refine(fish-print): time the approach, press and impression |
 | a9032ee | 2026-11-13 | fix(fish-print): construct canvas paths during scene setup |
+| ce823b3 | 2026-11-13 | feat(fish-print): tell a woodblock printing story through the split |
 | 327c2b6 | 2026-11-13 | feat(fish-print): tell a woodblock printing story through the split |
 | 1a2dd65 | 2026-11-13 | feat(rough-cut): carry the split shape into a solid landing |
+| 02cee2b | 2026-11-13 | feat(rough-cut): choreograph a continuous split, hold and reassembly |
 | 18b0957 | 2026-11-13 | feat(rough-cut): add template-free time structure and seam transition |
 | df93252 | 2026-11-12 | feat(trans): add corners transition and handoff |
 | 7779dfe | 2026-11-12 | docs(handover): add transition handoff 1 |
