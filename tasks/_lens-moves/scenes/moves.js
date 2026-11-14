@@ -153,6 +153,11 @@ export default function lensMove(mode = 'offset') {
       const { text, type, gl, comp, P } = ctx;
       text.clear();
       const label = mode === 'orbit' ? '环绕' : mode === 'reveal' ? '后撤揭示' : '偏轴穿行';
+      if (ctx.f.p < .18) {
+        type.write('OPTICAL AXIS / THREE MOVES', 190, 132, {
+          size: 22, family: 'mono', tracking: 3, color: P.css('signal'),
+        });
+      }
       type.write(label, 190, 865, { size: 48, weight: 650, color: P.css('bone'), alpha: 1 });
       text.upload();
       comp.draw(gl, text, ctx.out, { premult: false });

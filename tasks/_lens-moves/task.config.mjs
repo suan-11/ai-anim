@@ -4,6 +4,7 @@ import lensMove from './scenes/moves.js';
 export default {
   title: '三种镜组运镜',
   width: 1920, height: 1080, fps: 60, captions: false,
+  audio: './audio/moves.mp3',
   style: { name: 'noir', post: { grain: 0, bloom: .08, vignette: .12, ca: 0 } },
   palette: { ink: '#152a31', ink2: '#203b44', bone: '#f2ead8', signal: '#ee8053' },
   timeline: seq([
