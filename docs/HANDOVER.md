@@ -3,11 +3,35 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-13**。优先阅读下方“A1 拆分中途交接”一节。下方 §0–§10 是 11-08 的交接快照；分支、工作区、回归项数以最新续接记录和实时 Git 状态为准。
+> **最后更新：2026-11-14**。**先读下面「2026-11-14 交接」一节**（当前状态 + 唯一待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
 > 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) A4 重写。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
-### 2026-11-13 A1 拆分中途交接（最新）
+### 2026-11-14 交接（当前状态，先读这节）
+
+**一句话**：`PLAN-2026-11-08` 三线 11 项**全部收口**，CI **80/80**，工作区干净（HEAD `4fe3eec`）。唯一待决的是 `pv-kattachi` 歌词同步的最后一段（见下）。
+
+**这轮做完的**（34 个提交，`29635e7..4fe3eec`）：
+- A1–A6 工程健康：CLI 拆分（anim.mjs 303 行 + 42 命令模块）/ AGENTS 49912B / BACKLOG·HANDOVER 归档 / 依赖体检（修「装了 playwright-core≠有浏览器」误判）/ 孤儿工具。
+- B0 分段计时：`anim perf --breakdown`。本机 AMD 核显，渲染占 87–94% ⇒ **不上 WebCodecs**（PERF §8）。
+- C1–C4 画面下限：版面几何判据（字压字/出画/撞字幕）/ 分镜三件套（`placeholder` + `anim board`）/ 被拍摄感预设（`filmed·filmed-doc·filmed-super8`）/ C7 运动节奏进 check。
+- 样片草稿已出：`trans-showcase` / `_lens-travel` / `fish-print`（各自 `out/<任务>/`，接触表 `sheet_*.png`）。
+
+**⚠ 唯一待决：`pv-kattachi` 歌词同步**（`tasks/pv-kattachi/`）
+- 已入库的修复（`4fe3eec`）：尾段 4 句按人声起音重排，`lint-lyric-sync` p90 **563→525ms**（判据 ≤400）。
+- 查透的结论：64 句里 **52 句与官方 LRC（`audio/lrc-jp.json`）逐毫秒一致**；剩约 12 句是「LRC 与人声起音本身差 0.5–1.3s」。
+  尾句「ずっと待っているわ」附近**没有自己的干净起音**（最近起音是邻句的）——**机器吸附不安全**（`tools/retime-lyrics.mjs` 模拟全吸附 p90 反而更差），**必须人工核听**这 12 句。
+- **已渲草稿并逐帧验证**：尾段 214.46/220.36/226.35/229.32s 四句都落在人声起音上。但草稿（960×540）**覆盖了旧的全质量成片**（11/1 那版，同步本来就更差）。
+- **待用户拍板**（上一轮已问，未答）：
+  - **A** 直接全质量重渲（本机约 **5.75h**，dry-run 0.69fps）；
+  - **B**（推荐）先人工核听那 12 句、精修后再一次性出全质量；
+  - **C** `--samples 8` 压运动模糊换速度（质感与原片略差）。
+- 核听入口：`node tools/lint-lyric-sync.mjs pv-kattachi`（列最差句）；`node tools/retime-lyrics.mjs pv-kattachi`（dry-run 预测，别直接 --apply）。
+
+**接手第一步**：`node tools/regress-all.mjs --ci`（应 80/80）→ 读本节 → 若继续 pv-kattachi，先等用户对 A/B/C 表态，**别擅自全渲或瞎吸附歌词**。
+
+**环境坑（本机，勿忘）**：AMD 核显无独显 / ffmpeg LGPL 无 libx264（自动兜底 h264_mf）/ 推送走 qyac、ssh 用 Git 自带那个（AGENTS §1）/ PowerShell 别用管道接原生输出、看 `$LASTEXITCODE`。
+### 2026-11-13 A1 拆分中途交接（历史）
 
 用户要求按 PLAN 继续后，当前工作推进至 A1 的机械拆分阶段。用户随后要求准备交接，A1 仍为部分完成。
 
@@ -121,7 +145,7 @@ node scripts/anim.mjs video _trans-structure --draft
 > 旧的 §0–§10（上一台机器：qyac 远端 / 70-75 回归 / RTX 2060 参考机）已归档到
 > [`history/HANDOVER-2026-11-04.md`](history/HANDOVER-2026-11-04.md)。下面是**这台机器**的现状。
 
-- **引擎**：确定性代码渲染（WebGL2 + 无头 Chrome + ffmpeg）。`render(t)` 是 t 的纯函数。CI **77/77**（`node tools/regress-all.mjs --ci`）。
+- **引擎**：确定性代码渲染（WebGL2 + 无头 Chrome + ffmpeg）。`render(t)` 是 t 的纯函数。CI **80/80**（`node tools/regress-all.mjs --ci`）。
 - **CLI 已拆分**（A1）：`scripts/anim.mjs` 303 行入口 + `scripts/cmd/` 42 命令 + `scripts/lib/cli/` 共用件；布局测试 `tools/test-cli-layout.mjs` 进 CI。
 - **转场 17 种**：push/mix/none/wipe/iris/sweep/diamond/frame/turn/split/slats/glitch/pixel/dissolve/relay/corners/seam。旋转/镜碎旧族已撤（`MOTION-SPIN-SHATTER.md` §7 复盘）。
 - **判据接进 check**：运动人格 / 缓动方向 / 同时运动 / 事件密度 / 运动节奏 C7（`tools/lib/diff-series.mjs` 共享解码）。退出码 2 一律 skipped（没验≠通过），默认只报、`--strict` 才当门。
@@ -144,7 +168,7 @@ node scripts/anim.mjs video _trans-structure --draft
 ### 怎么验证（按顺序）
 
 ```sh
-node tools/regress-all.mjs --ci        # 77/77
+node tools/regress-all.mjs --ci        # 80/80
 node scripts/anim.mjs check <任务>      # 静态 + 试渲染 + 各判据读数
 node scripts/anim.mjs still <任务> -t … # 出图，真的用 Read 看
 node scripts/anim.mjs video <任务> --draft --segments 10   # 草稿给用户，等反馈再出正式
