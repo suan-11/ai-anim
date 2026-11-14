@@ -14,8 +14,8 @@
  *   · 稀薄占比：低于「平均变化量 × 0.5」的 2 秒窗口 > 25% 就警
  * --strict 时任一超标退出码 1。
  */
-import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
+import { decodeDiffSeries, DIFF_FPS } from './lib/diff-series.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,7 +28,7 @@ const task = argv.find((a) => !a.startsWith('-'));
 const STATIC_DIFF = 0.30;
 const STATIC_SPAN = 3.5;
 const THIN_SHARE = 0.25;
-const FPS = 4, W = 480, H = 270;
+const FPS = DIFF_FPS;   // 采样口径在 diff-series 里统一（C4），这里只沿用
 
 function findMp4() {
   const explicit = opt('file', '');
@@ -44,23 +44,10 @@ function findMp4() {
 const file = findMp4();
 if (!file) { console.error('找不到成片（先跑 anim video <任务>，或用 --file 指定 mp4）'); process.exit(2); }
 
-const r = spawnSync(process.env.ANIM_FFMPEG || 'ffmpeg',
-  ['-v', 'error', '-i', file, '-vf', `fps=${FPS},scale=${W}:${H}`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
-  { maxBuffer: 1 << 30 });
-if (r.status !== 0) { console.error('ffmpeg 解码失败：' + String(r.stderr).split('\n')[0]); process.exit(2); }
-
-const raw = r.stdout;
-const FS = W * H;
-const n = Math.floor(raw.length / FS);
-if (n < 8) { console.error('帧数太少（' + n + '）'); process.exit(2); }
-
-const diff = new Array(n).fill(0);
-for (let i = 1; i < n; i++) {
-  let s = 0, c = 0;
-  const a = (i - 1) * FS, b = i * FS;
-  for (let k = 0; k < FS; k += 5) { s += Math.abs(raw[b + k] - raw[a + k]); c++; }
-  diff[i] = s / c;
-}
+// 解码 + 帧间差走共享的 diff-series（C4：与 anti-ppt C7 同一份，口径一致）
+const series = decodeDiffSeries(file);
+if (!series) { console.error('ffmpeg 解码失败或帧数太少（<8）'); process.exit(2); }
+const { diff, frames: n } = series;
 
 let run = 0, worst = 0, worstAt = 0;
 for (let i = 1; i < n; i++) {

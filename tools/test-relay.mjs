@@ -246,9 +246,9 @@ ok('resolveRelayMove：缺省 = glide、合法名返回曲线、未知名/非字
 
 /* ══════════════ ④ trans.js 的 'relay' ══════════════ */
 
-ok("TRANSITION_MODES 里有 'relay'（9 个）；isPassTransition('relay') === false（无 shader）", () => {
+ok("TRANSITION_MODES 里有 'relay'（17 个）；isPassTransition('relay') === false（无 shader）", () => {
   A.ok(TRANSITION_MODES.includes('relay'), '表里有 relay');
-  A.equal(TRANSITION_MODES.length, 9, '一共 9 个模式');
+  A.equal(TRANSITION_MODES.length, 17, '含 corners / seam，一共 17 个模式');
   A.equal(isPassTransition('relay'), false, 'relay 不走 transitionPass');
 });
 
@@ -267,7 +267,7 @@ ok("'relay' 不会进 _pushTransition：防御性抛错（真调 Engine 的方�
   );
   A.ok(/_pushTransition\(outTex, under, k, t, dt, mode = 'push'\) \{[\s\S]{0,400}?mode === 'relay'/s.test(ENGINE),
     '_pushTransition 的 relay 防御在方法开头（碰 this.gl 之前）');
-  A.ok(/let relayed = false;[\s\S]*?relayed = true;[\s\S]*?if \(!relayed && k > 0 && !scene\.handlesTransition && under\)/s.test(ENGINE),
+  A.ok(/let relayed = false;[\s\S]*?relayed = true;[\s\S]*?if \(!relayed && k > 0 && !handlesTransition && under\)/s.test(ENGINE),
     'relay 换手分支在 push/mix guard 之前（独立分支）');
 });
 

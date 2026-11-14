@@ -10,7 +10,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // planSegmentCuts 不是 export 的，这里用 --dry-run 那条路验证太绕；
 // 直接从源码里抠出来跑（保持与 CLI 同一份实现时这个测试才有意义）。
-const src = (await import('node:fs')).readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+const { readCliSource } = await import('./lib/cli-source.mjs');
+const src = readCliSource();
 const m = /function planSegmentCuts\(([\s\S]*?)\n}/.exec(src);
 if (!m) { console.error('✗ 没能从 anim.mjs 里找到 planSegmentCuts'); process.exit(2); }
 const planSegmentCuts = new Function('timeline', 'from', 'to', 'target', m[1].replace(/^[\s\S]*?\)\s*\{/, ''));

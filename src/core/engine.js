@@ -16,6 +16,7 @@
 
 import { GL, RT, Pass, Compositor, Layer2D } from './gl.js';
 import { Post, DEFAULT_POST } from './post.js';
+import { applyPostPreset } from './post-presets.js';
 import { P as DEFAULT_PALETTE } from './palette.js';
 import { Scene as SceneBase, frameSeed } from './scene.js';
 import { TextKit } from './text.js';
@@ -101,6 +102,7 @@ export class Engine {
      * 建在 `load()` 里（那时才知道 W/H/P/narration），每帧在**后处理之后**画一次。
      */
     this.captions = null;
+    this.lastCaptionRect = null;   // C1：此刻正在渲染的字幕矩形（版面守门 captionHit 用）
     /** 字幕专用的 Canvas2D 图层（与调试 HUD 分开：两者开关独立、生命周期独立）。 */
     this.cap2d = null;
     /** 装载期的错误（setup 失败、共享背景建不出来、--only 写错…） */
@@ -595,6 +597,10 @@ export class Engine {
         under = rt; outTex = rt;
         continue;
       }
+      // Timeline overrides must agree with auditUnderUsage/worldAuditPlan.
+      // In particular, explicit false opts a self-transitioning template into
+      // engine compositing; do not also hand its kit the old frame to push away.
+      const handlesTransition = item.handlesTransition ?? scene.handlesTransition;
 
       // 场景必须整帧覆盖 out；先清一遍兜底（场景忘了画就是纯黑，肉眼可见地错）
       this.gl.clear(rt, [0, 0, 0]);
@@ -633,7 +639,7 @@ export class Engine {
         }
       }
       item._relayPose = relayPose;   // 每子帧都是本帧的新值（诊断/工具可读；换手用下面的局部值）
-      const ctx = this._ctxFor(item, t, idx, { out: rt, dt: subDt, tin, tout, under: k > 0 ? under : null, seeked });
+      const ctx = this._ctxFor(item, t, idx, { out: rt, dt: subDt, tin, tout, under: k > 0 && item.handlesTransition !== false ? under : null, seeked });
       // 共享背景（一等地基，见 load() 的注释）：声明了 world 的段由引擎先铺底，
       // 场景只管前景。'auto' = task.worldPass；对象 = 这一段专用；false = 本段自己负责。
       ctx.world = resolveWorld(this, item);
@@ -692,6 +698,9 @@ export class Engine {
         const ov = scene.render(ctx);
         if (ov && typeof ov === 'object') post = { ...post, ...(item.post ?? {}), ...ov, ...stylePost };
         else if (item.post) post = { ...post, ...item.post, ...stylePost };
+        // C3「被拍摄感」预设：写了 preset 才生效，不写则上面的合并逐像素不变（零回归）。
+        // 优先级：引擎默认 < style.post < preset < 场景 return 显式字段；写错当场抛（列出可用清单）。
+        post = applyPostPreset(post, { ov, itemPost: item.post, stylePost });
         // 工作台的实时覆盖：**最后**合并 —— 滑块一拖就变，不用重载页面也不用重渲整片。
         // 只有 dev 预览会设它；导出路径永远不设，所以成片一个像素都不受影响。
         if (this.livePost) post = { ...post, ...this.livePost };
@@ -830,11 +839,13 @@ export class Engine {
         }
         // k === 0 / under 缺失：没有交叠语义，什么都不做（与 'mix' 在同一位置的老行为一致）。
       }
-      if (!relayed && k > 0 && !scene.handlesTransition && under) {
+      if (!relayed && k > 0 && !handlesTransition && under) {
         if (transMode === 'mix') {
           this.comp.mixTo(this.gl, under, outTex, tin, this.mixRT);
           outTex = this.mixRT;
         } else if (transMode !== 'none') {
+          // ⚠ 只记 opts，**不要**动 outTex —— 写成 `outTex = this._x = …` 会把纹理换成对象，下一句就拿不到纹理了
+          this._transitionOpts = item.transitionOpts ?? {};
           outTex = this._pushTransition(outTex, under, tin, t, subDt, transMode);
         }
       }
@@ -1228,10 +1239,16 @@ export class Engine {
       // 每种模式一支 Pass（`'push'` 的那支与从前逐字符相同）；按模式缓存，
       // 别每帧新建 —— Pass 编译一次就要几十毫秒，转场每帧都跑。
       this._transPasses ??= new Map();
-      let pass = this._transPasses.get(mode);
+      // 与创建时的缓存键保持一致（带上 shards/seed/power）
+      const o0 = this._transitionOpts ?? {};
+      const key0 = mode + '#' + [o0.shards, o0.seed, o0.power].join('/');
+      let pass = this._transPasses.get(key0);
       if (!pass) {
-        pass = transitionPass(gl, { mode, key: mode === 'push' ? 'engine_push' : `engine_trans_${mode}` });
-        this._transPasses.set(mode, pass);
+        // 缓存键要带上 shards/seed/power：它们是**创建时**烘进 uniform 的，只按 mode 缓存会让第二段设置不生效
+        const o = this._transitionOpts ?? {};
+        const optKey = [o.shards, o.seed, o.power].join('/');
+        pass = transitionPass(gl, { mode, ...o, key: (mode === 'push' ? 'engine_push' : `engine_trans_${mode}`) + (optKey === '///' ? '' : '#' + optKey) });
+        this._transPasses.set(mode + '#' + optKey, pass);
       }
       const u = pass.u;
       u.under.value = { tex: /** @type {any} */ (under).tex ?? under, __tex: true };
@@ -1398,6 +1415,8 @@ export class Engine {
       this.errors.push(`[字幕] t=${t.toFixed(3)} 出错: ${fmtErr(err)}`);
     }
     c.restore();
+    // C1：记下此刻字幕的实际矩形（band）供版面守门判「撞字幕」；没字幕 = null（不判）
+    this.lastCaptionRect = line ? (this.captions.band ?? null) : null;
     if (!line) return null;
     layer.upload();
     this.comp.draw(this.gl, layer, this.outRT, { premult: false });

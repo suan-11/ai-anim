@@ -16,6 +16,8 @@
 
 | 文件 | 原位置 | 是什么 | 现状以谁为准 |
 |---|---|---|---|
+| [`HANDOVER-2026-11-04.md`](HANDOVER-2026-11-04.md) | `docs/HANDOVER.md` §0–§10 | 2026-11-08 交接快照（**上一台机器**：qyac 远端 / 70-75 回归 / RTX 2060 参考机）——PLAN A4 归档 | [`../HANDOVER.md`](../HANDOVER.md) 顶部续接记录 + 实时 Git |
+| [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) | `docs/PLAN-2026-11-08.md` | 三线改进计划（工程健康/出片效率/画面下限）A1–A6/B0/C1–C4，**2026-11-14 全部收口**（CI 80/80） | 代码 + [`../BACKLOG.md`](../BACKLOG.md)；原路径保留作销账记录 |
 | [`HANDOFF.md`](HANDOFF.md) | `docs/HANDOFF.md` | 引擎最早那一轮的交接单（出片管线暴露的问题） | `STATUS.md` §1–§9 → [`STATUS-rounds-1-6.md`](STATUS-rounds-1-6.md) |
 | [`HANDOFF-THREEJS.md`](HANDOFF-THREEJS.md) | `docs/HANDOFF-THREEJS.md` | 把 Three.js 接进引擎的**设计档 + 坑清单**（提案） | [`../THREE.md`](../THREE.md)（怎么写）· [`../ENGINE.md`](../ENGINE.md) §3.8（规格） |
 

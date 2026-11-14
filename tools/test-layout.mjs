@@ -24,9 +24,12 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 import {
   LAYOUT_LIMITS, RESERVED_BANDS, resolveFocus, textGroups, focusOverlap,
   layoutVerdict, layoutReport, layoutSummary, countNonTextDraws, focusNoteOf,
+  geometryViolations,
 } from '../src/layout.js';
 import { labelRow } from '../src/kit/layout.js';
 import { TextKit } from '../src/core/text.js';
@@ -34,7 +37,8 @@ import { TextKit } from '../src/core/text.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const read = (p) => readFileSync(path.join(ROOT, p), 'utf8');
-const ANIM = read('scripts/anim.mjs');
+// CLI 源码视图（anim.mjs + 拆分后的 scripts/cmd、scripts/lib/cli，见 tools/lib/cli-source.mjs）
+const ANIM = readCliSource();
 const APP = read('src/app.js');
 const TEXT = read('src/core/text.js');
 const ENGINE = read('src/core/engine.js');
@@ -606,6 +610,54 @@ t('labelRow 已在 kit 的统一出口里（任务照 docs 写就能 import 到�
     'src/kit/index.js 要导出 labelRow');
 });
 
+
+/* ── C1 几何判据：字压字 / 出画 / 撞字幕（注入缺陷必须报 / 去掉不许报） ── */
+const G = (x0, y0, x1, y1, sample = '字') => ({ x0, y0, x1, y1, sample });
+const kinds = (v) => v.map((x) => x.kind);
+
+t('C1 overlap：两块交叠 >15% 较小块 ⇒ 报；分开 ⇒ 不报', () => {
+  const a = G(100, 300, 500, 400), b = G(450, 320, 900, 420);   // 交叠 50×80=4000，较小块 400×100=40000 → 10%？
+  // 构造明确 >15%：a 400×100=40000，b 与 a 交叠 200×100=20000 = 50%
+  const b2 = G(300, 300, 700, 400);
+  assert.ok(kinds(geometryViolations([a, b2], { W: 1920, H: 1080 })).includes('overlap'), '交叠 50% 必须报');
+  assert.ok(!kinds(geometryViolations([a, G(600, 300, 900, 400)], { W: 1920, H: 1080 })).includes('overlap'), '分开不许报');
+});
+t('C1 overlap：保留区（页眉）里的字不参与', () => {
+  const top1 = G(100, 10, 500, 60), top2 = G(300, 10, 700, 60);   // y1=60 < 1080×0.115≈124 ⇒ 页眉保留区
+  assert.ok(!kinds(geometryViolations([top1, top2], { W: 1920, H: 1080 })).includes('overlap'), '页眉版式字不算字压字');
+});
+t('C1 overlap：allowOverlap 豁免', () => {
+  const a = G(100, 300, 500, 400, '主体'), b = G(300, 300, 700, 400, '标注');
+  assert.ok(kinds(geometryViolations([a, b], { W: 1920, H: 1080 })).includes('overlap'), '未豁免要报');
+  assert.ok(!kinds(geometryViolations([a, b], { W: 1920, H: 1080, allowOverlap: ['标注'] })).includes('overlap'), '豁免后不报');
+});
+t('C1 off-frame：锚点越出画幅 ⇒ error；画幅内 ⇒ 不报', () => {
+  const out = G(1950, 300, 2000, 400);   // 锚点 x0=1950 > 1920
+  const v = geometryViolations([out], { W: 1920, H: 1080 });
+  assert.ok(v.some((x) => x.kind === 'off-frame' && x.level === 'error'), '出画是 error 级');
+  assert.ok(!kinds(geometryViolations([G(100, 300, 500, 400)], { W: 1920, H: 1080 })).includes('off-frame'), '画幅内不报');
+  assert.ok(!kinds(geometryViolations([G(1800, 300, 2000, 400)], { W: 1920, H: 1080 })).includes('off-frame'), '右对齐字宽近似不判出画（防 LOW/MID/HIGH 假阳性）');
+});
+t('C1 off-safe：越安全边距（画幅内、成块内容字）⇒ warn；边距内 / 小装饰字 ⇒ 不报', () => {
+  const near = { ...G(10, 300, 500, 400), size: 40 };   // x0=10 < pad=40，画幅内，size≥32
+  const v = geometryViolations([near], { W: 1920, H: 1080, pad: 40 });
+  assert.ok(v.some((x) => x.kind === 'off-safe' && x.level === 'warn'), '越边距是 warn 级');
+  assert.ok(!kinds(geometryViolations([{ ...G(100, 300, 500, 400), size: 40 }], { W: 1920, H: 1080, pad: 40 })).includes('off-safe'), '边距内不报');
+  assert.ok(!kinds(geometryViolations([{ ...G(10, 300, 500, 400), size: 20 }], { W: 1920, H: 1080, pad: 40 })).includes('off-safe'), '小装饰字（计数器/角标）不判 off-safe');
+});
+t('C1 caption-hit：压进此刻字幕 ⇒ 报；无字幕 ⇒ 不判', () => {
+  const cap = { x0: 600, y0: 40, x1: 1320, y1: 104 };
+  const hit = G(700, 60, 1100, 120);   // 与字幕带相交
+  assert.ok(kinds(geometryViolations([hit], { W: 1920, H: 1080, captionRect: cap })).includes('caption-hit'), '撞字幕要报');
+  assert.ok(!kinds(geometryViolations([hit], { W: 1920, H: 1080 })).includes('caption-hit'), '没字幕不判');
+  assert.ok(!kinds(geometryViolations([G(700, 300, 1100, 400)], { W: 1920, H: 1080, captionRect: cap })).includes('caption-hit'), '不交不报');
+});
+t('C1 接线：layoutVerdict 把几何判据并进 violations', () => {
+  // 用出画判据验接线（单块即可，不依赖聚类）：x 越出画幅 ⇒ off-frame
+  const blocks = [B(1950, 350, 40, 400, '出画')];   // 锚点 x0=1950 > 1920
+  const v = layoutVerdict({ blocks, W: 1920, H: 1080 });
+  assert.ok(v.violations.some((x) => x.kind === 'off-frame'), 'layoutVerdict 含几何判据 off-frame');
+});
 /* ────────────────────────────────────────────────────────────────── 汇总 */
 
 console.log('test-layout: ' + passed + ' 项通过' + (failed.length ? '，' + failed.length + ' 项失败' : ''));

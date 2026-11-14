@@ -385,3 +385,51 @@ node scripts/anim.mjs video _style-sampler --parallel 2
   带重颗粒的片子交付时建议 `--bitrate 40M` 以上，或者干脆**不用 `-tune grain`**（把颗粒交给平台的编码器，让它在更高码率下自己决定）。
 - 这不影响"引擎出片"的正确性（默认行为一个字节没变），只是**交付前要量一次体积**：
   `node scripts/anim.mjs video <任务> --dry-run` 看帧数，然后按 `秒数 × 码率 / 8` 估体积。
+
+## 8. B0 分段计时（2026-11-13，`anim perf --breakdown` / `video --breakdown`）
+
+> **只测量，不改出片路径**。页面侧逐帧记 `engine.render` / `readNV12`，Node 侧记收帧间隔与 ffmpeg 背压；
+> 帧字节一个没动。原始数据落在 `out/<任务>/<任务>.breakdown.json`。
+
+### 8.1 本机 GPU：**只有 AMD 核显，没有独显**（与计划参考机不同）
+
+`anim gpu <任务>`（`--gpu auto` 与 `--gpu high` 各跑一次）都返回同一个适配器：
+
+```
+renderer: ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001636) Direct3D11 vs_5_0 ps_5_0, D3D11)
+```
+
+`Win32_VideoController` 只有两块：**Gameviewer Virtual Display Adapter**（虚拟显示卡）+ **AMD Radeon(TM) Graphics**（核显，512MB）。
+**没有 NVIDIA/独显**，所以 `--gpu high`（`--force_high_performance_gpu`）无处可切 —— 计划里「确保命中 RTX 2060」这一条在本机**不成立**，
+§2① 的「独显反超 2.15×」是在 5800H + RTX 3070 Laptop 上量的，**不能外推到本机**。
+
+### 8.2 逐帧分桶（各取 5s，`--samples auto`，1080p 草稿档）
+
+| 样本 | 帧数 | render avg / p50 / p95 (ms) | readNV12 avg (ms) | Node 收帧间隔 avg (ms) | ffmpeg 背压占比 | **渲染占比** |
+|---|---|---|---|---|---|---|
+| `demo` 甩镜段（吃 72 子帧） | 180 | 497.9 / 205.7 / 1690.8 | 11.2 | 524.5 | 2.1% | **92.6%** |
+| `_three-lab`（Three.js 真网格） | 300 | 598.3 / 582.6 / 724.9 | 10.0 | 622.2 | 1.6% | **94.4%** |
+| `pv-king` 歌词段（2D 文字重） | 300 | 304.6 / 191.0 / 619.3 | 11.1 | 335.6 | 2.4% | **87.5%** |
+
+**读法**：三个样本渲染占比都在 **87–94%**，`readNV12` 回读稳定在 ~10–11ms/帧（NV12 已把传输压到很低），
+ffmpeg 背压 **< 3%**。瓶颈**完全在 GPU 渲染**，不在传输、不在编码。`demo` 的 p95 高达 1690ms 是 72 子帧的甩镜帧（子帧是线性成本，§2③）。
+
+### 8.3 编码器横向对比（本机可用者；同 5s/300 帧片段，`-b:v 4M`，transcode 计时）
+
+| 编码器 | 用时 | 体积 | 备注 |
+|---|---|---|---|
+| `h264_mf` | 1.4s | 2063 KB | Windows MediaFoundation（AMD AMF 硬件），引擎兜底首选 |
+| `libopenh264` | 1.4s | 2094 KB | 软件编码，LGPL 构建常见 |
+| `h264_amf` | 1.8s | 2430 KB | AMD AMF 直连 |
+| `libx264` | — | — | **本机不可用**（PATH 的 ffmpeg 是 LGPL 构建，`--disable-libx264`） |
+| `h264_nvenc` | — | — | **本机不可用**（无 NVIDIA GPU，`Cannot load nvcuda.dll`） |
+
+计划点名的 `libx264 / h264_nvenc / h264_mf` 三者里，本机只有 `h264_mf` 能跑；故补测了同为可用的 `libopenh264 / h264_amf`。
+三者都在 ~1.4–1.8s 编完 5s（≈170–210 fps），**编码远快于渲染**，与 8.2 的「背压 < 3%」互相印证。
+
+### 8.4 拍板（按计划门槛）
+
+- 渲染占比 **> 70%**（实测 87–94%）⇒ **优先确保独显 / 排查自适应子帧与着色器热点，暂不上 WebCodecs**。
+  本机无独显可切，所以现实杠杆是：**降子帧上限 / 优化重着色器 / 换有独显的机器**；`readNV12` 与传输已不是瓶颈。
+- 传输 + 编码占比 **< 40%**（实测背压 < 3% + 回读 ~11ms）⇒ **不满足** `1-7ⓑ` WebCodecs 立项门槛，**本轮不动出片路径**。
+- 后续若换到带独显的机器，**重跑本节**（`anim perf <任务> --breakdown`）再拍板 —— §2① 的教训就是「别拿别的机器的读数做决定」。

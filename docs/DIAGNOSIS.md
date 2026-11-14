@@ -39,36 +39,36 @@
 | `（镜头模板依赖校验没跑成：…）`<br>`scripts/anim.mjs` 的 `cmdCheck`（catch 分支，同时 `pushSkipped(SHOT_DEP_WHAT, …)`） | ⚠ 这一项**没跑成**（静态扫描起不来）—— 「空 ≠ 干净」：不许把"没报错"读成"依赖都对" | 看括号里的原因；`skipped:` 段里也会有一条 `镜头模板依赖（spec.requires）：静态扫描起不来：…` |
 | `← ⚠ 非有限值：NaN n / Inf n / 量级>5e4 n 像素（首个坏像素 x=… y=…，kind）`<br>`scripts/anim.mjs` 的 `nonFiniteLine()`（`check` 与**出片路径**共用这一条，见 §1.5） | 某段某时刻的**浮点读回**里出现了 NaN / ±Inf / 巨值。8bit 读回和 `stats()` 都分不出它，所以这一条是直接读浮点缓冲点名的 | 先看紧跟的两行提示：最常见来源是**相机 uniform 全 0**（`cam3Uniforms` 字段名写错）与 `pow(0, 负数)`；raymarch 用 `node tools/probe-raymarch.mjs` 复现。见 `AGENTS.md` §5.5 末条 |
 | `这是「整屏白 / 单帧白多帧黑」的一类根因：shader 里除了 0、开了 normalize(0)` + `（多半是相机 uniform 全 0）或 pow(0, 负数）。见 node tools/probe-raymarch.mjs`<br>`scripts/anim.mjs` 的 `nonFiniteWhy()`（`check` 与出片路径共用） | 上面那条非有限值的解释行 | 同上；这条同时在说"别去查累加 bug，先修非有限值"。**出片路径（`video` / `shot`）也会打这两行** —— 读法与修法一字不差，见 §1.5 |
-| `← 几乎是全黑，场景可能没画东西`<br>`scripts/anim.mjs:1346`（`cmdCheck`） | 采样点平均亮度 `mean < 0.004` | 这一段没铺背景或没画东西：`cut(shot, { world: 'auto' })` 让引擎铺底，或自己在 `render` 开头 `gl.clear` + 画一次全屏 Pass。看图：`node scripts/anim.mjs still <任务> -t <该时刻> --only <段>` |
-| `← ⚠ 过曝（>0.99 占 x%，死白 y%）`<br>`scripts/anim.mjs:1353`（`cmdCheck`） | 多子帧路径下亮度顶到 0.99 以上的像素 >20%，或死白 >15% | 先降 `exposure`（1 = 不变）、或换 `tonemap: 'agx'`（配 `exposure: 0.75`）；只有"信号色"才允许去泛光。参数方向见 `AGENTS.md` §5 的后处理表 |
-| `← ⚠ 两条路径不一致（N×）：这是运动模糊求平均/累加的问题`<br>`scripts/anim.mjs:1360`（`cmdCheck`） | 同一时刻"单子帧"与"多子帧"的平均亮度差超过 1.3× | 先看下一行那条"但这一帧同时有非有限值"—— 有就先修它；没有才是真的累加 bug，用 `node scripts/anim.mjs dumpframe <任务> -t <时刻> --samples 2` 对照两条路 |
-| `⚠ 但这一帧同时有非有限值 —— 先修那个`<br>`scripts/anim.mjs:1364`（`cmdCheck`） | 上一条的方向纠正：累加 pass 会丢掉 NaN/Inf ⇒ "单帧白、多帧黑" | 按非有限值那条修（相机 uniform / 除 0 / `pow(0,负数)`），别去查运动模糊 |
-| `← ⚠ 段内亮度不均（lo → hi）：查入场的头 1 秒和收尾`<br>`scripts/anim.mjs:1375`（`cmdCheck`） | 同一段三个采样点里最低 `mean < 0.02` 而最高 `> 0.06` —— 一个亮点能把单点判据顶过去，所以要三点一起看 | 查这一段**入场头 1 秒**与**收尾**：是不是文字还没出来 / 已经淡掉了。`still -t` 抽这三个时刻的图看 |
-| `⚠ 背景守门：N/M 个交叠段**没有铺满整帧的背景**`<br>`scripts/anim.mjs:1244`（`cmdCheck`） | 声明了 `handlesTransition` 或 `world` 的交叠段，整帧覆盖绘制次数为 0 ⇒ 那一段的底是纯黑，而亮度统计抓不到 | 三选一（下一行就是原文）：① `render` 开头画一次全屏背景；② 时间线写 `cut(shot, { world: 'auto' })`；③ 刻意不铺底就显式写 `world: false` |
-| `[id] t=…s  整帧覆盖绘制 N 次（本帧总绘制 M 次），声明了 handlesTransition`<br>`scripts/anim.mjs:1246` | 背景守门的明细行：点名是哪一段、哪个时刻 | 用 `node scripts/anim.mjs audit <任务>` 看这一段在交叠期到底画了什么；`--debug` 会打出每次整帧覆盖的来源 |
-| `背景守门：N 个交叠段都铺满了整帧背景（其中 K 段声明了转场/共享背景）`<br>`scripts/anim.mjs:1254` | 背景守门**通过** | 无事。`AGENTS.md` §10.1 要求这一行出现在交付前的 `check` 里 |
-| `⚠ 场景在渲染时抛异常：N 帧`<br>`scripts/anim.mjs:1391`（`cmdCheck`） | 渲染期（不是装载期）场景抛异常 —— 这是**硬失败**，不是附注 | 下面几行是异常首行；复现用 `still --only <段> -t <时刻>` 看图（那些帧是错帧卡片）。历史上 beast 那轮三次采样全绿就是漏了这条 |
-| `⚠ 时间线有空档（这些时间段会渲染成黑色）`<br>`scripts/anim.mjs:564`（`reportErrors`） | 两段之间有时间没被任何段覆盖 | 补段或改 `dur` / `at`；用 `cut(scene, { dur: { beat: 16 } })` 之类让时间线自己排。判据的实现在 `src/core/engine.js:339`（`没有场景（会渲染成黑）`） |
-| `⚠ 有错误：`<br>`scripts/anim.mjs:560`（`reportErrors`） | 装载期的问题清单（时间线重叠顺序、`end <= start`、场景没加载成功…） | 逐条读；实现在 `src/core/engine.js:326` 的 `validate()`（`场景没加载成功` / `只有 …s，不到一帧` / `起点比上一段还早`） |
-| `⚠ 画面文字在复述旁白 —— 同屏两套完整句子就是观众说的"两条字幕"`<br>`scripts/anim.mjs:1154`（`cmdCheck`） | `lint-narration-dup` 报了命中（`check` **只 warn 不 fail**，见 `:1144`） | 画面文字只留标注（名词 / 数字 / 单位 / 出处）；句子交给旁白与字幕（`docs/CAPTIONS.md`）。交付前必须跑到零命中：`node tools/lint-narration-dup.mjs <任务>` |
-| `画面只留标注（名词 / 数字 / 单位 / 出处），句子交给旁白与字幕；见 docs/CAPTIONS.md`<br>`scripts/anim.mjs:1156` | 上一条的修法提示行 | 按它做；`docs/CAPTIONS.md` 是这一层的规格 |
-| `⚠ lint-narration-dup 没跑成：…`<br>`scripts/anim.mjs:1158` | 那个工具以退出码 2 退出（工具自己出错），**不是"没命中"** | 单独跑一遍看它为什么失败；这条不改变退出码（1-19 之后会进 `skipped:` 段） |
-| `（旁白复述检查跳过：…）`<br>`scripts/anim.mjs:1169` | 子进程起不来（受限沙箱 EPERM / 超时）⇒ **这一项没验** | 在有权限的环境里单独跑 `node tools/lint-narration-dup.mjs <任务>`；别把它读成"干净" |
-| `一支片子有 N 句旁白，但**没开字幕层**`<br>`scripts/anim.mjs:1203` | 有旁白表但 `captions` 没开 ⇒ 观众看不到语音字幕 | `task.config.mjs` 加一行 `captions: true`（`docs/CAPTIONS.md`）；开了之后**别再烧一遍 `.ass`** |
-| `⚠ N 句字幕**跨越了场景切换**（规范要求字幕不得跨 scene change）`<br>`scripts/anim.mjs:1226`（`cmdCheck`） | 某句说完 + 停留时间超过了它所在段的结束（Netflix 计时文本规范） | 让这句说早一点 / 说短一点，或把这一段放长 —— **段长本来就该由旁白决定**（`docs/NARRATION.md`）。片段尾最后一句豁免 |
-| `⚠ …`（`ctx.warnings` 原样打印）<br>`scripts/anim.mjs:1207` | 场景/kit 自己攒的警告。最典型的是 `"x"（x=…, y=…, 字号 …）压进了**字幕保留带**`（`src/kit/bands.js:106`） | 把那个面板 / 计量条移出字幕保留带（默认顶部居中 y 40–104，见 `docs/CAPTIONS.md` 与 `src/kit/bands.js`）；保留带是留给引擎字幕的保留区 |
-| `--quick：每段只采 50% 一个点、只跑单子帧（冒烟用；完整体检请去掉 --quick）`<br>`scripts/anim.mjs:1279` | 你加了 `--quick` ⇒ 这次**没看**多子帧路径、也没看入场头 1 秒 | 冒烟可以，**别拿它当交付判据**；交付前去掉 `--quick` 再跑一次 |
-| `每段：15% / 50% / 85% 三个点，各测单子帧与多子帧（成片走的路径）`<br>`scripts/anim.mjs:1280` | 完整 `check` 的采样口径（默认） | 无（这是说明行）。它告诉你"三个点都过了"才算过 |
-| `分辨率 W×H×scale @fps  时长 X.XXs  N 段  bpm B`<br>`scripts/anim.mjs:1178` | `check` 的开头汇总 | 一眼核对"片长/段数"对不对 —— 伪时间线（12 段 × 默认 4s = 48s）就是在这里露馅的 |
-| `GPU: …` / `⚠ unmasked renderer 不可用…` / `⚠ 无法渲染到浮点纹理：本引擎需要 EXT_color_buffer_float（HDR 渲染）`<br>`scripts/anim.mjs:1179` `:1100` `:1102`（`cmdGpu`） | GPU 信息行；后两条是环境能力缺失 | 浮点纹理缺失 = 这台机器的 WebGL2 不能跑 HDR 渲染，换机器 / 换 `--gpu high`；见 `docs/PERF.md` §2① |
-| `时间线（段名 / 时长 / 起止）`<br>`scripts/anim.mjs:1182` | 段名 + 时长摊开打印 | 段名就是 `--only` / HUD / 报错用的名字；写错时间线时在这一段就能看出来 |
-| `音频：…`<br>`scripts/anim.mjs:1189` | 说清"节拍是从哪条轨测的" | 分轨写法里没有 `music` 会有提醒（`:2967`）—— 节拍会被旁白带偏，补上 music 轨再 `analyze` |
-| `风格：<名字>（…）· 背景母题 …`<br>`scripts/anim.mjs:1195` | 这支片子实际用的风格包 | 风格由内容决定；连做两支同题材时是否换脸是**建议**（`docs/STYLE.md` §6 纪律二） |
-| `字幕：引擎字幕层已开 · 保留带 y … / x … · 说完再留 Xs`<br>`scripts/anim.mjs:1200` | 字幕层开着，并给出保留带坐标 | 画面元素别进保留带（见上面 `压进了**字幕保留带**` 那条） |
-| `单帧 0.123  多子帧 0.456（24 子帧）`<br>`scripts/anim.mjs:1309` | 每个采样点的两个亮度读数 | 两者应当接近；差得多就是上面"两条路径不一致"那条 |
-| `试渲染 N 段 × 3 个点 × 2 条路径（共 M 帧）用了 X.Xs`<br>`scripts/anim.mjs:1379` | 体检花了多久（`check` 是**真渲染**，不是静态分析） | 无（预算参考）。填充重的片子用 `--only` 缩小范围 |
-| `浏览器控制台：`<br>`scripts/anim.mjs:1414` | 页面里的 console 输出（含 `[pageerror]`） | `[pageerror]` 一律算失败（`:1417`）；场景里的 TypeError 会先在这里露出来 |
-| `✓ 接触表 out/<任务>/check/contact.png`<br>`scripts/anim.mjs:1411` | `check --sheet` 出的接触表 | 用 Read 工具打开那张图看全片；或用 `sheet` 单独出 |
+| `← 几乎是全黑，场景可能没画东西`<br>`scripts/cmd/check.mjs:1204`（`cmdCheck`） | 采样点平均亮度 `mean < 0.004` | 这一段没铺背景或没画东西：`cut(shot, { world: 'auto' })` 让引擎铺底，或自己在 `render` 开头 `gl.clear` + 画一次全屏 Pass。看图：`node scripts/anim.mjs still <任务> -t <该时刻> --only <段>` |
+| `← ⚠ 过曝（>0.99 占 x%，死白 y%）`<br>`scripts/cmd/check.mjs:1208`（`cmdCheck`） | 多子帧路径下亮度顶到 0.99 以上的像素 >20%，或死白 >15% | 先降 `exposure`（1 = 不变）、或换 `tonemap: 'agx'`（配 `exposure: 0.75`）；只有"信号色"才允许去泛光。参数方向见 `AGENTS.md` §5 的后处理表 |
+| `← ⚠ 两条路径不一致（N×）：这是运动模糊求平均/累加的问题`<br>`scripts/cmd/check.mjs:1218`（`cmdCheck`） | 同一时刻"单子帧"与"多子帧"的平均亮度差超过 1.3× | 先看下一行那条"但这一帧同时有非有限值"—— 有就先修它；没有才是真的累加 bug，用 `node scripts/anim.mjs dumpframe <任务> -t <时刻> --samples 2` 对照两条路 |
+| `⚠ 但这一帧同时有非有限值 —— 先修那个`<br>`scripts/cmd/check.mjs:1222`（`cmdCheck`） | 上一条的方向纠正：累加 pass 会丢掉 NaN/Inf ⇒ "单帧白、多帧黑" | 按非有限值那条修（相机 uniform / 除 0 / `pow(0,负数)`），别去查运动模糊 |
+| `← ⚠ 段内亮度不均（lo → hi）：查入场的头 1 秒和收尾`<br>`scripts/cmd/check.mjs:1233`（`cmdCheck`） | 同一段三个采样点里最低 `mean < 0.02` 而最高 `> 0.06` —— 一个亮点能把单点判据顶过去，所以要三点一起看 | 查这一段**入场头 1 秒**与**收尾**：是不是文字还没出来 / 已经淡掉了。`still -t` 抽这三个时刻的图看 |
+| `⚠ 背景守门：N/M 个交叠段**没有铺满整帧的背景**`<br>`scripts/cmd/check.mjs:1014`（`cmdCheck`） | 声明了 `handlesTransition` 或 `world` 的交叠段，整帧覆盖绘制次数为 0 ⇒ 那一段的底是纯黑，而亮度统计抓不到 | 三选一（下一行就是原文）：① `render` 开头画一次全屏背景；② 时间线写 `cut(shot, { world: 'auto' })`；③ 刻意不铺底就显式写 `world: false` |
+| `[id] t=…s  整帧覆盖绘制 N 次（本帧总绘制 M 次），声明了 handlesTransition`<br>`scripts/cmd/check.mjs:1016` | 背景守门的明细行：点名是哪一段、哪个时刻 | 用 `node scripts/anim.mjs audit <任务>` 看这一段在交叠期到底画了什么；`--debug` 会打出每次整帧覆盖的来源 |
+| `背景守门：N 个交叠段都铺满了整帧背景（其中 K 段声明了转场/共享背景）`<br>`scripts/cmd/check.mjs:982` | 背景守门**通过** | 无事。`AGENTS.md` §10.1 要求这一行出现在交付前的 `check` 里 |
+| `⚠ 场景在渲染时抛异常：N 帧`<br>`scripts/cmd/check.mjs:1448`（`cmdCheck`） | 渲染期（不是装载期）场景抛异常 —— 这是**硬失败**，不是附注 | 下面几行是异常首行；复现用 `still --only <段> -t <时刻>` 看图（那些帧是错帧卡片）。历史上 beast 那轮三次采样全绿就是漏了这条 |
+| `⚠ 时间线有空档（这些时间段会渲染成黑色）`<br>`scripts/lib/cli/gates.mjs:304`（`reportErrors`） | 两段之间有时间没被任何段覆盖 | 补段或改 `dur` / `at`；用 `cut(scene, { dur: { beat: 16 } })` 之类让时间线自己排。判据的实现在 `src/core/engine.js:339`（`没有场景（会渲染成黑）`） |
+| `⚠ 有错误：`<br>`scripts/lib/cli/gates.mjs:300`（`reportErrors`） | 装载期的问题清单（时间线重叠顺序、`end <= start`、场景没加载成功…） | 逐条读；实现在 `src/core/engine.js:326` 的 `validate()`（`场景没加载成功` / `只有 …s，不到一帧` / `起点比上一段还早`） |
+| `⚠ 画面文字在复述旁白 —— 同屏两套完整句子就是观众说的"两条字幕"`<br>`scripts/cmd/check.mjs:430`（`cmdCheck`） | `lint-narration-dup` 报了命中（`check` **只 warn 不 fail**，见 `:1144`） | 画面文字只留标注（名词 / 数字 / 单位 / 出处）；句子交给旁白与字幕（`docs/CAPTIONS.md`）。交付前必须跑到零命中：`node tools/lint-narration-dup.mjs <任务>` |
+| `画面只留标注（名词 / 数字 / 单位 / 出处），句子交给旁白与字幕；见 docs/CAPTIONS.md`<br>`scripts/cmd/check.mjs:432` | 上一条的修法提示行 | 按它做；`docs/CAPTIONS.md` 是这一层的规格 |
+| `⚠ lint-narration-dup 没跑成：…`<br>`scripts/cmd/check.mjs:441` | 那个工具以退出码 2 退出（工具自己出错），**不是"没命中"** | 单独跑一遍看它为什么失败；这条不改变退出码（1-19 之后会进 `skipped:` 段） |
+| `（旁白复述检查跳过：…）`<br>`scripts/cmd/check.mjs:452` | 子进程起不来（受限沙箱 EPERM / 超时）⇒ **这一项没验** | 在有权限的环境里单独跑 `node tools/lint-narration-dup.mjs <任务>`；别把它读成"干净" |
+| `一支片子有 N 句旁白，但**没开字幕层**`<br>`scripts/cmd/check.mjs:950` | 有旁白表但 `captions` 没开 ⇒ 观众看不到语音字幕 | `task.config.mjs` 加一行 `captions: true`（`docs/CAPTIONS.md`）；开了之后**别再烧一遍 `.ass`** |
+| `⚠ N 句字幕**跨越了场景切换**（规范要求字幕不得跨 scene change）`<br>`scripts/cmd/check.mjs:973`（`cmdCheck`） | 某句说完 + 停留时间超过了它所在段的结束（Netflix 计时文本规范） | 让这句说早一点 / 说短一点，或把这一段放长 —— **段长本来就该由旁白决定**（`docs/NARRATION.md`）。片段尾最后一句豁免 |
+| `⚠ …`（`ctx.warnings` 原样打印）<br>`scripts/cmd/check.mjs:1239` | 场景/kit 自己攒的警告。最典型的是 `"x"（x=…, y=…, 字号 …）压进了**字幕保留带**`（`src/kit/bands.js:106`） | 把那个面板 / 计量条移出字幕保留带（默认顶部居中 y 40–104，见 `docs/CAPTIONS.md` 与 `src/kit/bands.js`）；保留带是留给引擎字幕的保留区 |
+| `--quick：每段只采 50% 一个点、只跑单子帧（冒烟用；完整体检请去掉 --quick）`<br>`scripts/cmd/check.mjs:1117` | 你加了 `--quick` ⇒ 这次**没看**多子帧路径、也没看入场头 1 秒 | 冒烟可以，**别拿它当交付判据**；交付前去掉 `--quick` 再跑一次 |
+| `每段：15% / 50% / 85% 三个点，各测单子帧与多子帧（成片走的路径）`<br>`scripts/cmd/check.mjs:1118` | 完整 `check` 的采样口径（默认） | 无（这是说明行）。它告诉你"三个点都过了"才算过 |
+| `分辨率 W×H×scale @fps  时长 X.XXs  N 段  bpm B`<br>`scripts/cmd/check.mjs:878` | `check` 的开头汇总 | 一眼核对"片长/段数"对不对 —— 伪时间线（12 段 × 默认 4s = 48s）就是在这里露馅的 |
+| `GPU: …` / `⚠ unmasked renderer 不可用…` / `⚠ 无法渲染到浮点纹理：本引擎需要 EXT_color_buffer_float（HDR 渲染）`<br>`scripts/cmd/gpu.mjs:25` `:1100` `:1102`（`cmdGpu`） | GPU 信息行；后两条是环境能力缺失 | 浮点纹理缺失 = 这台机器的 WebGL2 不能跑 HDR 渲染，换机器 / 换 `--gpu high`；见 `docs/PERF.md` §2① |
+| `时间线（段名 / 时长 / 起止）`<br>`scripts/cmd/check.mjs:882` | 段名 + 时长摊开打印 | 段名就是 `--only` / HUD / 报错用的名字；写错时间线时在这一段就能看出来 |
+| `音频：…`<br>`scripts/cmd/check.mjs:893` | 说清"节拍是从哪条轨测的" | 分轨写法里没有 `music` 会有提醒（`:2967`）—— 节拍会被旁白带偏，补上 music 轨再 `analyze` |
+| `风格：<名字>（…）· 背景母题 …`<br>`scripts/cmd/check.mjs:942` | 这支片子实际用的风格包 | 风格由内容决定；连做两支同题材时是否换脸是**建议**（`docs/STYLE.md` §6 纪律二） |
+| `字幕：引擎字幕层已开 · 保留带 y … / x … · 说完再留 Xs`<br>`scripts/cmd/check.mjs:947` | 字幕层开着，并给出保留带坐标 | 画面元素别进保留带（见上面 `压进了**字幕保留带**` 那条） |
+| `单帧 0.123  多子帧 0.456（24 子帧）`<br>`scripts/cmd/check.mjs:1168` | 每个采样点的两个亮度读数 | 两者应当接近；差得多就是上面"两条路径不一致"那条 |
+| `试渲染 N 段 × 3 个点 × 2 条路径（共 M 帧）用了 X.Xs`<br>`scripts/cmd/check.mjs:1237` | 体检花了多久（`check` 是**真渲染**，不是静态分析） | 无（预算参考）。填充重的片子用 `--only` 缩小范围 |
+| `浏览器控制台：`<br>`scripts/cmd/check.mjs:1454` | 页面里的 console 输出（含 `[pageerror]`） | `[pageerror]` 一律算失败（`:1417`）；场景里的 TypeError 会先在这里露出来 |
+| `✓ 接触表 out/<任务>/check/contact.png`<br>`scripts/cmd/check.mjs:1473` | `check --sheet` 出的接触表 | 用 Read 工具打开那张图看全片；或用 `sheet` 单独出 |
 
 | `⚠ 依赖 under：N/M 段声明要读 ctx.under，却**与上一段没有交叠**` + `  [<段>] 第 N 段 a → bs：与上一段没有 overlap` + 紧跟四行说明<br>`scripts/anim.mjs` 的 `cmdCheck`（「依赖 under」那一段；判据是纯函数 `src/timeline.js` 的 `auditUnderRequires()`，单测 `tools/test-timeline-audit.mjs`） | 🚨 **硬问题**（进 `errs` ⇒ 退出码 1）：`ctx.under` 只在两段交叠的那一小段里有值（`engine.js`：`under: k > 0 ? under : null`）。没有交叠 ⇒ 模板退回"没有 under"那条分支 ⇒ **画面几乎是黑的，而且一个字都不报** | 给这一段写 `overlap`（`{ type: 'whip', dur, overlap: 0.5 }` 或 `cut(whip, { overlap: 0.5 })`），或者换成自己铺底的模板。判据与边界：`docs/ENGINE.md` §14.9 |
 | `依赖 under：N 段声明要读 ctx.under，都真的与上一段交叠了`<br>同上 | 正常那一档（正面）：声明的依赖真的满足了 | 无（这是唯一可以读成"这一项验过了"的一行） |
@@ -85,10 +85,10 @@
 
 | 输出词 | 含义（什么情况下会看到它） | 修法 |
 |---|---|---|
-| `Math.random() —— 换成 rng(seed)（离线渲染会乱序多次调用本函数）`<br>`scripts/anim.mjs:1480`（`scanScenes`） | 场景源码里出现 `Math.random(` | 改成 `setup` 里 `rng(seed)` 预计算。`AGENTS.md` §4 铁律表第一行 |
-| `Date.now() —— 时间只能来自 f.t`<br>`scripts/anim.mjs:1481` | 同上，墙钟 | 用 `f.t` / `f.lt`；抖动要平滑就用 `shakeSmooth(f.t, amp)`（`src/core/cam.js`） |
-| `performance.now() —— 时间只能来自 f.t`<br>`scripts/anim.mjs:1482` | 同上 | 同上 |
-| `new Date() —— 时间只能来自 f.t`<br>`scripts/anim.mjs:1483` | 同上 | 同上 |
+| `Math.random() —— 换成 rng(seed)（离线渲染会乱序多次调用本函数）`<br>`scripts/cmd/check.mjs:1532`（`scanScenes`） | 场景源码里出现 `Math.random(` | 改成 `setup` 里 `rng(seed)` 预计算。`AGENTS.md` §4 铁律表第一行 |
+| `Date.now() —— 时间只能来自 f.t`<br>`scripts/cmd/check.mjs:1533` | 同上，墙钟 | 用 `f.t` / `f.lt`；抖动要平滑就用 `shakeSmooth(f.t, amp)`（`src/core/cam.js`） |
+| `performance.now() —— 时间只能来自 f.t`<br>`scripts/cmd/check.mjs:1533` | 同上 | 同上 |
+| `new Date() —— 时间只能来自 f.t`<br>`scripts/cmd/check.mjs:1533` | 同上 | 同上 |
 | `没有铁律违规（Math.random / Date.now / performance.now / new Date / 逐帧累积 / 按帧抖帧）`<br>`tools/scene-harness.mjs:1502` | 离线跑场的静态扫描干净 | 无事。这条比 `check` 的扫描多覆盖"逐帧累积"和"按帧抖帧"两类 |
 | `Math.floor(t*60) 按帧抖帧 —— …逐帧抖动要用 f.idx；手持感用 shakeSmooth(f.t, amp)`<br>`tools/scene-harness.mjs:175` | 出现 `Math.floor(…*60)` | 按提示换写法；见 `AGENTS.md` §4 铁律表 |
 | `逐帧累积状态（this.x += …）—— …把位置写成时间的函数：x = f(t - birth)`<br>`tools/scene-harness.mjs:176` | 出现 `this.xxx +=` | 把位置写成**时间的函数**（可任意 seek）；`AGENTS.md` §4 |
@@ -113,7 +113,7 @@
 | 输出词 | 含义（什么情况下会看到它） | 修法 |
 |---|---|---|
 | `✗ SCENE ERROR`（暗红底 + 贴边亮红框，画面中间写着段名 / 帧号 / 异常首行）<br>`src/core/engine.js:617` | 这一帧的 `render` 抛了异常，引擎画的是**错帧卡片**，不是内容 | 它是"看起来有内容"的一张图，别当成画面。用 `still --only <段> -t <时刻>` 复现，读控制台首行异常 |
-| `那些帧画出来的是**错帧卡片**（暗红底 + 红框 + ✗ SCENE ERROR），不是画面内容。`<br>`scripts/anim.mjs:1393`（`cmdCheck`）/ `:1532`（`cmdStill`）/ `:3544`（`cmdVideo`） | 三条命令各自在收尾点名 | 同上；`check` 与 `still` 会置退出码 1，`video` 直接不出片 |
+| `那些帧画出来的是**错帧卡片**（暗红底 + 红框 + ✗ SCENE ERROR），不是画面内容。`<br>`scripts/cmd/check.mjs:1450`（`cmdCheck`）/ `:1532`（`cmdStill`）/ `:3544`（`cmdVideo`） | 三条命令各自在收尾点名 | 同上；`check` 与 `still` 会置退出码 1，`video` 直接不出片 |
 | `连续 N 帧场景抛异常，停止渲染（这段之后每一帧都会是错帧卡片）。` + `用 node scripts/anim.mjs check <任务> 复现，或 still --only <段> -t <时刻> 看图。`<br>`scripts/anim.mjs` 的 `cmdVideo` 推流循环（`ERR_STOP_AFTER`） | 推流途中连续出错，CLI 主动停 | 照它给的两条命令复现；**别直接重跑出片**（见下一条） |
 | `这是**已知原因**（确定性）：场景代码在某个时刻抛异常，重跑不会有不同结果。` + `下一步：① 复现并点名：node scripts/anim.mjs check <任务>（会报段名与时刻）；② 看那一帧的图：…still…；③ 改代码 —— **不要直接重跑出片**：不修代码的重跑会得到同样的错帧卡片。`<br>`scripts/anim.mjs` 的 `knownCauseHeadline('scene')`（`cmdVideo` 的场景异常守门） | 成片守门发现渲染期抛异常 ⇒ **归为"已知原因（确定性）"**（BACKLOG 1-3） | 按三步做：`check` 点名段与时刻 → `still` 看图 → **改代码**。以前这里只说"复现"，读的人会顺手重跑一整片，白等而且产物照样被删 |
 | `这是**已知原因**（确定性）：画面渲染到一半停了（断流/崩溃），同一份代码、同样的环境重跑会停在同一个地方。`<br>`scripts/anim.mjs` 的 `knownCauseHeadline('interrupted')` | "渲染到一半停了"这一类（不是场景异常，是断流/崩溃） | 见 §1.5 的 `只渲染了 N/M 帧` 那条 —— 它的「下一步」四步就是修法 |
@@ -130,17 +130,17 @@
 | `已知原因（确定性）：这个文件 ffmpeg 没写完 —— 半截流 / 没写 moov / 0 字节，渲染进程还没 finalize 就被结束了。`（分块路径会在"这个文件"前面多一句 `第 N/M 块（a–b s）的`）<br>`已知原因（确定性）：拼接 / 封装这一步出错，画面本身没问题（各块都已经单独通过守门）。`<br>`scripts/anim.mjs` 的 `decideGateFailure()` 的 `knownNext.encode` / `.stitch` | 分类头的第一种（`kind: 'encode'` / `'stitch'`）：**确定性**失败 | 它的「下一步」里就有判据：① 帧数差在个位数且带音轨 ⇒ 查 `-af apad` 与 `-shortest` 是否**成对**（AAC 记账时长比视频短几十毫秒，会把尾巴切掉）；② 差几十上百帧 ⇒ 渲染中途断流（渲染期别写文件）；③ 拼接 ⇒ concat 必须带 `-copyts`（`docs/PERF.md`） |
 | `第 N 块的帧数不足（x/y 帧，a–b s），已删掉这一块。` + `最近一次进展：…` + `已知原因（确定性）：这一块**自己**少渲了 N 帧 —— 画面停在半路，多半是场景在某个时刻抛异常 / 页面在渲染途中崩了（HMR 重载也走这条路）。` + `下一步：① 先定位是哪一段、哪个时刻…② 出那一帧的图看…③ 渲染期间**一个文件都别写**…④ 改完再跑同一条命令…` + `其他已渲好的块会保留：…`<br>`scripts/anim.mjs` 的 `cmdVideo` 分块分支（`decideGateFailure({ phase: 'chunk' })`） | 分块渲染里某一块没渲完（画面停在半路） | **按它自己给的四步走**：① `node scripts/anim.mjs check <任务>`（点名段与时刻）→ ② `node scripts/anim.mjs still <任务> -t <时刻> --only <段>` 看图 → ③ 渲染期间一个文件都别写（含 `docs/*.md`，`AGENTS.md` §7）→ ④ 改完重跑同一条命令，**只补这一块**（已渲好的块会跳过，画面不必重渲） |
 | `第 N 块的产物验收不通过，已删掉它：` / `第 N 段的产物验收不通过：`<br>`scripts/anim.mjs` 的 `cmdVideo` 分块路径与 `--parallel` 逐段守门（都走 `gateFailureLines()`） | 这一块 / 这一段的 ffprobe 守门失败 | 与上面同一套分类头 + 「下一步」；分块路径的 `retryLine` 会说"重跑有意义（已渲好的部分会跳过）"，并行路径的 `step` 会写成 `并行渲染（这一段）` |
-| `渲染期间 src/ 或 tasks/ 下的源文件被改动了，out/… 已删除（画面混合了两个版本）`<br>`scripts/anim.mjs:3054`（`cmdVideo`） | CLI 拿 mtime 快照对比，发现模块图里的文件在渲染期间被改过 | **渲染期间一个文件都别写**；产出先落到 `out/_staging/`（`out/**` 是唯一被实测挡住的路径）。见 `AGENTS.md` §7 |
-| `渲染期间这些源文件被改动了（会触发 HMR 重载 → 推帧可能提前结束）`<br>`scripts/anim.mjs:3480` | 推流路径的同类警告 | 同上；这条只说"可能"，但产物不该被信任 |
-| `⚠ 分块参数与上一次不同，**全部重渲**（不复用旧块）：`<br>`scripts/anim.mjs:2678` | 渲染参数指纹或源文件变了 | 这是**故意的**（历史上这里静默复用旧块、秒完成还报 ✓）。确认参数是你想要的，让它重渲 |
-| `⚠ 等 ffmpeg 排水超时：Xs 没有进展（已收到 n/N）`<br>`scripts/anim.mjs:3424`（`cmdVideo`） | 页面没卡，是编码器太慢 / 被抢了 CPU | 换 `--preset veryfast`、降 `--scale`，或换 `--vcodec h264_nvenc`（`docs/PERF.md`） |
-| `⚠ 渲染停滞：Xs 没有任何进展（已收到 n/N）`<br>`scripts/anim.mjs:3428` | 真卡住：页面崩了 / WebSocket 断了 / 渲染期间改了文件 | 看紧跟的"页面推流状态 / 已连接客户端 / ffmpeg 退出码"三行；按提示先排除 HMR 重载 |
-| `✓ out/… N 帧（ffprobe 复核 M 帧），用时 Xs`<br>`scripts/anim.mjs:3080` | 出片成功，且 CLI **自己**用 ffprobe 复核过 | 想再确认一遍：`node scripts/anim.mjs verify <任务>`（`AGENTS.md` §10.4） |
-| `子帧分布 8子帧:12  24子帧:200 …`<br>`scripts/anim.mjs:3081` | 运动模糊实际吃到的子帧数分布 | 拖影有台阶 → 调小 `--tol`，或调小 `--shutter`（`AGENTS.md` §8 末行） |
+| `渲染期间 src/ 或 tasks/ 下的源文件被改动了，out/… 已删除（画面混合了两个版本）`<br>`scripts/cmd/video.mjs:721`（`cmdVideo`） | CLI 拿 mtime 快照对比，发现模块图里的文件在渲染期间被改过 | **渲染期间一个文件都别写**；产出先落到 `out/_staging/`（`out/**` 是唯一被实测挡住的路径）。见 `AGENTS.md` §7 |
+| `渲染期间这些源文件被改动了（会触发 HMR 重载 → 推帧可能提前结束）`<br>`scripts/cmd/video.mjs:1328` | 推流路径的同类警告 | 同上；这条只说"可能"，但产物不该被信任 |
+| `⚠ 分块参数与上一次不同，**全部重渲**（不复用旧块）：`<br>`scripts/cmd/video.mjs:269` | 渲染参数指纹或源文件变了 | 这是**故意的**（历史上这里静默复用旧块、秒完成还报 ✓）。确认参数是你想要的，让它重渲 |
+| `⚠ 等 ffmpeg 排水超时：Xs 没有进展（已收到 n/N）`<br>`scripts/cmd/video.mjs:1266`（`cmdVideo`） | 页面没卡，是编码器太慢 / 被抢了 CPU | 换 `--preset veryfast`、降 `--scale`，或换 `--vcodec h264_nvenc`（`docs/PERF.md`） |
+| `⚠ 渲染停滞：Xs 没有任何进展（已收到 n/N）`<br>`scripts/cmd/video.mjs:1270` | 真卡住：页面崩了 / WebSocket 断了 / 渲染期间改了文件 | 看紧跟的"页面推流状态 / 已连接客户端 / ffmpeg 退出码"三行；按提示先排除 HMR 重载 |
+| `✓ out/… N 帧（ffprobe 复核 M 帧），用时 Xs`<br>`scripts/cmd/video.mjs:410` | 出片成功，且 CLI **自己**用 ffprobe 复核过 | 想再确认一遍：`node scripts/anim.mjs verify <任务>`（`AGENTS.md` §10.4） |
+| `子帧分布 8子帧:12  24子帧:200 …`<br>`scripts/cmd/perf.mjs:35` | 运动模糊实际吃到的子帧数分布 | 拖影有台阶 → 调小 `--tol`，或调小 `--shutter`（`AGENTS.md` §8 末行） |
 | `[--dry-run] 按档预估：每档整片均匀取 10 个时刻…` / `草稿档/成片档 … N 帧约 M 分钟`（C-1 起两档都给，`← 本次参数` 标记手上这版）<br>`scripts/anim.mjs` 的 `printEstimate` | 只测速不出片 | 开渲之前先看这个数；`--samples 8` 压一压、或切段。某档「没测成」时只有另一档的读数，**别按比例硬推** |
 | `⚠ 本次参数超过 20 分钟：建议 --segments 分块（可断点续渲）…`<br>`scripts/anim.mjs` 的 `printEstimate` | 本次参数预估超过 20 分钟 | 照做：`node scripts/anim.mjs video <任务> --segments 10` |
-| `⚠ 抖动看着像"振动"而不是手持（…）`<br>`scripts/anim.mjs:2865`（`cmdVideo` 收尾守门） | 出片收尾时抖动判据不通过（判据同 `anim shake`） | 见 §1.8；**不影响文件合格与否，产物保留**（`:2888`） |
-| `并行渲染有 N/M 段失败`<br>`scripts/anim.mjs:4075`（`--parallel`） | 并行路径里有段挂了 | 已渲好的段保留在 `out/<任务>/_parallel/`；修完重跑，日志逐段在各自目录 |
+| `⚠ 抖动看着像"振动"而不是手持（…）`<br>`scripts/cmd/video.mjs:480`（`cmdVideo` 收尾守门） | 出片收尾时抖动判据不通过（判据同 `anim shake`） | 见 §1.8；**不影响文件合格与否，产物保留**（`:2888`） |
+| `并行渲染有 N/M 段失败`<br>`scripts/cmd/video.mjs:1582`（`--parallel`） | 并行路径里有段挂了 | 已渲好的段保留在 `out/<任务>/_parallel/`；修完重跑，日志逐段在各自目录 |
 | `逐帧数出 N 帧，期望 M 帧` / `并行拼接后的产物不合格：` / `并行拼接后的时间戳不合格：`<br>`scripts/anim.mjs` 的 `--parallel` 守门（都走 `gateFailureLines()`；时间戳那条还带 `hint: 'stitch'`） | 拼接路径的帧数与时间戳守门（**帧数对但时间戳漂了同样是废品**） | 分类头会说 `已知原因（确定性）：拼接 / 封装这一步出错，画面本身没问题（各块都已经单独通过守门）。`，并直接点名两种典型签名：尾部被切（`-af apad` 与 `-shortest` 没成对）/ 帧距不齐（concat 少 `-copyts`）。见 `docs/PERF.md` |
 | `· 非有限值扫描：每 30 帧 1 帧（--scan-nf 0 关掉；--nf-stop 扫到就停）`<br>`scripts/anim.mjs` 的 `cmdVideo`（`resolveScanNf()` / `DEFAULT_SCAN_NF`，BACKLOG 1-4） | 出片时的**非有限值扫描默认是开着的**：每 30 帧扫一次浮点缓冲。**这两个前提必须知道**：① **默认只报告、不中断**；② `--scan-nf 0` 关掉 | 无（说明行）。想让出片完全不受影响就 `--scan-nf 0`；想扫得更密 `--scan-nf 1`（≈ +44% 帧时间，只适合短片段）。代价实测：一次扫描 40ms，每 30 帧扫一次 ≈ +0.35% 总时长（`DEFAULT_SCAN_NF` 的注释里有全套数字） |
 | `  ⚠ [<段>] t=…s（第 N 帧）` + `     ← ⚠ 非有限值：NaN n / Inf n / …`（**与 `check` 一字不差的两行**）<br>`scripts/anim.mjs` 的 `warnNonFiniteHit()`（调用点：`cmdVideo` 推流循环的 `diag === 'nonFinite'` 分支） | 出片途中扫到了 NaN/±Inf。实时**每段只报第一条、最多 6 段**（一个 shader 写坏了通常整段整段地坏，每帧都打会把进度日志淹掉）；分块渲染会带块号（`[第N块]`） | 读法与 `check` 那条完全相同（见 §1.1）：修 shader（相机 uniform 全 0 / 除 0 / `pow(0,负数)`）。**这时产物仍然会被写完** —— 默认不停；要停下就加 `--nf-stop` |
@@ -151,9 +151,9 @@
 
 | 输出词 | 含义（什么情况下会看到它） | 修法 |
 |---|---|---|
-| `✗ N/M 个时刻与成片不一致。最可能的原因：…`（含 `判据 mean<18`）<br>`scripts/anim.mjs:2419` `:2423`（`cmdVerify`） | `verify`：成片抽帧 vs 同一时刻重渲，逐像素差超阈值 | 报错块里列了 5 个候选原因（成片是旧版本 / 拼接错位 / 子帧数不同 / 色彩空间 / 跨会话不确定），按顺序排除；`--tol 6` 可收紧 |
-| `✓ N 个时刻（按帧号对齐）全部与重新渲染的结果一致（成片可信）`<br>`scripts/anim.mjs:2432` | `verify` 通过 | 无事。这是"成片可信"的机械证据 |
-| `这个成片本身就有问题，先修它：`<br>`scripts/anim.mjs:2319`（`cmdVerify`） | 成片连 ffprobe 都过不了 | 重渲；或按列出的 reasons 修（`文件是 0 字节` / `moov atom not found` / `没有视频流`） |
+| `✗ N/M 个时刻与成片不一致。最可能的原因：…`（含 `判据 mean<18`）<br>`scripts/cmd/verify.mjs:139` `:2423`（`cmdVerify`） | `verify`：成片抽帧 vs 同一时刻重渲，逐像素差超阈值 | 报错块里列了 5 个候选原因（成片是旧版本 / 拼接错位 / 子帧数不同 / 色彩空间 / 跨会话不确定），按顺序排除；`--tol 6` 可收紧 |
+| `✓ N 个时刻（按帧号对齐）全部与重新渲染的结果一致（成片可信）`<br>`scripts/cmd/verify.mjs:148` | `verify` 通过 | 无事。这是"成片可信"的机械证据 |
+| `这个成片本身就有问题，先修它：`<br>`scripts/cmd/verify.mjs:35`（`cmdVerify`） | 成片连 ffprobe 都过不了 | 重渲；或按列出的 reasons 修（`文件是 0 字节` / `moov atom not found` / `没有视频流`） |
 | `与基线比对：out/<任务>/hashes.json（N 帧，W×H×s）` + `  上一次接受：<时间>  <note>`<br>`scripts/anim.mjs` 的 `cmdHashes` | `hashes --baseline` / `--accept` 的开头。第二行是**审计轨迹**：上一次基线为什么被接受过 | 无事（说明行）。看到"上一次接受"要知道：这一帧的基准本身就是某次有意改动后的样子 |
 | `✗ N/M 帧与基线不一致（逐像素差异超出噪声范围）` + 行内 `✗ 变了  max … mean … >16 …% >32 …%`<br>`cmdHashes` | 画面和基线不同。它只回答"**变了没有**"，不回答"该不该变" | 先看紧跟的 `前后对比图`，再二选一：有意改的 → `--accept --note "…"`；不该变的 → 改回去。判据仍是 `negligible()`（`>16` 的像素为 0 且 mean < 0.002） |
 | `  前后对比图：out/<任务>/hashes-diff.png（每行左 = 基线、右 = 现在）`<br>`cmdHashes` 的 `writeHashesDiffSheet()` | 有帧变了时自动生成（最多 8 行，只列变了的那几帧）——**接受前的审查入口** | 用 Read 工具打开那张图看；确认改动是你想要的那一处，再 `--accept` |
@@ -161,25 +161,25 @@
 | `基线已经存在：…` + `· 有意改了画面：--accept --note` + `· 只是重存一遍：--force`<br>`cmdHashes` | `--save` 时基线已存在 —— 防止"改完顺手重存"绕过比对 | 有意改 → `--accept --note "…"`；确实只想重存 → `--force`（会在 notes 里留一条，不推荐） |
 | `✓ N 帧全部与基线一致（画面没有被改动）`<br>`cmdHashes` | 保画面的改动（重构 / 性能）证明成功 | 无事。⚠ 反过来：如果你这次是**有意改画面**，基线全绿说明你没改到（或忘了 `--accept`） |
 | `没有基线文件 out/…。先跑一次 --save。` / `基线装不下：已经攒到 NMB（上限 380MB）…→ 采样放稀：--every X`<br>`cmdHashes` | 第一次比对；或基线是单个 JSON、顶到 V8 字符串上限 | 前者先 `--save`；后者照提示放稀采样（`--every`）或改用 `--times` |
-| `✗ 有 N 个时刻在两种渲染顺序下不一致 —— 引擎里有跨帧状态（见 docs/history/IMPROVEMENTS-1-3.md 第二轮 P1-2「同一时刻、从不同起点开渲结果不同」）`<br>`scripts/anim.mjs:1804`（`cmdProbe`） | `probe`：正着渲一遍、倒着渲一遍，同一 t 指纹不同 | 引擎里藏了跨帧状态（渲染目标残留 / 惰性编译 / 缓冲没清）。需要定位序列差异时用 `determinism`。⚠ 这条信息以前指向已归档的 `docs/IMPROVEMENTS.md`，**2026-10-16 起改成真路径**（BACKLOG 头部 ⑨） |
-| `✓ 渲染顺序不影响结果（同一 t 是纯函数）`<br>`scripts/anim.mjs:1787` | `probe` 通过 | 无事 |
-| `✗ 存在跨帧依赖 —— 见上面"⚠ … 不同"的那几行：那就是根因所在。` + `第一个分叉在第 N 帧（t=…）`<br>`scripts/anim.mjs:1902` `:1871`（`cmdDeterminism`） | `determinism`：顺向 / 反向 / 单次 seek 三种序列不一致 | 看被点名的那一帧的 `samples / lastErrors / post / a` 哪一项不同 —— 那就是根因。这是 P1-2 的定位实验，别当成"偶发" |
-| `差分（samples=1）  阈值：>8 与 >32 的像素占比`<br>`scripts/anim.mjs:1604`（`cmdDiff`） | `diff`：同一时刻渲两次差多少 | ⚠ **`diff` 只打印、不判定、退出码恒 0**（见 §3）—— 要判"变了没有"用 `hashes --baseline` |
-| `· samples=1：这是单子帧，**只代表静止画面**，不代表成片的运动模糊`<br>`scripts/anim.mjs:1508`（`cmdStill`） | 你出单帧但没给 `--samples` | 查运动质量用 `sheet` / `shot`，或加 `--samples auto` |
+| `✗ 有 N 个时刻在两种渲染顺序下不一致 —— 引擎里有跨帧状态（见 docs/history/IMPROVEMENTS-1-3.md 第二轮 P1-2「同一时刻、从不同起点开渲结果不同」）`<br>`scripts/cmd/probe.mjs:42`（`cmdProbe`） | `probe`：正着渲一遍、倒着渲一遍，同一 t 指纹不同 | 引擎里藏了跨帧状态（渲染目标残留 / 惰性编译 / 缓冲没清）。需要定位序列差异时用 `determinism`。⚠ 这条信息以前指向已归档的 `docs/IMPROVEMENTS.md`，**2026-10-16 起改成真路径**（BACKLOG 头部 ⑨） |
+| `✓ 渲染顺序不影响结果（同一 t 是纯函数）`<br>`scripts/cmd/probe.mjs:44` | `probe` 通过 | 无事 |
+| `✗ 存在跨帧依赖 —— 见上面"⚠ … 不同"的那几行：那就是根因所在。` + `第一个分叉在第 N 帧（t=…）`<br>`scripts/cmd/determinism.mjs:116` `:1871`（`cmdDeterminism`） | `determinism`：顺向 / 反向 / 单次 seek 三种序列不一致 | 看被点名的那一帧的 `samples / lastErrors / post / a` 哪一项不同 —— 那就是根因。这是 P1-2 的定位实验，别当成"偶发" |
+| `差分（samples=1）  阈值：>8 与 >32 的像素占比`<br>`scripts/cmd/diff.mjs:26`（`cmdDiff`） | `diff`：同一时刻渲两次差多少 | ⚠ **`diff` 只打印、不判定、退出码恒 0**（见 §3）—— 要判"变了没有"用 `hashes --baseline` |
+| `· samples=1：这是单子帧，**只代表静止画面**，不代表成片的运动模糊`<br>`scripts/cmd/still.mjs:21`（`cmdStill`） | 你出单帧但没给 `--samples` | 查运动质量用 `sheet` / `shot`，或加 `--samples auto` |
 
 ### 1.7 `probe-alpha`（alpha 与旁白接线，9 条判据）
 
 | 输出词 | 含义（什么情况下会看到它） | 修法 |
 |---|---|---|
-| `① t=0 不可见（mean … < 0.004）  → PASS/FAIL`<br>`scripts/anim.mjs:2228`（`cmdProbeAlpha`） | 整行淡入（数组型 `alpha: [0,1]`）在 t=0 应当看不见 | FAIL 时按 ②③④ 一起看；历史上这里是引擎 bug（`alpha` 只在 `stagger>0` 时参与动画），已修 —— 见 `docs/history/IMPROVEMENTS-1-3.md` |
-| `④ t≥1 不再变（…）  → PASS/FAIL`<br>`scripts/anim.mjs:2231` | 淡入到 1 之后应当稳住 | FAIL ⇒ 检查 `stagger` / `t` 的传入（`src/kit/layout.js` 的 `fade()`） |
-| `⑤ alpha:1（数值）画得出来（…）` / `⑥ alpha:0.5 是半透明常量（…）`<br>`scripts/anim.mjs:2242` | **数值型 alpha 的语义**：它是**常量不透明度**，不是"随 t 动画" | 两种写法语义不同，别写反：见 `src/kit/layout.js:63` 与 `docs/history/IMPROVEMENTS-4-5.md` |
-| `⑤⑥ 数值型 alpha 用例没有拿到读数  → FAIL`<br>`scripts/anim.mjs:2245` | 用例没跑起来（不是"alpha 对"） | ⚠ 这是**没验**不是通过；看上面的异常输出 |
-| `⑦⑧⑨ 旁白用例没有拿到读数（…）  → FAIL`<br>`scripts/anim.mjs:2271` | 旁白接线用例没跑起来 | 同上；正常时 ⑦⑧⑨ 会分别打印 `lines=` / `p=` / `peak` |
-| `✗ alpha 没有随 t 动画 —— 检查 src/core/text.js 里 k 的计算条件`<br>`scripts/anim.mjs:2275` | ①②③④ 有一项失败 | 照提示看 `src/core/text.js`；`docs/history/IMPROVEMENTS-1-3.md`（原 IMPROVEMENTS P1-3） |
-| `✗ 数值型 alpha 语义不对（docs/history/IMPROVEMENTS-1-3.md 第二轮 P0-1）—— …检查 text.js 里 alphaIsRamp / constAlpha 两行`<br>`scripts/anim.mjs:2279` | ⑤⑥ 失败 | 照提示看那两行；这是"数值 alpha 必须是常量"的判据 |
-| `✗ 旁白层接线有问题（docs/history/IMPROVEMENTS-1-3.md 第二轮 P1-5）—— 检查 engine.load 有没有收到 narration、_ctxFor 有没有把 this.narration 挂到 ctx 与 f 上`<br>`scripts/anim.mjs:2284` | ⑦⑧⑨ 失败 | 照提示查那两处接线；`docs/NARRATION.md` |
-| `✓ alpha 语义全对（数组型随 t 动画 P1-3、数值型是常量 P0-1）+ 旁白层已接通（P1-5）`<br>`scripts/anim.mjs:2289` | 九条全过 | 无事 |
+| `① t=0 不可见（mean … < 0.004）  → PASS/FAIL`<br>`scripts/cmd/probe-alpha.mjs:208`（`cmdProbeAlpha`） | 整行淡入（数组型 `alpha: [0,1]`）在 t=0 应当看不见 | FAIL 时按 ②③④ 一起看；历史上这里是引擎 bug（`alpha` 只在 `stagger>0` 时参与动画），已修 —— 见 `docs/history/IMPROVEMENTS-1-3.md` |
+| `④ t≥1 不再变（…）  → PASS/FAIL`<br>`scripts/cmd/probe-alpha.mjs:207` | 淡入到 1 之后应当稳住 | FAIL ⇒ 检查 `stagger` / `t` 的传入（`src/kit/layout.js` 的 `fade()`） |
+| `⑤ alpha:1（数值）画得出来（…）` / `⑥ alpha:0.5 是半透明常量（…）`<br>`scripts/cmd/probe-alpha.mjs:213` | **数值型 alpha 的语义**：它是**常量不透明度**，不是"随 t 动画" | 两种写法语义不同，别写反：见 `src/kit/layout.js:63` 与 `docs/history/IMPROVEMENTS-4-5.md` |
+| `⑤⑥ 数值型 alpha 用例没有拿到读数  → FAIL`<br>`scripts/cmd/probe-alpha.mjs:225` | 用例没跑起来（不是"alpha 对"） | ⚠ 这是**没验**不是通过；看上面的异常输出 |
+| `⑦⑧⑨ 旁白用例没有拿到读数（…）  → FAIL`<br>`scripts/cmd/probe-alpha.mjs:251` | 旁白接线用例没跑起来 | 同上；正常时 ⑦⑧⑨ 会分别打印 `lines=` / `p=` / `peak` |
+| `✗ alpha 没有随 t 动画 —— 检查 src/core/text.js 里 k 的计算条件`<br>`scripts/cmd/probe-alpha.mjs:255` | ①②③④ 有一项失败 | 照提示看 `src/core/text.js`；`docs/history/IMPROVEMENTS-1-3.md`（原 IMPROVEMENTS P1-3） |
+| `✗ 数值型 alpha 语义不对（docs/history/IMPROVEMENTS-1-3.md 第二轮 P0-1）—— …检查 text.js 里 alphaIsRamp / constAlpha 两行`<br>`scripts/cmd/probe-alpha.mjs:259` | ⑤⑥ 失败 | 照提示看那两行；这是"数值 alpha 必须是常量"的判据 |
+| `✗ 旁白层接线有问题（docs/history/IMPROVEMENTS-1-3.md 第二轮 P1-5）—— 检查 engine.load 有没有收到 narration、_ctxFor 有没有把 this.narration 挂到 ctx 与 f 上`<br>`scripts/cmd/probe-alpha.mjs:264` | ⑦⑧⑨ 失败 | 照提示查那两处接线；`docs/NARRATION.md` |
+| `✓ alpha 语义全对（数组型随 t 动画 P1-3、数值型是常量 P0-1）+ 旁白层已接通（P1-5）`<br>`scripts/cmd/probe-alpha.mjs:269` | 九条全过 | 无事 |
 
 ### 1.8 抖动体检（`anim shake`，`video` 收尾共用同一套判据）
 
@@ -190,9 +190,9 @@
 | `逐帧变化量是幅度的 N%，介于平滑与白噪声之间 —— 抖得偏"毛"`<br>`scripts/lib/shake.mjs:107` | `kind === 'mixed'` | 降频 / 降幅；0.5–2Hz 的慢漂移才是手持 |
 | `收尾段幅度 x.xxpx，是中间段的 N×（镜头停住之后还在晃，最容易被看成"地震"）—— 让幅度随"停住"衰减，例如 amp * (1 - 0.75 * settle)`<br>`scripts/lib/shake.mjs:110` | 收尾幅度 > 中段 1.25× 且 > 2.5px | 照提示让幅度随镜头停住衰减。事故原文：用户说"最后那里都快和地震一样了"（`docs/history/IMPROVEMENTS-1-3.md` 第三轮） |
 | `峰值 x.xpx 已经超过"手持"的量级（≤2px 呼吸 / 3–5px 手持 / ≥5px 冲击）`<br>`scripts/lib/shake.mjs:114` | 幅度 > 5px 且不平滑 | 按档位表调；`AGENTS.md` §5 的"抖动怎么给才对"有同一张表（单位是**物理像素**，4K 下要乘 `scale`） |
-| `✓ 没有发现问题（抖动平滑、且没有"停住了还在晃"）`<br>`scripts/anim.mjs:3699`（`cmdShake`） | 抖动体检通过 | 无事。这条 **退出码 0**；有 notice 时退出码 1 |
-| `分段（每段 X.Xs）：` + `a–b s  峰值 x.xxpx  逐帧变化 x.xxxpx` / `收尾段 / 中段幅度 = N.NN`<br>`scripts/anim.mjs:3701` `:3705` | 逐段读数 | 找"幅度只升不降"的那几段；用 `--from/--to` 只看那一段 |
-| `⚠ N 个时刻 render 抛异常（这些帧的抖动按 0 计）：`<br>`scripts/anim.mjs:3688` | 体检途中场景抛异常 ⇒ 那些帧的抖动**没被量到** | 先修场景异常（`check` 也会点名），否则这次体检的结论不完整 |
+| `✓ 没有发现问题（抖动平滑、且没有"停住了还在晃"）`<br>`scripts/cmd/shake.mjs:98`（`cmdShake`） | 抖动体检通过 | 无事。这条 **退出码 0**；有 notice 时退出码 1 |
+| `分段（每段 X.Xs）：` + `a–b s  峰值 x.xxpx  逐帧变化 x.xxxpx` / `收尾段 / 中段幅度 = N.NN`<br>`scripts/cmd/shake.mjs:83` `:3705` | 逐段读数 | 找"幅度只升不降"的那几段；用 `--from/--to` 只看那一段 |
+| `⚠ N 个时刻 render 抛异常（这些帧的抖动按 0 计）：`<br>`scripts/cmd/shake.mjs:87` | 体检途中场景抛异常 ⇒ 那些帧的抖动**没被量到** | 先修场景异常（`check` 也会点名），否则这次体检的结论不完整 |
 
 ### 1.9 旁白 / 字幕这一层
 
@@ -263,6 +263,7 @@
 | `status: {"state":"ready",…}` + 一段 JSON<br>`tools/probe-colorspace.mjs:46` `:67` | `probe-colorspace` **只打印** `export` / `display` 两个颜色值 | ⚠ 它**不判定、不比较**（退出码只反映"页面是否 ready"）—— 自己比 `export` vs `display` 三个分量。见 §3 |
 | `判定：PASS ✓ 两个倍率下几何的逻辑位置/尺寸一致` / `FAIL ✗ SCALE=2 下矢量几何不对`<br>`tools/probe-ribbon.mjs:94` | 4K（`--scale 2`）下矢量几何是否与 1080p 同位同尺寸 | FAIL ⇒ `LineBatch` 顶点着色器拿物理像素当逻辑像素用了；见 `docs/history/STATUS-rounds-1-6.md` §6.3 |
 | `判定：PASS ✓ 任务字体确实加载并生效` / `FAIL ✗` + `faces: ["BrandFont 600 loaded", …]` + `--- console ---`<br>`tools/probe-fonts.mjs:63` `:49` `:59` | 任务自带字体（`task.fonts`）是否真的进浏览器、真的被用上 | `faces` 里的 `status` 是 `loaded` / `unloaded` / `error`：不是 `loaded` 就是"字体被跳过"，画面会退化成回退字体（"文字是方框"的同类）。查 `task.fonts` 路径（相对任务目录，文件要真存在）。`AGENTS.md` §10 末行 |
+| `=== scale 1 (1920×1080) ===` + `亮像素(>180) N   中亮像素(60..180) M   最亮 255`（scale 1 / 2 各一组）<br>`tools/probe-app-scale.mjs:42` `:43` | **症状：4K（`--scale 2`）出图里矢量线 / 白边框 / 方块突然没了或细了一半** → 跑 `node tools/probe-app-scale.mjs` | 它走**真实应用路径**（`api.frame(12)` → `png()` + `engine.readPixels()`），对 `_calib` 的 xf 段同一帧在 scale 1/2 各数一遍亮像素；两个倍率应约 **4×**（面积比），掉到 1× 附近 = 4K 下矢量那层没画出来。**位置/尺寸**的判据在上一行 `probe-ribbon`（这条查「还画不画得出」）。⚠ 不在 `regress-all` 里（要 GPU，约 1–2 min），图落 `out/_calib/scale/` |
 | `文件：<png>  W×H  N 字节（期望 W*H*4）` / `最亮 x.xxx @ {"x":…,"y":…}   亮度>0.5 的像素 N` / `x=900 列上亮度>0.5 的 y 区间：360–440（高 81）`<br>`tools/png-rows.mjs:28` `:36` `:49` | 直接量一张 PNG：某根线 / 某个色块到底在不在 | 用它取代"盯着图猜"；`用法: node tools/png-rows.mjs <png> [x列]`（无参数时退出码 2） |
 
 ### 1.11 离线跑场（`tools/scene-harness.mjs`，不需要 GPU）
@@ -300,15 +301,15 @@
 
 | 输出词 | 含义（什么情况下会看到它） | 修法 |
 |---|---|---|
-| `未知命令 "x"`（+ 打印 help）<br>`scripts/anim.mjs:4497` | 命令名打错 | `node scripts/anim.mjs help`（= 文件头那段 JSDoc） |
-| `没有任务 "x"。现有：…` / `有多个任务，请指定一个：…`<br>`scripts/anim.mjs:413` `:418` | 任务名打错 / 没给任务名而有多个任务 | `node scripts/anim.mjs tasks` 列名字 |
-| `--scale 只接受 1..4（收到 x）。1 = 1080p，2 = 真 4K。`<br>`scripts/anim.mjs:458` | `--scale` 越界 | 用 1..4；场景写法不用改（`AGENTS.md` §7 末） |
-| `Vite 启动失败，试试手动 npm run dev 再带 --url`<br>`scripts/anim.mjs:483` | 私有 Vite 起不来 | 照提示：手动 `npm run dev`，然后 `--url http://127.0.0.1:5173`。⚠ 也常见于"别人正在写文件把 Vite 撞崩了" |
-| `页面初始化失败：`<br>`scripts/anim.mjs:542` | 页面起来但引擎装载失败 | 读下面的 `status.error`；常见是任务加载 / shader 编译错 |
-| `没有找到成片 out/…。先跑 video，或用 --file 指定。`<br>`scripts/anim.mjs:2316` | `verify` 找不到成片 | 先 `video`；或 `verify <任务> --file <路径>` |
-| `没有可验收的时刻（成片 N 帧 / X.XXs，时间线是空的？）`<br>`scripts/anim.mjs:2375` | `verify` 没算出可比的时刻 | 检查时间线是否为空 / `--from` 是否越界 |
-| `t=… （成片第 N 帧） ← ffmpeg 抽帧失败`<br>`scripts/anim.mjs:2394` | 某帧从 mp4 里抽不出来 | 成片可能损坏：重渲，或先 `ffprobe` 它 |
-| `找不到 ffmpeg。装一个，或用 ANIM_FFMPEG 环境变量指定路径。`<br>`scripts/anim.mjs:2932` | ffmpeg 不在 PATH | 装 ffmpeg，或设 `ANIM_FFMPEG` / `ANIM_FFPROBE`（`AGENTS.md` §1 前置条件） |
+| `未知命令 "x"`（+ 打印 help）<br>`scripts/anim.mjs:294` | 命令名打错 | `node scripts/anim.mjs help`（= 文件头那段 JSDoc） |
+| `没有任务 "x"。现有：…` / `有多个任务，请指定一个：…`<br>`scripts/cmd/queue.mjs:53` `:418` | 任务名打错 / 没给任务名而有多个任务 | `node scripts/anim.mjs tasks` 列名字 |
+| `--scale 只接受 1..4（收到 x）。1 = 1080p，2 = 真 4K。`<br>`scripts/lib/cli/session.mjs:61` | `--scale` 越界 | 用 1..4；场景写法不用改（`AGENTS.md` §7 末） |
+| `Vite 启动失败，试试手动 npm run dev 再带 --url`<br>`scripts/lib/cli/session.mjs:86` | 私有 Vite 起不来 | 照提示：手动 `npm run dev`，然后 `--url http://127.0.0.1:5173`。⚠ 也常见于"别人正在写文件把 Vite 撞崩了" |
+| `页面初始化失败：`<br>`scripts/lib/cli/session.mjs:157` | 页面起来但引擎装载失败 | 读下面的 `status.error`；常见是任务加载 / shader 编译错 |
+| `没有找到成片 out/…。先跑 video，或用 --file 指定。`<br>`scripts/cmd/qa.mjs:32` | `verify` 找不到成片 | 先 `video`；或 `verify <任务> --file <路径>` |
+| `没有可验收的时刻（成片 N 帧 / X.XXs，时间线是空的？）`<br>`scripts/cmd/verify.mjs:91` | `verify` 没算出可比的时刻 | 检查时间线是否为空 / `--from` 是否越界 |
+| `t=… （成片第 N 帧） ← ffmpeg 抽帧失败`<br>`scripts/cmd/verify.mjs:110` | 某帧从 mp4 里抽不出来 | 成片可能损坏：重渲，或先 `ffprobe` 它 |
+| `找不到 ffmpeg。装一个，或用 ANIM_FFMPEG 环境变量指定路径。`<br>`scripts/cmd/video.mjs:543` | ffmpeg 不在 PATH | 装 ffmpeg，或设 `ANIM_FFMPEG` / `ANIM_FFPROBE`（`AGENTS.md` §1 前置条件） |
 | `✓ N 项通过` / `✗ N 项通过，M 项失败`（`test-style`）；`全部 N 项通过`（`test-cam-math` / `test-blocks`）；`PASS/FAIL` 逐项（`test-timeline-guard` / `test-say` / `test-karaoke`）<br>`tools/test-style.mjs:120` `tools/test-cam-math.mjs:387` `tools/test-blocks.mjs:163` `tools/test-timeline-guard.mjs:123` `tools/test-say.mjs:45` `tools/test-karaoke.mjs:25` | 纯逻辑单测的收尾口径（不需要 GPU / 联网） | 有失败项时退出码 1；这些是改引擎前**先跑**的（`AGENTS.md` §10 的清单里有它们） |
 
 ### 1.14 音频响度守门（LUFS / true peak / LRA，`docs/BACKLOG.md` 1-20）
@@ -428,7 +429,7 @@
 ## 3. 「空 ≠ 干净」：哪些行是**没跑**，而不是通过
 
 来自三个外部参考项目的同一条结论：浏览器没跑起来时那几个 section 是**空的**，而"空输出读起来像一份干净的报告"
-（`scripts/anim.mjs:181` 附近引用了对方的原话 *empty, not clean*）。所以**看到下面任何一条，都不许当成"通过"**：
+（`scripts/lib/cli/gates.mjs:10` 附近引用了对方的原话 *empty, not clean*）。所以**看到下面任何一条，都不许当成"通过"**：
 
 **① `check` 里"没跑"的行**（`docs/BACKLOG.md` 1-19，**已提交**：`9693291` → `afccab1` → `5432cf6`）
 

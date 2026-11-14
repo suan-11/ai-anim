@@ -33,9 +33,12 @@ import { fileURLToPath } from 'node:url';
 import { build, cut, seq, auditUnderRequires, planWorldAudit, worldAuditVerdict } from '../src/timeline.js';
 import { shot } from '../src/shots/index.js';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-const ANIM = readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+// 源码视图：anim.mjs +（拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs
+const ANIM = readCliSource();
 const APP = readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
 
 let passed = 0;

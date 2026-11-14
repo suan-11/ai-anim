@@ -85,7 +85,180 @@ export const TRANSITION_FRAG = {
       col += vec3(0.10, 0.09, 0.07) * rim;
       fragColor = vec4(col, a);
     }`,
-  /** 故障：横向切片错位 + RGB 分离 + 极短闪白（全由 t 哈希，可 seek） */
+  /**
+   * 角度扫描（旋转转场族的第一支）：新画面从一个角度开始、绕中心扫一圈露出来。
+   *
+   * 只吃**共用 uniform**（不新增 anchor/turns）—— 中心固定画面中心，起始角由 `dir` 推出来，
+   * 于是「扫描方向跟着摄影机走」，而且在竖屏里也不会反（`dir` 已经是屏幕空间的）。
+   *
+   * 与 `wipe`（横竖直线）/ `iris`（同心圆）的区别：圆环状露出，节奏是「转」而不是「推」。
+   * ⚠ 圆心是 `atan` 的奇点：`fwidth(ang)` 在那里炸开 ⇒ 必须按半径把中心那一小块单独处理。
+   */
+  sweep: /* glsl */ `    uniform sampler2D under;
+    uniform float k;
+    uniform vec2 dir;
+    uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      vec2 d = vUv - 0.5;
+      d.x *= RES_LOGICAL.x / RES_LOGICAL.y;          // 角度要按圆算，不按矩形
+      float r = length(d);
+      float ang = atan(d.y, d.x) / 6.2831853 + 0.5;  // 0..1，0 在 +x
+      // 起始角跟着摄影机方向走（dir 已是屏幕空间），于是扫描方向与甩镜一致
+      float start = atan(dir.y, dir.x) / 6.2831853 + 0.5;
+      float edge = fract(start + kk);                 // 扫到哪个角度了
+      float dd = fract(ang - edge + 1.0);             // 还没扫到的角度差（环形）
+      float aa = max(fwidth(dd), 1e-4) * 1.5;
+      float m = 1.0 - smoothstep(0.0, aa, dd);        // 1 = 旧帧还没被扫到
+      // 扫过的那道边给一圈暖光（是光，不是描边）
+      float rim = (1.0 - smoothstep(0.0, aa * 5.0, dd)) * (1.0 - kk);
+      // 圆心奇点：atan 无定义、fwidth 爆掉 ⇒ 半径 < 0.02 处直接按 kk 线性过渡，不给 rim
+      float c = smoothstep(0.0, 0.02, r);
+      vec3 col = texture(under, vUv).rgb + vec3(0.09, 0.08, 0.06) * rim * c;
+      fragColor = vec4(col, mix(1.0 - kk, m, c));
+    }`,
+  /** 菱形扩散：中心先露出，四条斜边向外推开旧画面。 */
+  diamond: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 d = abs(vUv - 0.5);
+      d.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float r = d.x + d.y;
+      float rad = kk * 0.98;
+      float aa = max(fwidth(r), 1e-4) * 1.5;
+      float m = smoothstep(rad - aa, rad + aa, r);
+      float rim = (1.0 - smoothstep(0.0, aa * 7.0, abs(r - rad))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.08, 0.07, 0.05) * rim;
+      fragColor = vec4(col, m);
+    }`,
+  /** 方框扩散：四条边同时退开，适合网格与标题卡之间的切换。 */
+  frame: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 d = abs(vUv - 0.5);
+      d.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float r = max(d.x, d.y);
+      float rad = kk * 0.96;
+      float aa = max(fwidth(r), 1e-4) * 1.5;
+      float m = smoothstep(rad - aa, rad + aa, r);
+      float rim = (1.0 - smoothstep(0.0, aa * 7.0, abs(r - rad))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.07, 0.065, 0.05) * rim;
+      fragColor = vec4(col, m);
+    }`,
+  /** 四角退场：四个角先打开，旧画面向中心收紧。 */
+  corners: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 q = vUv - 0.5;
+      q.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float d = min(min(length(q - vec2(-.889, -.5)), length(q - vec2(.889, -.5))),
+                    min(length(q - vec2(-.889, .5)), length(q - vec2(.889, .5))));
+      float rad = kk * .88;
+      float aa = max(fwidth(d), 1e-4) * 1.5;
+      float m = smoothstep(rad - aa, rad + aa, d);
+      float rim = (1.0 - smoothstep(0.0, aa * 7.0, abs(d - rad))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.075, 0.067, 0.05) * rim;
+      fragColor = vec4(col, m);
+    }`,
+  /** 裂缝：一条有轻微弯曲的结构缝从中心撑开，像材料沿受力线分离。 */
+  seam: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk <= 0.0) { fragColor = texture(under, vUv); return; }
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 q = vUv - 0.5;
+      q.x *= RES_LOGICAL.x / RES_LOGICAL.y;
+      float bend = 0.24 * q.x + 0.10 * sin(q.x * 3.1 + q.y * 1.4 + kk * 0.55);
+      float distanceToSeam = abs(q.y - bend);
+      float width = kk * 1.15;
+      float aa = max(fwidth(distanceToSeam), 1e-4) * 1.5;
+      float m = smoothstep(width - aa, width + aa, distanceToSeam);
+      float rim = (1.0 - smoothstep(0.0, aa * 8.0, abs(distanceToSeam - width))) * (1.0 - kk);
+      vec3 col = texture(under, vUv).rgb + vec3(0.10, 0.075, 0.045) * rim;
+      fragColor = vec4(col, m);
+    }`,
+  /** 对开：两个半幅向外移走，纹理保持原比例；缝隙直接露出下一帧。 */
+  split: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 axis = abs(dir.x) >= abs(dir.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+      float s = dot(vUv, axis);
+      float side = s < 0.5 ? -1.0 : 1.0;
+      float move = kk*kk*kk*(kk*(kk*6.0-15.0)+10.0) * 0.5;
+      vec2 uv = vUv - axis * side * move;
+      float source = dot(uv, axis);
+      // Each half only samples its own original half: no repeated edge pixels.
+      float inside = step(0.0, source) * step(source, 1.0) * step(0.0, side*(source-0.5));
+      fragColor = vec4(texture(under, clamp(uv,0.0,1.0)).rgb, inside);
+    }`,
+  /** 条带交错滑出：8 条独立平移，保留文字形状；竖向运动时自动转为竖条。 */
+  slats: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    uniform float bands;                       // 条数（transitionOpts.bands，默认 8）
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      if (kk >= 1.0) { fragColor = vec4(0.0); return; }
+      vec2 axis = abs(dir.x) >= abs(dir.y) ? vec2(1.0,0.0) : vec2(0.0,1.0);
+      vec2 crossAxis = vec2(axis.y, axis.x);
+      float n = max(2.0, floor(bands));
+      float lane = min(n - 1.0, floor(dot(vUv,crossAxis) * n));
+      float p = clamp(kk*1.24 - lane/(n-1.0)*0.24,0.0,1.0);
+      float move = p*p*p*(p*(p*6.0-15.0)+10.0);
+      float signDir = dot(dir,axis) < 0.0 ? -1.0 : 1.0;
+      float side = (mod(lane,2.0) < 1.0 ? 1.0 : -1.0) * signDir;
+      vec2 uv = vUv - axis * side * move;
+      float source = dot(uv,axis);
+      float inside = step(0.0,source) * step(source,1.0);
+      fragColor = vec4(texture(under,clamp(uv,0.0,1.0)).rgb,inside);
+    }`,
+  /**
+   * 百叶翻面（`turn`）：把画面切成 N 条竖条，每条**各自绕自己的竖轴转**，逐条错峰合上。
+   *
+   * 为什么不做「整帧旋转」：那是把一张图拧一遍，用户原话是「旋转指画面切换」「拉伸特别笨」。
+   * 竖条各自转的时候，每条都有**自己的轴与自己的遮挡**，观感是「一片片翻过去」而不是橡皮筋。
+   *
+   * 数学：第 i 条的进度 `kk_i = clamp(k*(1+stagger) - i/N*stagger)`，θ = kk_i·π/2，
+   * 宽度因子 `w = |cosθ|`，采样 `u' = 0.5 + (u-0.5)/max(w, 1e-3)`，越界即透明（露出新画面）。
+   * 侧向受光：`lit = 1 - 0.55·sinθ`（转过去的那一下变暗，像纸/玻璃的背光）。
+   */
+  turn: /* glsl */ `    uniform sampler2D under;
+    uniform float k; uniform vec2 dir; uniform float push, blur, fadeAt;
+    uniform float cols, stagger;
+    void main() {
+      float kk = clamp(k, 0.0, 1.0);
+      float n = max(2.0, floor(cols));
+      float u = vUv.x * n;
+      float i = floor(u);
+      float fu = fract(u);                       // 条内坐标 0..1
+      // 错峰：第 i 条晚开始，方向由 dir.x 决定（跟摄影机一致）
+      float order = dir.x < 0.0 ? (n - 1.0 - i) : i;
+      float kkI = clamp(kk * (1.0 + stagger) - (order / n) * stagger, 0.0, 1.0);
+      float th = kkI * 1.5707963;                // 0 → 90°
+      float w = cos(th);                         // 投影后的宽度因子
+      float lit = 1.0 - 0.55 * sin(th);           // 侧向受光
+      vec2 p = vUv;
+      p.x = (i + 0.5 + (fu - 0.5) / max(abs(w), 0.02)) / n;   // 反算采样位置
+      float inside = step(abs(fu - 0.5), 0.5 * abs(w));       // 条宽收缩 ⇒ 两侧露出新画面
+      vec3 col = texture(under, clamp(p, 0.0, 1.0)).rgb * lit;
+      // 侧过去时给「背面」压暗：缝隙里别露出白底，否则中段整帧发灰
+      col = mix(col, vec3(0.07, 0.065, 0.06), smoothstep(0.55, 0.05, abs(w)));
+      // 条的边缘给一道极细的亮线（纸的侧面），只在「正在转」时出现
+      float edge = smoothstep(0.5 * abs(w), 0.5 * abs(w) - 0.02, abs(fu - 0.5)) * (1.0 - kkI) * 0.5;
+      col += vec3(0.06, 0.058, 0.05) * edge;
+      fragColor = vec4(col, inside);
+    }`,
   glitch: /* glsl */ `    uniform sampler2D under;
     uniform float k;
     uniform vec2 dir;

@@ -65,7 +65,7 @@ export const SHOT_SLOTS = ['opening', 'content', 'ending', 'transition'];
  * **选型词表**。仍从 `src/shots/index.js` 转发导出，老读者不受影响）。
  * ⚠ 词表只许**加**不许改：`--energy` 查询与 `tools/test-shots.mjs` 都依赖这个顺序。
  */
-export const SHOT_ENERGY = ['低', '中低', '中', '中高', '高'];
+export const SHOT_ENERGY = ['低', '中低', '中', '中高', '高', 'none'];   // 'none'：分镜占位（C2），不参与能量筛选
 
 /* ------------------------------------------------------------------ fits 组合子 */
 

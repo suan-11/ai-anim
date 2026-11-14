@@ -121,10 +121,10 @@ node scripts/anim.mjs video 我的片子            # 出成片 → out/我的�
 | `world` / `worldPass` | 共享背景：`world: 'auto'` = "引擎铺底"（用 `task.config.mjs` 里 `export const world` 那张），`world: false` = "**这一段我刻意不铺底**"（背景守门**不判**它的铺底，但照样给它读数）。纯配置档里前者等于没写（没有 `task.world` 可解析），后者照旧生效 —— 见 §3.1 |
 | `focus` | **主体声明**（版面守门，见 `docs/LAYOUT.md`）：`'center'` 或 `{x,y,w,h}`。不写时退回场景对象自己声明的那份；**不声明 = 版面守门那两条判据不跑（进 `skipped`，没跑 ≠ 通过）** |
 | `carry` | **连贯声明**（carry 审计，`anim carry`）：`'morph'`（这条缝是跨元素合成的衔接，量具会判 bare 但对观众成立）/ `'anchor'`（刻意锚定）/ `'any'`（交给量具）。判据与豁免见 `docs/REFERENCE-onetake.md` §2 |
-| `transition` | 交叠期的转场模式（2026-10-24 起**默认 = 'push' 甩镜**）：`'mix'` = 交叉溶解（引擎旧默认）、`'none'` = 不处理（硬切）、`'relay'` = 相机接力（相机从上一段 home 位姿飞向本段、内容在换手窗交叉；BACKLOG 1-12）。只有写了 `overlap > 0` 的那道缝有意义，见 `docs/ENGINE.md` §3.7.7 / §4.5 |
+| `transition` | 交叠期的转场模式（2026-10-24 起**默认 = 'push' 甩镜**）：`'mix'` = 交叉溶解（引擎旧默认）、`'none'` = 不处理（硬切）、`'wipe'`/`'iris'`/`'sweep'`（角度扫描）/`'spin'`（整层旋转）/`'carousel'`（圆筒）/`'swirl'`（漩涡）/`'glitch'`/`'pixel'`/`'dissolve'`/`'shatter'`（镜碎）、`'relay'` = 相机接力（相机从上一段 home 位姿飞向本段、内容在换手窗交叉；BACKLOG 1-12）。只有写了 `overlap > 0` 的那道缝有意义，见 `docs/ENGINE.md` §3.7.7 / §4.5 |
 | `state` | **反 PPT 声明**（`docs/ANTI-PPT.md`）：`{ from, to, diff }` —— 这一镜的世界变了什么。`diff` 只写 `opacity` / `scale` 不算状态差 |
 | `relayTo` | **接力物**：本镜结束时哪个对象交给下一镜；连续 ≥3 段不写 = 判据红（`tools/lint-anti-ppt.mjs`） |
-| `transitionOpts` | 相机接力的曲线与换手窗，`{ move: glide | whip, handover: [a, b] }` —— **只随 `transition: 'relay'` 有意义**（`move` 缺省 glide，`handover` 缺省 [.35, .65]；未知名当场抛）。写法同上，只有 relay 那道缝读它 |
+| `transitionOpts` | **两套旋钮共用这一个键**：① `transition: 'relay'` 的曲线与换手窗 `{ move: glide | whip, handover: [a, b] }`；② 旋转族与镜碎的观感 `{ turns, tilt, swirlAmount, shards, seed, power }`（默认 1/1/1/7/7/0.8 = 不改就与现状逐像素一致）。明细见 `docs/ENGINE.md` §3.7.6 的旋钮表 —— **只随 `transition: 'relay'` 有意义**（`move` 缺省 glide，`handover` 缺省 [.35, .65]；未知名当场抛）。写法同上，只有 relay 那道缝读它 |
 
 **其余所有键都是模板参数**，会被原样交给 `shot(type, {…})`：
 

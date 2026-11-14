@@ -145,6 +145,26 @@ size 18 的读数行距 26px 会合成一块，size 96 的标题与下方 34px �
 
 ---
 
+## 2.5 几何判据（C1，2026-11-14）：字压字 / 出画 / 撞字幕
+
+数量判据之外，`src/layout.js` 的 `geometryViolations()` 用同一本绘制账（聚类后的块 bbox）加三条几何判据，
+接进 `layoutVerdict`，`check` 照常打印。**默认 warn，`--strict` 才进 errs**（off-frame 是 error 级）。
+
+| 判据 | 口径 | 级别 |
+|---|---|---|
+| `overlap` 字压字 | 任意两块交叠面积 > 较小块的 **15%**（保留区里的版式字不参与） | warn |
+| `off-frame` 出画 | 块的**锚点**越出画幅 `0..W / 0..H` | error |
+| `off-safe` 越安全边距 | 成块内容字（size≥32）越出 `grid.pad`（保留区豁免） | warn |
+| `caption-hit` 撞字幕 | 块与**此刻正在渲染的字幕**矩形相交（引擎 `_drawCaptions` 记 `lastCaptionRect`；没字幕不判） | warn |
+
+**受控豁免**：任务/风格 `layout: { allowOverlap: ['标注', …] }` —— 块的 sample 文本含其中任一字符串，
+该块就不参与 overlap 判。豁免要显式写清关掉了什么（与 RULES.md 的纪律一致）。
+
+**假阳性校验后收紧的两处**（C1 验收要求，实测 demo/beat/pv-king）：
+- `off-frame` 只判**锚点**越界，不拿 `x1>W` 判 —— 右对齐/居中字的锚点不是左上角、宽度是 sans 近似，
+  拿右边缘判会在 beat 的 LOW/MID/HIGH 上刷假阳性。
+- `off-safe` 只判 size≥32 的成块内容字 —— 贴边的计数器/角标（kinetic 的 079）是版式装饰，不是内容压边。
+
 ## 3. 声明主体：`focus`
 
 三种写法，位置两处（**段上的优先**，同一支片子里某一段想换主体时不必改场景）：

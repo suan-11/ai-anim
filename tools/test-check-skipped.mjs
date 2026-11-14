@@ -18,13 +18,7 @@
  *      （①过了但②没接线 = 功能等于没做，这正是 1-19 要防的那种"看起来做了"。）
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, '..');
-const ANIM = path.join(ROOT, 'scripts', 'anim.mjs');
+import { readCliSource } from './lib/cli-source.mjs';
 
 const {
   IS_MAIN, pushSkipped, formatSkipped, checkVerdictLine,
@@ -32,7 +26,7 @@ const {
 } = await import(new URL('../scripts/anim.mjs', import.meta.url).href);
 
 /** `scripts/anim.mjs` 的源码文本 —— 静态接线自检用（第 3 节，但要先声明）。 */
-const src = readFileSync(ANIM, 'utf8');
+const src = readCliSource();
 
 let passed = 0;
 const cases = [];

@@ -36,6 +36,7 @@ export const CATEGORIES = [
   ['style', '风格件', '手绘、流体、等距 —— 一眼换介质'],
   ['transition', '转场', '两段之间怎么接'],
   ['close', '收尾', '定版、署名、压黑'],
+  ['board', '分镜', '写场景前对齐意图的占位卡（非成片画面，交付前须逐段替换）'],
 ];
 
 /** 模板 → 分类。新增模板必须在这里登记（--check 会拦） */
@@ -51,6 +52,7 @@ export const SHOT_CATEGORY = {
   cel: 'style', liquid: 'style', isometric: 'style', pixel: 'style', handwrite: 'style',
   whip: 'transition',
   outro: 'close', lockup: 'close',
+  placeholder: 'board',
 };
 
 function paramTable(params) {

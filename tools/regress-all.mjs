@@ -12,23 +12,20 @@
  *   而且**没人记得住哪些跑过**（STATUS.md 里就是这样积下来的）。这里把清单写死在代码里，
  *   每条一份日志（`out/_regress/<名字>.log`）+ 一张汇总表，跑完一眼看谁红了。
  *
- * ⚠ 三件必须知道的事：
+ * ⚠ 两件必须知道的事：
  *   1. **同一时刻只允许一条渲染车道**。`smoke-overexposure` 会临时改 `src/core/engine.js`、
  *      `smoke-background` 会临时改 `tasks/_calib/`、`smoke-worktree-edit` 会临时改 `demo` 的场景文件。
  *      这些东西并行跑会互相污染，所以这里是**严格串行**的，而且跑的时候别去编辑 src/ 或 tasks/。
  *   2. 清单里若有**本来就该失败**的条目，用 `expectFail` 标出来：它红了不算这次回归的锅，
  *      但要打印出来给人看。**目前一条都没有** —— 曾经挂在 `check beast` 上的"退出码 1"
  *      从第四轮起没能复现，2026-10-06 整份 33/33 全绿（beast 是干净的 PASS），这条注记已撤掉。
- *   3. **前置依赖体检**（A5，2026-11-13）：跑之前按各项的 `needs` 声明统一探测 ffmpeg/ffprobe/Chrome；
- *      缺依赖的项记 skipped(env) 并一行说清修法 —— **环境问题，不是代码问题**，但没跑 ≠ 通过，整体仍非零退出。
  */
 
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { detectChrome, resolvePlaywrightExe } from './lib/env-probe.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tryRun } from '../scripts/lib/media.mjs';
-import { collectNeeds, envOverrideKey, planEnvSkips, probeDeps, envReport } from './lib/regress-env.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LOGDIR = path.join(ROOT, 'out', '_regress');
@@ -46,10 +43,12 @@ const only = (() => {
  * @property {string} [note]
  * @property {boolean} [expectFail] 已知会失败（红 ≠ 回归），但仍然要打印
  * @property {number} [timeout] 毫秒
+ * @property {Array<'ffmpeg'|'ffprobe'|'chrome'>} [needs] 这一项**依赖的外部程序**。
+ *   开工前统一探测一次：缺哪个就把这一项记成 `skipped(env)`（**不执行**、**不再打一屏 ENOENT 堆栈**），
+ *   汇总里单独说明「环境问题，不是代码问题」，并且**整体退出码非零**（没验 ≠ 通过，得让人看见）。
+ *   `tools/test-ci-coverage.mjs` 有一条静态守门：`cmd` 里出现 ffmpeg/ffprobe/playwright 的条目必须声明 needs。
  * @property {boolean} [ciExclude] 这一项**不能**在 CI 上跑（要 GPU / Chrome / 本机私有任务目录 / 联网）
  * @property {string} [ciWhy] 为什么不能跑 —— 必填，写给人看；`tools/test-ci-coverage.mjs` 会验它不是空话
- * @property {string[]} [needs] 外部依赖（'ffmpeg' | 'ffprobe' | 'chrome'）：跑前统一体检，缺 ⇒ skipped(env)。
- *   纯 JS 的源码文本自检若被守门启发式点名，显式写 []（声明"没有外部依赖"也是声明）
  */
 
 /**
@@ -71,8 +70,12 @@ const isCiEligible = (it) => !it.ciExclude && CI_GROUPS.some((g) => it.name.star
 
 /** @type {Item[]} */
 const ITEMS = [
+  { name: 'unit:cli-layout', cmd: ['tools/test-cli-layout.mjs'], note: 'CLI 入口小于 400 行、命令文件与分发表双向覆盖、会话私有与旧导出兼容' },
+  { name: 'unit:env-probe', cmd: ['tools/test-env-probe.mjs'], note: 'A5 浏览器判定：装了驱动包 ≠ 有浏览器；「只有安装包、没有浏览器」必须判 false（5 项离线夹具）' },
+  { name: 'unit:board', cmd: ['tools/test-board.mjs'], note: 'C2 分镜板排版纯函数：段中点采样 / id·时长·note 标注 / at 夹取 / 长 note 截断' },
+  { name: 'unit:post-presets', cmd: ['tools/test-post-presets.mjs'], note: 'C3 被拍摄感预设：零回归 / 覆盖优先级 / 写错抛错 / 只组合现有参数' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
-  { name: 'harness:action-lab', cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
+  { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
   { name: 'unit:doc-facts', cmd: ['tools/lint-doc-facts.mjs'], note: 'TIMELINE_KEYS（13 个）↔ 文档键表：漏键/数字不符就红（2026-10-17 focus 漏过一次）' },
   { name: 'unit:doc-facts-selftest', cmd: ['tools/lint-doc-facts.mjs', '--selftest'], note: '上面那个守门的判据自测（7 项，含"不误吃那 3 个面"的反例）' },
@@ -85,34 +88,34 @@ const ITEMS = [
   // CI 自己的守门（2026-10-30）：verify.yml 必须还在按清单跑（不是手抄），且清单没被悄悄排空。
   // 它守的不是某个功能，而是**「CI 有没有在跑东西」这件事本身** —— 上一版手抄了 4 条、
   // 清单里 43 条，漂移方向只有少跑，而少跑没有任何输出会提醒你。
-  { name: 'unit:ci-coverage', cmd: ['tools/test-ci-coverage.mjs'], note: 'CI 覆盖守门：verify.yml 必须调 regress-all --ci（不许手抄）/ 组内每项要么被收要么写 ciWhy / 收的项数不低于下限 / 依赖项必须声明 needs（8 项）' },
-  { name: 'unit:regress-env', cmd: ['tools/test-regress-env.mjs'], needs: [], note: '前置依赖体检（A5）：needs 并集 / 缺谁跳谁 / 包装器 env 分组 / 常见位置提示 / 探测语义与 CLI 一致 + regress-all·守门接线自检（纯 JS，依赖全注入）' },
+  { name: 'unit:ci-coverage', cmd: ['tools/test-ci-coverage.mjs'], note: 'CI 覆盖守门：verify.yml 必须调 regress-all --ci（不许手抄）/ 组内每项要么被收要么写 ciWhy / 收的项数不低于下限（7 项）' },
   { name: 'unit:timeline-guard', cmd: ['tools/test-timeline-guard.mjs'], note: 'P0-2 伪时间线必须抛错 + 配置档展开（40 项）' },
   { name: 'unit:easing-warn', cmd: ['tools/test-easing-warn.mjs'], note: 'P2-3 缓动名写错要警告（7 项）' },
   { name: 'unit:narration', cmd: ['tools/test-narration.mjs'], note: 'P1-5 旁白表 + C 档词级时间戳（44 项）' },
   { name: 'unit:karaoke', cmd: ['tools/test-karaoke.mjs'], note: 'C 档 karaoke 的秒/下标混用 bug（80 项）' },
   { name: 'unit:xform-math', cmd: ['tools/test-xform-math.mjs'], note: '场景级变换数学（旧回归）' },
   { name: 'unit:cam-math', cmd: ['tools/test-cam-math.mjs'], note: '3D 相机/投影/透视变换 + **手性**（33 项）' },
-  { name: 'unit:segment-cuts', needs: [], cmd: ['tools/test-segment-cuts.mjs'], note: 'P2-4 分块切点只落在安全处' },
-  { name: 'unit:shots', needs: [], cmd: ['tools/test-shots.mjs'], note: 'A 档镜头库：模板登记/参数名/任务段名（写错就响）+ 选型元数据齐全（1-62 §2.6）' },
+  { name: 'unit:segment-cuts', cmd: ['tools/test-segment-cuts.mjs'], note: 'P2-4 分块切点只落在安全处' },
+  { name: 'unit:shots', cmd: ['tools/test-shots.mjs'], note: 'A 档镜头库：模板登记/参数名/任务段名（写错就响）+ 选型元数据齐全（1-62 §2.6）' },
   { name: 'unit:shot-pick', cmd: ['tools/test-shot-pick.mjs'], note: '选型器（1-62，学 JIZURA 部件表）：筛的语义（energy/tags/角色锁/缺省放行）+ 抽的确定性 + 落空诊断（36 项）' },
   // 要 Chrome：它把页面真的渲一遍再比对像素
-{ name: 'style:palette', needs: ['chrome'], cmd: ['tools/test-style-palette.mjs'], note: '风格包的底色是否真的画到画面上（比对 __animPalette.hex.bg 与画面像素 + 亮/暗分档）· 曾已知红（5 套亮底风格 bg 不符），2026-11-02 已修，见 docs/history/BACKLOG-done-2026-10.md 末节', slow: true, ciExclude: true, ciWhy: '要 Chrome + 真 GPU（起私有 Vite 渲一帧再读回像素）' },
-  { name: 'unit:event-density', needs: ['ffmpeg'], cmd: ['tools/test-event-density.mjs'], note: '事件密度判据回归（合成静止/运动片）：静止跨度与稀薄窗口必须分开报对，纯静止片必须被报成问题' },
+{ name: 'style:palette', needs: ['chrome'], cmd: ['tools/test-style-palette.mjs'], note: '风格包的底色是否真的画到画面上（比对 __animPalette.hex.bg 与画面像素 + 亮/暗分档）· ⚠ 已知红：5 套亮底风格的 bg 与画面不符，见 docs/BACKLOG.md 末条', slow: true, ciExclude: true, ciWhy: '要 Chrome + 真 GPU（起私有 Vite 渲一帧再读回像素）' },
+  { name: 'unit:event-density', cmd: ['tools/test-event-density.mjs'], note: '事件密度判据回归（合成静止/运动片）：静止跨度与稀薄窗口必须分开报对，纯静止片必须被报成问题' },
   { name: 'unit:tempo', cmd: ['tools/test-tempo.mjs'], note: 'tempo 估计回归（合成鼓 80/96/120/140 + 半拍踩镲诱饵）：bpm 偏 ≤0.6%、网格间隔偏 ≤1% —— 修的是「analyze 把 80bpm 报成 83.3」那个 4% 偏差' },
-  { name: 'unit:tasks-meta', needs: [], cmd: ['tools/test-tasks-meta.mjs'], note: 'tasks --json（1-58）的字段解析 + 变体块不许污染任务级字段 + 真实任务能解析；--table 表路径（1-23③）的接线自检' },
-  { name: 'unit:motion-caps', needs: [], cmd: ['tools/test-motion-caps.mjs'], note: '运动上限静态扫描（BACKLOG 1-33）：判据与 waterfallOver 同口径（items × stagger > 0.5）/ 元素个数怎么读（const 字符串、数组，别抓 family 样式值）/ 读不出进 unchecked（含简写）/ 接线自检 + 夹具 _motion-lab 的 --strict 红证明' },
+  { name: 'unit:tasks-meta', cmd: ['tools/test-tasks-meta.mjs'], note: 'tasks --json（1-58）的字段解析 + 变体块不许污染任务级字段 + 真实任务能解析；--table 表路径（1-23③）的接线自检' },
+  { name: 'unit:motion-caps', cmd: ['tools/test-motion-caps.mjs'], note: '运动上限静态扫描（BACKLOG 1-33）：判据与 waterfallOver 同口径（items × stagger > 0.5）/ 元素个数怎么读（const 字符串、数组，别抓 family 样式值）/ 读不出进 unchecked（含简写）/ 接线自检 + 夹具 _motion-lab 的 --strict 红证明' },
   { name: 'unit:transition-collision', cmd: ['tools/test-transition-collision.mjs'], note: '碰撞式转场（BACKLOG 1-33 ③ / MOTION.md §3.5）：受害者时长 = 入侵者 × 0.40–0.50 —— 区间内原样返回 / 越界夹回并给说明（不静默）/ NaN·±Inf 当场抛 / enterDur ≤ 0 ⇒ 时长记 0 / victimSpan 与 planCollision 同口径 / **不传 victimRatio ⇒ shader 源码与四个 uniform 逐字不变**（已交付片子的画面一个像素都不许动）+ kit 转发与回归清单接线自检' },
   { name: 'unit:paper', cmd: ['tools/test-paper.mjs'], note: '剪纸 / 纸艺层叠（BACKLOG 1-49 缺口表第 5 行，覆盖素材包 20 条）：撕边采样密度必须跟边长走（默认 40 点 ⇒ 毛刺被 fillPoly 抹平，出图是直线）/ 白芯只浅 5–9%（第一版 35% ⇒ 雪白高光带）/ 投影必须不透明（半透明会在扫描行之间出条纹）/ 撕边只吃 seed 不吃 t / 层栈由远到近 / 平移不改原对象 + kit·文档接线自检' },
   { name: 'unit:relay', cmd: ['tools/test-relay.mjs'], note: '相机接力（BACKLOG 1-12，src/core/relay.js 纯函数层 + engine/timeline/kit 接线）：poseFromCamera3/poseToCamera3 互逆（roundtrip ≤1e-9，pitch 顶格夹 ±89.9）/ blendPose 的 look 直线、dist 与 tan(fov/2) 几何插值、yaw 最短路径恒定角速度、端点精确还原 / e 非有限当场抛 / relayHandover 边界单调 smoothstep / MOVES.glide·whip / resolveRelayMove 未知名抛错 / trans.js 九模式 + relay 不进 _pushTransition（防御抛错）/ transitionOpts 两种时间线写法 build 落位 / relayPose 是 t 的纯函数 + 探针无记忆化（静态）/ openFrame 跳过甩镜 + makeThreeShot drive（静态）/ relay.js 零 GPU 零 ctx 无随机无时钟' },
+  { name: 'unit:shatter-in', cmd: ['tools/test-shatter-in.mjs'], note: '镜头级镜碎的纯函数层（MOTION-SPIN-SHATTER §3.3）：fract 与 GLSL 同口径（负数也落在 [0,1)）· h2 与 shader 同一条表达式（同 seed 同形状 ⇒ 「同一块玻璃」）· k 从 1 降到 0 且不会变负 · 格点与片数一一对应' },
   { name: 'unit:transition-modes', cmd: ['tools/test-transition-modes.mjs'], note: '参数化转场（BACKLOG 1-13）：九种模式两张表不许有孤儿 / 写错模式名当场抛并列出可用清单 / **push 的源码与 uniform 逐字符不变**（已交付片子的画面一个像素都不许动）/ 每支 shader 共用 6 个 uniform 且不重复声明 GLSL_COMMON 的函数（踩过：自写 vnoise ⇒ 编译失败）/ 掩码型转场不许再叠全局淡出 + engine·kit·文档接线自检' },
-  { name: 'unit:variants', needs: [], cmd: ['tools/test-variants.mjs'], note: '变体（BACKLOG 1-23）：deepMergeInto 语义（对象递归 / 数组整体替换 / 原始值覆盖）+ CLI 接线（--variant 进 URL、产物目录 taskOut 带子目录、无漏网调用点）+ 夹具声明' },
+  { name: 'unit:variants', cmd: ['tools/test-variants.mjs'], note: '变体（BACKLOG 1-23）：deepMergeInto 语义（对象递归 / 数组整体替换 / 原始值覆盖）+ CLI 接线（--variant 进 URL、产物目录 taskOut 带子目录、无漏网调用点）+ 夹具声明' },
   { name: 'unit:pin-timing', cmd: ['tools/test-pin-timing.mjs'], note: 'anim say --pin-timing（BACKLOG 1-23）：同 id 且放得下 ⇒ slot/stretch 逐位不动；放不下 ⇒ 只重解那一段并警告长多少；部分钉住；pinned 缺 id / 为空 / 陌生 id 的边界' },
-  { name: 'unit:pin-timing-e2e', needs: ['ffmpeg', 'ffprobe'], cmd: ['tools/test-pin-timing-e2e.mjs'], note: 'anim say --pin-timing 端到端（真跑 CLI + 假 TTS 驱动 tools/fake-tts.mjs）：改短一句 ⇒ 时间线逐位不动；改长一句 ⇒ 只重解那一段' },
-  { name: 'unit:cover', needs: [], cmd: ['tools/test-cover-chapters.mjs'], note: '封面/章节（BACKLOG 1-53）：planChapters 三条规则（首段必是 00:00 / 短段并进上一章 / 起点取段自己 start）+ formatChapterTime 边界（0 / 59.9 / 60 / 3599 / 负 / NaN）' },
+  { name: 'unit:pin-timing-e2e', cmd: ['tools/test-pin-timing-e2e.mjs'], note: 'anim say --pin-timing 端到端（真跑 CLI + 假 TTS 驱动 tools/fake-tts.mjs）：改短一句 ⇒ 时间线逐位不动；改长一句 ⇒ 只重解那一段' },
+  { name: 'unit:cover', cmd: ['tools/test-cover-chapters.mjs'], note: '封面/章节（BACKLOG 1-53）：planChapters 三条规则（首段必是 00:00 / 短段并进上一章 / 起点取段自己 start）+ formatChapterTime 边界（0 / 59.9 / 60 / 3599 / 负 / NaN）' },
   { name: 'unit:info', cmd: ['tools/test-info.mjs'], note: 'infoShot 段落骨架（BACKLOG 1-50）：场景对象形状 / focus 声明（默认近似矩形、noFocus 豁免）/ draw 抛错进 warnings 不冒泡 / post 三层合并（骨架默认 < 段 post < draw 返回值）' },
-  { name: 'unit:subs', needs: [], cmd: ['tools/test-subs.mjs'], note: '1-40 anim subs：ASS 文本转义（\\\\ / {} / 换行）、assTime 向上取整不留三位小数、接线自检（11 项）' },
-  { name: 'unit:hashes-policy', needs: [], cmd: ['tools/test-hashes-policy.mjs'], note: '基线策略（2026-10-24）：--accept 必须带 --note / --save 拒绝覆盖 / notes 审计 / 前后对比图 / negligible 判据不许放松 / 文档与回归清单接线（10 项）' },
+  { name: 'unit:subs', cmd: ['tools/test-subs.mjs'], note: '1-40 anim subs：ASS 文本转义（\\\\ / {} / 换行）、assTime 向上取整不留三位小数、接线自检（11 项）' },
+  { name: 'unit:hashes-policy', cmd: ['tools/test-hashes-policy.mjs'], note: '基线策略（2026-10-24）：--accept 必须带 --note / --save 拒绝覆盖 / notes 审计 / 前后对比图 / negligible 判据不许放松 / 文档与回归清单接线（10 项）' },
   // BACKLOG 0-3 的真正修法（2026-10-24）：`write` 的 align 从"逐字生效"改成"整行对齐"。
   // 判据是**几何**的（假 Canvas2D 记录每次 fillText 的 x），不是"代码里有某个字符串"——
   // 这条 bug 活了很久正是因为 5 个模板都用着错的写法而没人量过像素。
@@ -132,7 +135,7 @@ const ITEMS = [
   // BACKLOG 1-69：手绘笔迹（中心线 + 压力 -> 轮廓多边形）。钉的是**几何事实**：
   // 窄了一半的坑全在这一层：斜率夹 / minW 下限 / 圆头半径 / 弧长生长 / 曲率 < 半宽时轮廓必然自交
   { name: 'unit:engine-graph', cmd: ['tools/test-engine-graph.mjs'], note: '引擎改动的爆炸半径（BACKLOG 1-45 细化）：地基（core/style/app/timeline/public）一改就整批；通用件（kit/shots）按**真实 import 图**收窄，只波及用到它的块；barrel 按符号级跟进（import {makeShot} 不会拉进整个 kit）；镜头模板 barrel 按 shot(\'chart\') 的字面量只跟那一个模板；判不出（变量传参 / export * / 动态 import）一律退回整表并记 unresolved —— 漏算会让旧块冒充新画面，比多渲一块贵得多（11 项）' },
-  { name: 'unit:dry-run-tiers', needs: [], cmd: ['tools/test-tier-estimate.mjs'], note: 'dry-run 按档预估（C-1）：草稿档 scale 绝对 0.5 + samples 1、成片档 = 任务 scale + auto，两档都不属于才补「本次参数」；current 永远恰好一个；分钟数含编码（草稿 2ms/帧）；anim.mjs 接线自检（不走 planTiers/estimateTier 就红）' },
+  { name: 'unit:dry-run-tiers', cmd: ['tools/test-tier-estimate.mjs'], note: 'dry-run 按档预估（C-1）：草稿档 scale 绝对 0.5 + samples 1、成片档 = 任务 scale + auto，两档都不属于才补「本次参数」；current 永远恰好一个；分钟数含编码（草稿 2ms/帧）；anim.mjs 接线自检（不走 planTiers/estimateTier 就红）' },
   { name: 'unit:stroke', cmd: ['tools/test-stroke.mjs'], note: '手绘笔迹（src/kit/stroke.js，BACKLOG 1-69，缺口表第 6 行）：MAX_WIDTH_SLOPE 0.45（>1 时上下偏移边互相追上 ⇒ 偶奇规则把自交处填成「洞」）/ minW 1.2 物理下限（更细时 fillPoly 的扫描行穿透 ⇒ 出一串虚线点）/ 端点圆头用**这一端自己的半宽**（平均值会在收笔处鼓墨滴）/ 生长按**弧长**截断（按点数截断时密采样段走得慢）/ 曲率半径 < 半宽时**轮廓必然自交**（这是几何事实，不是 bug：圆角 R 偏移 h 后内圈 = R-h，R<h 就翻转）⇒ drawStroke 的 auto 会自动退到胶囊链（端点沿切向外扩半宽补掉内切缝）/ boil 每 2 帧换一次且同组内不动 + kit·regress·文档接线自检' },
   { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：九种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
   { name: 'unit:sampling', cmd: ['tools/test-sampling.mjs'], note: '自适应采样判据 + 亚像素抖动（src/core/sampling.js，HANDOFF-2026-10-25 / BACKLOG 1-71）：档位只往下压 / 99 分位 / 停滞熔断 / 抖动三条约束（均值 0、±0.5px、周期 4）。此前漏在清单外 —— CI 一直没跑它' },
@@ -140,13 +143,13 @@ const ITEMS = [
   { name: 'unit:fill', cmd: ['tools/test-fill.mjs'], note: '填充面（src/core/fill.js + LineBatch.band，BACKLOG 1-70）：偶奇带洞 / 圆面积误差 <2% / 扇区角度方向（0=右 90=下 180=左 270=上，写反画面照样出） / 进度环缺口落在起点一侧 / SPAN_OVERLAP 必须是 0（非 0 时相邻扫描行的抗锯齿边叠加 ⇒ 半透明填充被叠浓，行距越细越浓：alpha 0.5 的面历史读数 194/200/222/236，正确值 188） / LineBatch 的形状图元必须是硬边带（shader 里 vW < 0 分支）而不是胶囊（39 项）' },
   { name: 'meta:gates', cmd: ['tools/test-gates-meta.mjs'], note: '守门判据的**元测试**（1-51）：每条判据都要"注入缺陷必须报 + 去掉缺陷不许报"。覆盖版面三条 / 背景守门 / 采样四个出口（tol·cap·stall·NaN）/ 误差量具 / 节奏节拍器；文末一张覆盖表点名"哪个缺口没验"（37 项）' },
   { name: 'unit:blocks', cmd: ['tools/test-blocks.mjs'], note: '方块世界 kit：面朝向判据 / 深度排序 / 世界切片 / 摄影机关键帧' },
-  { name: 'unit:check-skipped', needs: [], cmd: ['tools/test-check-skipped.mjs'], note: '1-19「空≠干净」：skipped 收集/聚合/结论行 + --quick 分档 + 接线自检（25 项）' },
-  { name: 'unit:timeline-audit', needs: [], cmd: ['tools/test-timeline-audit.mjs'], note: '段级审计（纯函数）：under 的 missing / 第 1 段不判 / 与引擎同口径；背景守门采两个时刻 + world:false 分流 + 判定只落在窗中点（钉住 demo 那个假报）；+ 接线自检（26 项）' },
-  { name: 'unit:layout', needs: [], cmd: ['tools/test-layout.mjs'], note: '版面守门（纯函数，第十一轮）：块合并随字号缩放 / 主体图连通 / 母题保留区豁免 / 没声明 focus = 没判 / layoutReport 平铺一层（钉住那次 undefined）/ 接线自检（31 项）' },
+  { name: 'unit:check-skipped', cmd: ['tools/test-check-skipped.mjs'], note: '1-19「空≠干净」：skipped 收集/聚合/结论行 + --quick 分档 + 接线自检（25 项）' },
+  { name: 'unit:timeline-audit', cmd: ['tools/test-timeline-audit.mjs'], note: '段级审计（纯函数）：under 的 missing / 第 1 段不判 / 与引擎同口径；背景守门采两个时刻 + world:false 分流 + 判定只落在窗中点（钉住 demo 那个假报）；+ 接线自检（26 项）' },
+  { name: 'unit:layout', cmd: ['tools/test-layout.mjs'], note: '版面守门（纯函数，第十一轮）：块合并随字号缩放 / 主体图连通 / 母题保留区豁免 / 没声明 focus = 没判 / layoutReport 平铺一层（钉住那次 undefined）/ 接线自检（31 项）' },
   { name: 'unit:motion', cmd: ['tools/test-motion.mjs'], note: '运动规则（纯函数，BACKLOG 1-27）：nudgeCurve 的端点/单调/10-65-25 距离分配 + 两处接缝速度相等（这条是【我方推导】，数值本身是外部经验值）/ waterfallStagger 的四个边界（远小于、正好等于、超过、items=0）/ glowPeakCap 正反例 + NaN 不许静默通过 / motion.js 无 Math.random 也无 GPU import 的静态扫描 / kit 再导出与回归清单接线自检（42 项）' },
-  { name: 'unit:carry', needs: [], cmd: ['tools/test-carry.mjs'], note: 'carry 词表与连贯/节奏审计（纯函数，BACKLOG 1-34/1-35/1-36）：morphRect/iris/zoomThrough/hop/gather/operatorCam 的端点、单调、确定性、hold 归零（clearing 假红教训）/ carry 分类三档边界与 burst 豁免 / score=(carried+anchored/2)/judged 口径 / rhythmStats 的 CoV 验算与节拍器判据 / carry 字段三处接线 + CLI 子命令 + 回归清单自检' },
-  { name: 'unit:motion-assert', needs: [], cmd: ['tools/test-motion-assert.mjs'], note: '画面语义断言（纯函数，BACKLOG 1-18）：before 正反 / 段名找不到单列 missing（--only 后段表会变，绝不当通过）/ 采样计划形状（appearsBy 两时刻、keepsMoving 每 0.5s 一对、noEdgeContent 三点）/ 持久性感知（单点瞬态降级 info 不 gate、跨采样点保持才 error）/ 空≠干净（无断言、uncovered、报错行都进 skipped）/ 阈值覆盖只认认识的键 / edgeSafeHits 的 bbox 压边四边+贴线+坏数据 / app.js 的 motionAudit 与 cmdCheck 接线自检（21 项）' },
-  { name: 'unit:notes', needs: [], cmd: ['tools/test-notes.mjs'], note: '1-29 后半：NOTES.json 的读写/校验纯函数 + clean 保护判据（57 项）' },
+  { name: 'unit:carry', cmd: ['tools/test-carry.mjs'], note: 'carry 词表与连贯/节奏审计（纯函数，BACKLOG 1-34/1-35/1-36）：morphRect/iris/zoomThrough/hop/gather/operatorCam 的端点、单调、确定性、hold 归零（clearing 假红教训）/ carry 分类三档边界与 burst 豁免 / score=(carried+anchored/2)/judged 口径 / rhythmStats 的 CoV 验算与节拍器判据 / carry 字段三处接线 + CLI 子命令 + 回归清单自检' },
+  { name: 'unit:motion-assert', cmd: ['tools/test-motion-assert.mjs'], note: '画面语义断言（纯函数，BACKLOG 1-18）：before 正反 / 段名找不到单列 missing（--only 后段表会变，绝不当通过）/ 采样计划形状（appearsBy 两时刻、keepsMoving 每 0.5s 一对、noEdgeContent 三点）/ 持久性感知（单点瞬态降级 info 不 gate、跨采样点保持才 error）/ 空≠干净（无断言、uncovered、报错行都进 skipped）/ 阈值覆盖只认认识的键 / edgeSafeHits 的 bbox 压边四边+贴线+坏数据 / app.js 的 motionAudit 与 cmdCheck 接线自检（21 项）' },
+  { name: 'unit:notes', cmd: ['tools/test-notes.mjs'], note: '1-29 后半：NOTES.json 的读写/校验纯函数 + clean 保护判据（57 项）' },
   // ⚠ **不是 gate**（与 lint-narration-dup 同一个前例，见上面那段注释）：现在 6 个有事实表的任务里
   //   3 个必然命中（nekohome 5 / promo 4 / fidus 1，全是没登记的镜号），当 gate 会让清单永久变红。
   //   这一项只断言**工具自身可用**（正例响 / 反例静 / 条数钉死 / 空≠干净 / 退出码三档），
@@ -155,35 +158,36 @@ const ITEMS = [
   { name: 'unit:particles', cmd: ['tools/test-particles.mjs'], note: '1-14 零状态 GPU 粒子：预设表契约 / 位置函数是 t 的纯函数 / hash 常数与 JS 参照对拍 / 写错预设必抛（7 项；视觉验收在夹具 _particles-lab，出图看）' },
   { name: 'unit:narration-error', cmd: ['tools/test-narration-error.mjs'], note: 'A-2 旁白表加载失败的判定纯函数：没配/内联表/URL ⇒ 不报，文件缺失/JSON 坏 ⇒ 报，文案钉住（9 项）' },
   { name: 'unit:shot-ref', cmd: ['tools/test-shot-ref.mjs'], note: '1-15 段间引用：递归保护 / 错误带可用段表 / ctx+f 双路径 / 引用渲染无嵌套自适应 / rect 数组契约（6 项；画中画的视觉验收在夹具 _ref-lab，出图看）' },
-  { name: 'unit:cli-hardening', needs: [], cmd: ['tools/test-cli-hardening.mjs'], note: '1-24① + 渲染心跳 + E-1 渲染锁的纯逻辑：冲突开关扫描（防前缀误伤）/ 并发度夹取 / 心跳档位与重置 / pid 探活三态 / 锁全生命周期（63 项，依赖全注入可离线测）' },
+  { name: 'unit:cli-hardening', cmd: ['tools/test-cli-hardening.mjs'], note: '1-24① + 渲染心跳 + E-1 渲染锁的纯逻辑：冲突开关扫描（防前缀误伤）/ 并发度夹取 / 心跳档位与重置 / pid 探活三态 / 锁全生命周期（63 项，依赖全注入可离线测）' },
   { name: 'unit:linebatch-warn', cmd: ['tools/test-linebatch-warn.mjs'], note: 'D-1 flush 后画线要报：_push 孤儿判定（丢弃并计数）/ flush 与 begin 交计数 / paint 形状有槽 / engine 转 warnings 带去重 / 正确用法语句没被删（5 项；端到端由 _d1-probe 人工验证过，故意错的夹具不进常规回归）' },
   { name: 'unit:motion-persona', cmd: ['tools/test-motion-persona.mjs'], note: '运动人格 + 缓动方向两条判据的判据本身（40 项）：声明解析（没写 ⇒ null 不假装通过）/ intensity 区间缩放 / overshoot 单调 / 三个扫描器（四参 spring 取第 3、4 位 / 嵌套括号取得到缓动名 / 参数是表达式 ⇒ 记「判不了」）/ D1-D3 三类方向矛盾 / 两种豁免' },
   { name: 'unit:motion-concurrency', cmd: ['tools/test-concurrency.mjs'], note: '同时运动判据的两个纯函数（14 项）：栅格变化面积 / 4-邻接连通分量 / 阈值与碎块（<2 块不算主体）' },
   // 1-73 成片版本戳：签名按**内容**算（不是 mtime）、戳不进签名、三档语义（engine-drift ≠ 要重渲）
   { name: 'unit:render-stamp', cmd: ['tools/test-render-stamp.mjs'], note: '成片版本戳（1-73）：内容签名（clone 后 mtime 集体刷新也不误判）/ 戳不自指 / 读不懂返回 null 不猜 / 三档语义（engine-drift 明写「交付物不作废」、scene-drift 才说重渲）' },
-  { name: 'harness:demo', cmd: ['tools/scene-harness.mjs', 'demo'], note: '离线跑场（假 ctx，不起 Chrome，0.1s）：未定义变量 / 确定性 / 文字出画' },
-  { name: 'harness:style-sampler', cmd: ['tools/scene-harness.mjs', '_style-sampler'], note: '风格采样器：配置档 4 段 + 风格解析走通' },
+  { name: 'harness:demo', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', 'demo'], note: '离线跑场（假 ctx，不起 Chrome，0.1s）：未定义变量 / 确定性 / 文字出画' },
+  { name: 'harness:style-sampler', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_style-sampler'], note: '风格采样器：配置档 4 段 + 风格解析走通' },
 
   // ── Node 侧整条链（合成/摆位/闪避；不需要 GPU，但要 ffmpeg）──
-  { name: 'say:offline', needs: ['ffmpeg', 'ffprobe'], cmd: ['tools/test-say.mjs'], note: 'B 档 anim say + anim mix 全链路（stub 驱动，30 项）', timeout: 10 * 60e3 },
-  { name: 'say:real-tts', needs: ['ffprobe'], cmd: ['tools/probe-tts-edge.mjs'], allowSkip: true, ciExclude: true, ciWhy: '要联网、要真 TTS 服务（edge-tts 端点），CI 上必然退化成 skip', note: 'B/C 档真 TTS（联网；连不上会「跳过」退出码 2 —— 服务端 403 也算这一类）', timeout: 10 * 60e3 },
+  { name: 'say:offline', cmd: ['tools/test-say.mjs'], note: 'B 档 anim say + anim mix 全链路（stub 驱动，30 项）', timeout: 10 * 60e3 },
+  { name: 'say:real-tts', cmd: ['tools/probe-tts-edge.mjs'], allowSkip: true, ciExclude: true, ciWhy: '要联网、要真 TTS 服务（edge-tts 端点），CI 上必然退化成 skip', note: 'B/C 档真 TTS（联网；连不上会「跳过」退出码 2 —— 服务端 403 也算这一类）', timeout: 10 * 60e3 },
   // ⚠ 这一项**会**在没有 ffmpeg 的机器上退出 2（"跳过，不算通过"）—— 所以挂 allowSkip
   // ⚠ CI 上必须有这一项：显式装 ffmpeg 之后它是硬门（不是 allowSkip 的挡箭牌）
-  { name: 'unit:loudness', needs: ['ffmpeg', 'ffprobe'], cmd: ['tools/test-loudness.mjs'], allowSkip: true, note: '响度数字守门：合成已知响度的测试音、对不上就是函数错了 + **-t 是输入侧选项**与"真的截断"（39 项）' },
+  { name: 'unit:loudness', cmd: ['tools/test-loudness.mjs'], allowSkip: true, note: '响度数字守门：合成已知响度的测试音、对不上就是函数错了 + **-t 是输入侧选项**与"真的截断"（39 项）' },
   // `anim mix --target`：**默认关**是硬约束（已交付片子的音轨不能因为这次改动而重新编码），
   // 所以这里同时钉"开"与"不开"两条路 —— 不开时逐字节相同、开了真的落在靶子上。
-  { name: 'unit:mix-loudnorm', needs: ['ffmpeg', 'ffprobe'], cmd: ['tools/test-mix-loudnorm.mjs'], allowSkip: true, note: 'anim mix --target：靶子解析 / planLoudnorm 六条出口 / 已知响度测试音 ±1 LU / **默认路径逐字节不变**（53 项）' },
+  { name: 'unit:mix-loudnorm', cmd: ['tools/test-mix-loudnorm.mjs'], allowSkip: true, note: 'anim mix --target：靶子解析 / planLoudnorm 六条出口 / 已知响度测试音 ±1 LU / **默认路径逐字节不变**（53 项）' },
   // 1-39：黑场/静帧/音量扫描。纯函数（解析 + 分档）不依赖 ffmpeg；端到端那几条自己跳过并明说"没验"。
-  { name: 'unit:media-qa', needs: ['ffmpeg', 'ffprobe'], cmd: ['tools/test-media-qa.mjs'], note: '成片级技术扫描：blackdetect/freezedetect 解析（含片尾只有 start）+ 分档（片头片尾白名单 / 静帧阈值 / 黑场里的静帧去重）+ 真 ffmpeg 夹具（17 项）' },
+  { name: 'unit:media-qa', needs: ['ffmpeg'], cmd: ['tools/test-media-qa.mjs'], note: '成片级技术扫描：blackdetect/freezedetect 解析（含片尾只有 start）+ 分档（片头片尾白名单 / 静帧阈值 / 黑场里的静帧去重）+ 真 ffmpeg 夹具（17 项）' },
 
   // ── 注入式回归（会临时改文件；必须串行）──
   { name: 'smoke:scene-error', needs: ['chrome'], cmd: ['tools/smoke-scene-error.mjs'], note: 'P0-3 场景抛错 = 硬失败（10 项）', timeout: 20 * 60e3 },
   { name: 'smoke:background', needs: ['chrome'], cmd: ['tools/smoke-background.mjs'], note: 'P0-2 漏画背景必须被点名', timeout: 20 * 60e3 },
   { name: 'smoke:overexposure', needs: ['chrome'], cmd: ['tools/smoke-overexposure.mjs'], note: 'P0-3 多子帧过曝必须被拦住', timeout: 20 * 60e3 },
-  { name: 'smoke:worktree-edit', needs: ['ffmpeg', 'ffprobe', 'chrome'], cmd: ['tools/smoke-worktree-edit.mjs'], note: 'P2-2 渲染期间改源文件要点名', timeout: 20 * 60e3 },
-  { name: 'smoke:interrupt', needs: ['ffmpeg', 'ffprobe', 'chrome'], cmd: ['tools/smoke-interrupt.mjs'], note: 'P0-2 中断必须非零退出 + 删产物', timeout: 20 * 60e3 },
+  { name: 'smoke:worktree-edit', needs: ['chrome'], cmd: ['tools/smoke-worktree-edit.mjs'], note: 'P2-2 渲染期间改源文件要点名', timeout: 20 * 60e3 },
+  { name: 'smoke:interrupt', needs: ['chrome'], cmd: ['tools/smoke-interrupt.mjs'], note: 'P0-2 中断必须非零退出 + 删产物', timeout: 20 * 60e3 },
   {
-    name: 'smoke:backpressure', needs: ['ffmpeg', 'ffprobe', 'chrome'],
+    name: 'smoke:backpressure',
+    needs: ['ffmpeg'],
     cmd: ['tools/smoke-backpressure.mjs', 'demo', '0.5', '30', '12'],
     env: { ANIM_FFMPEG: `"${node}" tools/slow-ffmpeg.mjs`, ANIM_SLOW_MBPS: '12' },
     note: 'P0-1 背压不能被判成停滞',
@@ -191,31 +195,32 @@ const ITEMS = [
   },
 
   // ── 逐任务 check（2026-10-06 整份回归 33/33 全绿，含下面每一条）──
-  { name: 'check:beast', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
-  { name: 'check:demo', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '5 段', timeout: 30 * 60e3 },
-  { name: 'check:beat', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'beat', '--quick'], note: '3 段', timeout: 30 * 60e3 },
-  { name: 'check:_calib', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', '_calib', '--quick'], note: '标定夹具', timeout: 30 * 60e3 },
+  { name: 'check:beast', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
+  { name: 'check:demo', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '5 段', timeout: 30 * 60e3 },
+  { name: 'check:beat', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'beat', '--quick'], note: '3 段', timeout: 30 * 60e3 },
+  { name: 'check:_calib', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_calib', '--quick'], note: '标定夹具', timeout: 30 * 60e3 },
   // carry 词表的图册 + 1-38 静/动标定样本（2026-10-17）：7 段全走 makeShot（rhythm 段裸场景），
   // check 验证六个 carry 函数真的画得出来；节奏腿在它身上 CoV ≈0.27（好样本）。
-  { name: 'check:_carry-lab', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', '_carry-lab', '--quick'], note: 'carry 图册夹具：morphRect/iris/zoomThrough/hop/gather/operatorCam 各一段 + rhythm 静/动标定', timeout: 30 * 60e3 },
+  { name: 'check:_carry-lab', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_carry-lab', '--quick'], note: 'carry 图册夹具：morphRect/iris/zoomThrough/hop/gather/operatorCam 各一段 + rhythm 静/动标定', timeout: 30 * 60e3 },
   // 1-41：同一模板 blur 0 / 20 / 20 三段 —— 画面本身要人眼验收，这里只防它腐烂（模板参数 / 背景 / 版面）。
-  { name: 'check:_blur-lab', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', '_blur-lab', '--quick'], note: 'blur 通道夹具：title 的 blur 0 vs 20（三段，长度故意不等以免节奏腿报节拍器）', timeout: 30 * 60e3 },
+  { name: 'check:_blur-lab', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_blur-lab', '--quick'], note: 'blur 通道夹具：title 的 blur 0 vs 20（三段，长度故意不等以免节奏腿报节拍器）', timeout: 30 * 60e3 },
   // 1-71：填充面的 alpha 账 —— 四档扫描行距一块 alpha 0.5 的圆，四块必须一样亮（sRGB 188）。
   // 这条是「把行距调小换平滑」能不能成立的前置条件（历史读数 194/200/222/236 = 越细越浓）。
-  { name: 'check:_fill-probe', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', '_fill-probe'], note: '填充面 alpha 账夹具：step 2/1/0.5/0.25 四块 alpha 0.5 的圆，四块读数必须都是 188（单子帧与多子帧两条路径都跑）', timeout: 30 * 60e3 },
-  { name: 'check:nekohome', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'nekoclicker-intro', '--quick'], note: '8 段', timeout: 30 * 60e3 },
-  { name: 'check:fidus', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '9 段', timeout: 30 * 60e3 },
-  { name: 'check:pdoom-lab', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },
-  { name: 'check:example-config-only', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--quick'], note: 'B 档：整个任务只有 task.config.mjs（配置档）', timeout: 30 * 60e3 },
-  { name: 'check:_three-calib', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', '_three-calib', '--quick'], note: '第 3 种 3D 的标定夹具（桥的颜色/朝向/透明合成）', timeout: 30 * 60e3 },
+  { name: 'check:_fill-probe', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_fill-probe'], note: '填充面 alpha 账夹具：step 2/1/0.5/0.25 四块 alpha 0.5 的圆，四块读数必须都是 188（单子帧与多子帧两条路径都跑）', timeout: 30 * 60e3 },
+  { name: 'check:nekohome', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekoclicker-intro', '--quick'], note: '8 段', timeout: 30 * 60e3 },
+  { name: 'check:fidus', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '9 段', timeout: 30 * 60e3 },
+  { name: 'check:pdoom-lab', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },
+  { name: 'check:example-config-only', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--quick'], note: 'B 档：整个任务只有 task.config.mjs（配置档）', timeout: 30 * 60e3 },
+  { name: 'check:_three-calib', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_three-calib', '--quick'], note: '第 3 种 3D 的标定夹具（桥的颜色/朝向/透明合成）', timeout: 30 * 60e3 },
   // Three.js 沙盒：3 段（Two Three.js 镜头 + 中间那一段**完全由引擎画**的过渡镜头），
   // 走完整的三点两路径 —— 它同时是"背景守门 + 多子帧"这两件事在桥上的现场证据。
-  { name: 'check:_three-lab', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', '_three-lab'], note: '第 3 种 3D 沙盒：3 段（含引擎自绘过渡），完整三点两路径', timeout: 30 * 60e3 },
+  { name: 'check:_three-lab', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_three-lab'], note: '第 3 种 3D 沙盒：3 段（含引擎自绘过渡），完整三点两路径', timeout: 30 * 60e3 },
   // promo 是引擎自己的一镜到底宣传片，也是**唯一**跨 4 段连续世界（走廊 → 门 → SDF 大厅 → 晶格隧道）的片子，
   // 所以这里不省：跑完整的 3 点 × 2 条路径（36 帧，实测 18.3s）。
-  { name: 'check:promo', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'check', 'promo'], note: '48s 一镜到底 / 6 段；raymarch 大厅 + 晶格隧道，完整三点两路径', timeout: 30 * 60e3 },
+  { name: 'check:promo', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'promo'], note: '48s 一镜到底 / 6 段；raymarch 大厅 + 晶格隧道，完整三点两路径', timeout: 30 * 60e3 },
 
   // ── 引擎级探针 ──
+  { name: 'probe:slide-transitions', needs: ['chrome'], cmd: ['tools/probe-slide-transitions.mjs'], note: '对开/条带：横竖屏、四向、首尾、覆盖单调、UV不拉伸与乱序seek', timeout: 5 * 60e3 },
   { name: 'probe:alpha', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'probe-alpha', '_calib'], note: 'P0-1 数值型 alpha + P1-5 旁白接线（9 项）', timeout: 20 * 60e3 },
   { name: 'probe:ribbon', needs: ['chrome'], cmd: ['tools/probe-ribbon.mjs', '11.2', '1,2'], note: '真 4K 矢量几何一致', timeout: 20 * 60e3 },
   { name: 'probe:raymarch', needs: ['chrome'], cmd: ['tools/probe-raymarch.mjs'], note: 'raymarch 通电 + 手性/朝向 + 非有限值判据（14 项）', timeout: 20 * 60e3 },
@@ -225,20 +230,77 @@ const ITEMS = [
   { name: 'probe:fonts', needs: ['chrome'], cmd: ['tools/probe-fonts.mjs', '_calib'], note: '任务字体真的生效', timeout: 20 * 60e3 },
   { name: 'probe:colorspace', needs: ['chrome'], cmd: ['tools/probe-colorspace.mjs', '_calib'], note: '导出 = 显示', timeout: 20 * 60e3 },
   { name: 'probe:trans2', needs: ['chrome'], cmd: ['tools/probe-trans2.mjs', '_calib'], note: '转场：推走而不是糊在一起（第四轮重写了判据）', timeout: 20 * 60e3 },
-  { name: 'probe:determinism', needs: ['ffmpeg', 'ffprobe', 'chrome'], cmd: ['tools/probe-determinism.mjs', 'beat', '1', '2'], note: 'P1-2 更正：帧起点口径逐字节相同', timeout: 30 * 60e3 },
-  { name: 'test:parallel', needs: ['ffmpeg', 'ffprobe', 'chrome'], cmd: ['tools/test-parallel.mjs', 'demo', '6'], note: 'P2-1 并行渲染 6 项', timeout: 40 * 60e3 },
+  { name: 'probe:determinism', needs: ['chrome'], cmd: ['tools/probe-determinism.mjs', 'beat', '1', '2'], note: 'P1-2 更正：帧起点口径逐字节相同', timeout: 30 * 60e3 },
+  { name: 'test:parallel', cmd: ['tools/test-parallel.mjs', 'demo', '6'], note: 'P2-1 并行渲染 6 项', timeout: 40 * 60e3 },
   // 抖动守门：`docs/history/IMPROVEMENTS-1-3.md` 那次事故（用户"最后像地震"）的回归项。
   // 整片要跑 2880 帧、raymarch 段 170ms/帧（几分钟），所以只体检收尾 8 秒 —— 事故就出在那里
   // （摄影机停住了、幅度却只升不降）。判据与 `video` 收尾的守门共用 scripts/lib/shake.mjs。
-  { name: 'shake:promo', needs: ['chrome'], cmd: ['scripts/anim.mjs', 'shake', 'promo', '--from', '40', '--to', '48'], note: '抖动：收尾段必须是平滑手持而不是逐帧白噪声（480 帧，约 35s）', timeout: 20 * 60e3 },
+  { name: 'shake:promo', cmd: ['scripts/anim.mjs', 'shake', 'promo', '--from', '40', '--to', '48'], note: '抖动：收尾段必须是平滑手持而不是逐帧白噪声（480 帧，约 35s）', timeout: 20 * 60e3 },
 
   // ── 画面没变（重构验收）──
   // promo 的基线是**每段一帧**（t=3/11/21/31/39/45，6 段各一帧，63.3 MB）：
   // 原来 `--save` 的默认四点（0/12/24/36）**漏掉了晶格隧道与落版两段**，改了引擎也照绿。
 ];
 
+/**
+ * **外部依赖探测**（A5）：在跑任何一项之前，统一探一次 ffmpeg / ffprobe / chrome。
+ *
+ * 为什么要有它：缺 ffmpeg 时，几十个测试各自 spawn 失败、各自打一屏 `ENOENT` 堆栈，
+ * 满屏错误里**没有一句**是「你缺 ffmpeg」。人（和 agent）都会先去怀疑代码。
+ *
+ * ⚠ 探测要尊重 `ANIM_FFMPEG` / `ANIM_FFPROBE`（可能是带参数的命令串，取第一段）。
+ * ⚠ chrome 只查**能不能找到**（playwright-core 可解析 + 至少一个 Chrome 路径存在），不真启动 —— 启动一次要几秒。
+ */
+function probeBin(cmdline) {
+  const parts = String(cmdline).match(/"[^"]+"|\S+/g)?.map((s) => s.replace(/^"|"$/g, '')) ?? [];
+  if (!parts.length) return false;
+  try {
+    const r = spawnSync(parts[0], [...parts.slice(1), '-version'], { encoding: 'utf8', timeout: 15000, windowsHide: true });
+    return r.status === 0;
+  } catch { return false; }
+}
+
+// chrome 判定抽到 tools/lib/env-probe.mjs（可离线夹具测）：装了 playwright-core ≠ 有浏览器。
+
+/**
+ * 探测结果只算一次（模块级缓存）。缺项时给出**最常见原因 + 修法**，
+ * 而不是让调用方去猜（本机实测：ffmpeg 装了、但不在当前 shell 的 PATH 里）。
+ */
+const ENV_PROBE = (() => {
+  const ffmpegCmdline = process.env.ANIM_FFMPEG || 'ffmpeg';
+  const hasFfmpeg = probeBin(ffmpegCmdline);
+  const hasFfprobe = probeBin(process.env.ANIM_FFPROBE || 'ffprobe');
+  // 系统 Chrome 命中，或 playwright 真能指到一个**存在的**浏览器可执行文件（A5：只有安装包不算）
+  const hasChrome = detectChrome({ resolveExe: () => resolvePlaywrightExe(ROOT) });
+  return { ffmpeg: hasFfmpeg, ffprobe: hasFfprobe, chrome: hasChrome, ffmpegCmdline };
+})();
+
+const MISSING_HINT = {
+  ffmpeg: '在 PATH 里找不到 ffmpeg。常见原因：装在独立目录 / 改了 User PATH 但当前 shell 没生效。修法：重开 shell，或设 ANIM_FFMPEG 指向可执行文件',
+  ffprobe: '在 PATH 里找不到 ffprobe（通常与 ffmpeg 同目录）。修法：把它的目录加进 PATH，或设 ANIM_FFPROBE',
+  chrome: '找不到 Chrome / playwright-core。修法：装 Chrome（引擎走 channel: chrome），并确认 npm install 装过 playwright-core',
+};
+
+/** 这一项缺哪些依赖（空数组 = 齐了） */
+function missingDeps(it) {
+  return (it.needs ?? []).filter((d) => ENV_PROBE[d] === false);
+}
+
 function runItem(it) {
   const log = path.join(LOGDIR, `${it.name.replace(/[:]/g, '_')}.log`);
+  // A5：依赖不齐就**不跑**（避免一屏 ENOENT），记成 envSkip —— 它既不是通过，也不是"代码有错"
+  const missing = missingDeps(it);
+  if (missing.length) {
+    writeFileSync(log, `$ node ${it.cmd.join(' ')}
+
+[env-skip] 缺 ${missing.join(' / ')}：${missing.map((d) => MISSING_HINT[d]).join('；')}
+`);
+    return {
+      ...it, code: null, pass: false, skip: true, envSkip: true, missing, ms: 0,
+      log: path.relative(ROOT, log),
+      out: `[env-skip] 缺 ${missing.join(' / ')}`,
+    };
+  }
   const t0 = Date.now();
   const r = spawnSync(node, it.cmd.map((a) => (a === process.execPath ? node : a)), {
     cwd: ROOT,
@@ -291,7 +353,7 @@ function headline(res) {
 }
 
 if (process.argv.includes('--list')) {
-  for (const it of ITEMS) console.log(`${it.name.padEnd(24)} ${it.needs?.length ? `[needs: ${it.needs.join(',')}] ` : ''}${it.note ?? ''}`);
+  for (const it of ITEMS) console.log(`${it.name.padEnd(24)} ${it.note ?? ''}`);
   process.exit(0);
 }
 
@@ -328,53 +390,9 @@ if (!list.length) {
 }
 mkdirSync(LOGDIR, { recursive: true });
 
-// ── 前置依赖体检（A5，2026-11-13；PLAN-2026-11-08 §3）──
-// 按 needs 声明统一探测一次 ffmpeg/ffprobe/Chrome：缺依赖 ⇒ 对应项记 skipped(env)，
-// 一行说清缺什么、怎么修 —— 而不是每项各自吐一屏 ENOENT 堆栈。
-// **环境问题，不是代码问题**，但没跑 ≠ 通过：整体仍以非零码退出。
-// 覆写了 ANIM_FFMPEG/ANIM_FFPROBE 的项（smoke:backpressure 的慢速包装器）按它自己的 env 探。
-const needsAll = collectNeeds(list);
-const skipByName = new Map();
-if (needsAll.length) {
-  const { chromium } = await import('playwright-core');
-  const groups = new Map();
-  for (const it of list) {
-    const key = envOverrideKey(it);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(it);
-  }
-  const hints = new Set();
-  for (const grp of groups.values()) {
-    const env = { ...process.env, ...(grp[0].env ?? {}) };
-    const gneeds = collectNeeds(grp);
-    const probe = await probeDeps(gneeds, {
-      env, platform: process.platform,
-      tryRun: (argv) => tryRun(argv, { timeout: 20000 }),
-      exists: existsSync,
-      chromePath: () => chromium.executablePath('chrome'),
-    });
-    const missing = gneeds.filter((d) => !probe[d].ok);
-    for (const h of envReport(probe)) hints.add(h);
-    for (const s of planEnvSkips(grp, missing).skipped) skipByName.set(s.item.name, s.missing);
-  }
-  if (hints.size) {
-    console.log('⚠ 前置依赖体检：');
-    for (const h of hints) console.log('  ' + h);
-    console.log('  → 环境问题，不是代码问题：缺依赖的项记 skipped(env)（没跑 ≠ 通过，整体退出码非零）。\n');
-  }
-}
-const envSkips = list.filter((it) => skipByName.has(it.name)).map((it) => ({ item: it, missing: skipByName.get(it.name) }));
-const runnable = list.filter((it) => !skipByName.has(it.name));
-
-console.log(`跑 ${runnable.length} 项回归（串行；日志在 out/_regress/）${envSkips.length ? `；另有 ${envSkips.length} 项缺依赖 skipped(env)` : ''}\n`);
+console.log(`跑 ${list.length} 项回归（串行；日志在 out/_regress/）\n`);
 const results = [];
-for (const { item: it, missing } of envSkips) {
-  const log = path.join(LOGDIR, `${it.name.replace(/[:]/g, '_')}.log`);
-  writeFileSync(log, `skipped(env)：缺 ${missing.join(', ')} —— 这一项没跑。\n环境问题，不是代码问题；修法见运行开头的前置体检输出。\n`);
-  results.push({ ...it, code: null, pass: false, skip: true, envSkip: true, missing, ms: 0, log: path.relative(ROOT, log), out: '' });
-  console.log(`· ${it.name.padEnd(24)} SKIP(env)  缺 ${missing.join(', ')}`);
-}
-for (const it of runnable) {
+for (const it of list) {
   process.stdout.write(`· ${it.name.padEnd(24)} 跑 … `);
   const res = runItem(it);
   results.push(res);
@@ -385,16 +403,24 @@ for (const it of runnable) {
 
 const failed = results.filter((r) => !r.pass && !r.skip && !r.expectFail);
 const known = results.filter((r) => !r.pass && !r.skip && r.expectFail);
-const skipped = results.filter((r) => r.skip && !r.envSkip);
+const skipped = results.filter((r) => r.skip);
 const envSkipped = results.filter((r) => r.envSkip);
 console.log(`\n${'─'.repeat(72)}`);
 console.log(`通过 ${results.filter((r) => r.pass).length}/${results.length}`
   + (skipped.length ? `　**跳过 ${skipped.length} 项（没跑 ≠ 通过）**：${skipped.map((k) => k.name).join(', ')}` : '')
-  + (envSkipped.length ? `　⚠ **环境缺依赖 ${envSkipped.length} 项 skipped(env)（环境问题，不是代码问题）**：${envSkipped.map((k) => k.name).join(', ')}` : '')
   + (known.length ? `　已知失败 ${known.length}（${known.map((k) => k.name).join(', ')}）` : '')
   + (failed.length ? `　❌ 真失败 ${failed.length}` : '　✅ 没有真失败'));
-for (const s of skipped) console.log(`  ⏭ ${s.name}  (exit 2：环境不满足，这一项**没验**)  → ${s.log}`);
-for (const s of envSkipped) console.log(`  ⏭ ${s.name}  (skipped(env)：缺 ${s.missing.join(', ')}，没跑)  → ${s.log}`);
+for (const s of skipped) {
+  console.log(s.envSkip
+    ? `  ⏭ ${s.name}  (缺 ${s.missing.join(' / ')}：这一项**没验**)  → ${s.log}`
+    : `  ⏭ ${s.name}  (exit 2：环境不满足，这一项**没验**)  → ${s.log}`);
+}
+if (envSkipped.length) {
+  const deps = [...new Set(envSkipped.flatMap((s) => s.missing))];
+  console.log('');
+  console.log(`⚠ 环境问题，不是代码问题：缺 ${deps.join(' / ')}（${envSkipped.length} 项没跑）`);
+  for (const d of deps) console.log(`   · ${d}：${MISSING_HINT[d]}`);
+}
 for (const f of failed) console.log(`  ❌ ${f.name}  (exit ${f.code})  → ${f.log}\n     ${headline(f)}`);
 
 // ⚠ **失败项要在这里把完整输出打出来**（2026-10-30 加，起因是一次真实的排查卡壳）：
@@ -417,13 +443,13 @@ if (failed.length) {
 
 const summary = {
   at: new Date().toISOString(),
-  results: results.map((r) => ({ name: r.name, code: r.code, pass: r.pass, skip: !!r.skip, envSkip: !!r.envSkip, missing: r.missing ?? null, expectFail: !!r.expectFail, ms: r.ms, log: r.log, headline: headline(r) })),
+  results: results.map((r) => ({ name: r.name, code: r.code, pass: r.pass, skip: !!r.skip, expectFail: !!r.expectFail, ms: r.ms, log: r.log, headline: headline(r) })),
 };
 writeFileSync(path.join(LOGDIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
 writeFileSync(
   path.join(LOGDIR, 'summary.md'),
   `# 回归汇总 ${summary.at}\n\n| 项 | 结果 | 用时 | 结论 |\n|---|---|---|---|\n`
-  + results.map((r) => `| ${r.name} | ${r.pass ? '✅' : (r.envSkip ? `⏭ skipped(env)：缺 ${r.missing.join(',')}` : (r.skip ? '⏭ 跳过（没验）' : (r.expectFail ? '🟡 已知失败' : '❌')))} | ${(r.ms / 1000).toFixed(1)}s | ${headline(r).replace(/\|/g, '\\|')} |`).join('\n')
+  + results.map((r) => `| ${r.name} | ${r.pass ? '✅' : (r.skip ? '⏭ 跳过（没验）' : (r.expectFail ? '🟡 已知失败' : '❌'))} | ${(r.ms / 1000).toFixed(1)}s | ${headline(r).replace(/\|/g, '\\|')} |`).join('\n')
   + '\n',
 );
 console.log(`\n汇总：out/_regress/summary.md`);
@@ -435,9 +461,9 @@ console.log(`\n汇总：out/_regress/summary.md`);
 //   直接能看的一段 Markdown，**不用下载、不用权限** —— 失败的项名与实测值会出现在那里，
 //   而不是埋在 200 行日志中间。本地跑没有这个环境变量，整段静默跳过。
 const stepSummary = process.env.GITHUB_STEP_SUMMARY;
-if (stepSummary && (failed.length || envSkipped.length)) {
+if (stepSummary && failed.length) {
   const md = [
-    `## 回归失败 ${failed.length} 项（共 ${results.length}）${envSkipped.length ? ` · 环境缺依赖 ${envSkipped.length} 项 skipped(env)` : ''}`,
+    `## 回归失败 ${failed.length} 项（共 ${results.length}）`,
     '',
     '| 项 | 退出码 | 最像结论的一行 |',
     '|---|---|---|',
@@ -450,10 +476,9 @@ if (stepSummary && (failed.length || envSkipped.length)) {
       '',
     ]),
     `跳过（没跑 ≠ 通过）：${skipped.length ? skipped.map((k) => k.name).join(', ') : '无'}`,
-    `环境缺依赖 skipped(env)：${envSkipped.length ? envSkipped.map((k) => `${k.name}（缺 ${k.missing.join(',')}）`).join(', ') : '无'}`,
   ].join('\n');
   try { appendFileSync(stepSummary, md + '\n'); } catch { /* 写不进去就算了，别把回归本身带崩 */ }
 }
 
-// 环境性跳过也非零退出（PLAN-2026-11-08 A5）：没跑 ≠ 通过，不给假绿灯。
+// A5：环境缺项也返回非零 —— 没验 ≠ 通过，CI 上必须红（但汇总里已经说明是环境问题）
 process.exit(failed.length || envSkipped.length ? 1 : 0);

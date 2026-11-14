@@ -514,19 +514,41 @@ render(ctx) {
 | 新内容从**反方向**落位 | `enterOffset(f.t, k, 220)` → `[dx, dy]` 直接加到坐标上 |
 | 摄影机此刻的运动方向 | `cameraDir(t, dt)` |
 
-**八种转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
+**转场模式（BACKLOG 1-13）**：段上写 `transition: '<名字>'`（配置档节点 / `cut` 的 opts 都行）。
 
 | 名字 | 走哪条路 | shader |
 |---|---|---|
 | `'push'`（默认） | `transitionPass` → `_pushTransition` | `TRANSITION_FRAG.push`（**与 2026-10-30 之前逐字符相同**） |
 | `'mix'` | `compositor.mixTo`（交叉溶解） | `compositor_mix` |
 | `'none'` | 什么都不做（硬切） | — |
-| `'wipe' / 'iris' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
+| `'wipe' / 'iris' / 'sweep' / 'turn' / 'glitch' / 'pixel' / 'dissolve'` | `transitionPass({ mode })` | `src/core/transition-frag.js` |
+| `'diamond' / 'frame'` | `transitionPass({ mode })`：菱形 / 方框**从中心张开**旧画面 | 纯遮挡（mask），`k` 的端点显式返回原帧/全透明 |
+| `'split' / 'slats'` | `transitionPass({ mode })`：两半对开 / 多条交错滑出 | 纹理按原比例平移，空隙露出下一镜头；运动轴取 `dir` 主方向 |
 
 - 模式名在 `TRANSITION_MODES`（`src/core/trans.js`）里定义**一次**，写错当场抛并列出可用值。
-- 六支 shader 共用六个 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
-  **`fragColor` 的 alpha = "旧帧还剩多少"**。
+- 转场 shader 共用六个基础 uniform：`under` / `k` / `dir` / `push` / `blur` / `fadeAt`；
+  **`fragColor` 的 alpha = 「旧帧还剩多少」**。
+  ⚠ **`'sweep'` 没有新增 uniform**：旋转中心固定画面中心，起始角由 `dir` 推出来（扫描方向跟摄影机一致、竖屏不反）；
+  ⚠ **`'slats'`** 的条数走 `bands`（`transitionOpts.bands`，默认 8）；它和 `turn` 的 `cols` **各管各的**（一个平移、一个旋转）。
+  ⚠ **`'turn'`（百叶翻面）** 有两个旋钮：`cols`（竖条数，默认 10）/ `stagger`（错峰，默认 0.35）。**不做整帧旋转** ——
+  整帧旋转是把一张图拧一遍（用户原话「旋转指画面切换」）；竖条各自绕自己的轴转，才有「一片片翻过去」的观感。
+- **旋转族与镜碎的旋钮**（段上写 `transitionOpts`，默认值 = 现状，不改就是逐像素不变）：
+
+  | 键 | 作用 | 默认 | 谁用 |
+  |---|---|---|---|
+  | `turns` | 转几圈 | `1` | `spin` |
+  | `tilt` | 圆筒压到多深（×90°） | `1` | `carousel` |
+  | `swirlAmount` | 卷多狠 | `1` | `swirl` |
+  | `shards` | 镜碎每边片数 | `7` | `shatter` |
+  | `seed` | 碎片形状的随机源（同 seed 同形状） | `7` | `shatter` |
+  | `power` | 飞散强度 | `0.8` | `shatter` |
+
+  ⚠ 这些值在**创建 Pass 时**烘进 uniform，所以引擎的缓存键带上了 `mode#shards/seed/power` —— 逐段改设置才会生效。
+  ⚠ 新旋钮的默认值必须等于「现在这支片子的样子」：`turns` 默认给 0.9 就等于把已提交的画面改成转 324°。
+  ⚠ `push` 的源码被 `tools/test-transition-collision.mjs` 用字符串钉着（已交付画面）—— 加旋钮只许改**目标那一支**的声明行。
 - 引擎按模式缓存 Pass（`this._transPasses`）—— 别在场景里每帧新建 `Pass`，编译一次几十毫秒。
+- `split` / `slats` 由几何边界退出，不叠全局淡出，`fadeAt` 不参与这两支 shader。样片 `tasks/_trans-structure/`；GPU 回归 `node tools/probe-slide-transitions.mjs` 验首尾、覆盖单调、UV 不拉伸和乱序 seek（横竖屏 × 四个方向）。
+- 模板自带 `handlesTransition: true` 时，时间线可显式写 `handlesTransition: false` 把衔接交给引擎；此时场景的 `ctx.under` 为空，避免模板再叠一次甩镜。不写这个覆盖值，保持模板原行为。
 - `transitionFadeAt(mode)` 给每种模式一个"旧帧最晚什么时候退干净"的默认值（`push` 仍是 **0.55**）。
   ⚠ 掩码型转场（wipe/iris/pixel/dissolve）**不要**再叠全局淡出：两个 fade 相乘会让中段发灰。
 - 与 `victimRatio` **正交**：两个都给就都生效（模式决定"长什么样"，比例决定"旧的走多快"）。
@@ -1065,6 +1087,12 @@ render(ctx) {
 > **每个参数都写清「0 是什么、1 是什么、往哪个方向」**。以前这张表只列了名字，结果最典型的一次踩坑是
 > 「开场从黑淡入」写成了 `fade: 1 - prog(...)` —— 以为 `fade` 是亮度，于是**整场都是黑的**。
 > `fade` 是「黑掉的量」，不是「亮度」（`docs/history/IMPROVEMENTS-1-3.md` P1-6）。
+
+**「被拍摄感」预设（C3，`src/core/post-presets.js`）**：`filmed` / `filmed-doc` / `filmed-super8` 三档，
+组合现有 `grain / halation / vignette / ca / weave / flicker / scratch`。三处入口：场景 `return { preset: 'filmed' }`、
+时间线 `post: { preset: 'filmed' }`、风格包 `post.preset`。**写错预设名当场抛**并列出可用清单（与 transition 同口径）。
+覆盖优先级：引擎默认 < 风格包 post < preset < 场景 return 显式字段；**不写 preset 逐像素不变**。
+标定夹具 `tasks/_filmed-lab`（off / filmed / filmed-doc / filmed-super8 四档同内容）。⚠ flicker 别开太大，免得把「闪烁」误当「事件」。
 
 | 参数 | 类型 | 默认 | 0 / 1 的含义与方向 | 该调它的场景 |
 |---|---|---|---|---|

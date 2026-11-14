@@ -128,6 +128,11 @@ let frameCount = 0;
 let lastName = '';
 /** 推流状态：CLI 卡住时靠它定位（readyState 0=CONNECTING 1=OPEN 2=CLOSING 3=CLOSED） */
 const streamState = { started: 0, url: '', readyState: -1, sent: 0, total: 0, lastError: '' };
+/**
+ * B0 分段计时（`--breakdown`，只测量不改出片路径）：页面侧逐帧记 render / readNV12 耗时。
+ * 仅在 stream({breakdown:true}) 时填充；`api.perfBreakdown()` 取走。帧字节本身一个都不动。
+ */
+let perfBreakdown = null;
 
 async function boot() {
   const list = await loadTaskList();
@@ -791,6 +796,15 @@ const api = {
    *     `{diag:'renderError'}`（场景抛异常，P0-3）与 `{diag:'nonFinite'}`（这一帧的浮点 RT 里有
    *     NaN/±Inf/量级爆掉，BACKLOG 1-4，由 `o.scanNf` 决定每几帧扫一次）
    */
+  /**
+   * B0：取走页面侧逐帧分段计时（render / readNV12 / samples）。取走即清空。
+   * 只有 stream({breakdown:true}) 跑过才有数据；否则返回 null。
+   */
+  perfBreakdown() {
+    const d = perfBreakdown;
+    perfBreakdown = null;
+    return d;
+  },
   stream(o) {
     let ws;
     try {
@@ -803,6 +817,7 @@ const api = {
     const total = Math.max(0, Math.round((o.to - o.from) * o.fps));
     let i = 0;
     let inflight = 0;
+    perfBreakdown = o.breakdown ? [] : null;
     streamState.started++;
     streamState.url = o.ws;
     streamState.total = total;
@@ -867,6 +882,8 @@ const api = {
       // 每 scanNf 帧扫一次这一帧的浮点 RT（NaN / ±Inf）。第 0 帧必扫 —— 一开场就错的场景
       // 不该等到第 30 帧才报出来。扫描由 render 顺带做，不额外渲一帧。
       const doScan = scanNf > 0 && i % scanNf === 0;
+      const bd = perfBreakdown;
+      const t0 = bd ? performance.now() : 0;
       const r = engine.render(t, {
         samples: o.samples ?? 'auto',
         shutter: o.shutter ?? 0.5,
@@ -875,7 +892,9 @@ const api = {
         seeked: true,
         scanNf: doScan,
       });
+      const t1 = bd ? performance.now() : 0;
       const px = engine.readNV12();
+      if (bd) bd.push({ render: t1 - t0, readback: performance.now() - t1, samples: r.samples });
       // 帧头 12 字节 = 子帧数 + 这一帧的 post.shake（逻辑像素，y 向下），其后是 **NV12** 像素
       // （Y 平面 w×h + 交错 UV 平面 w/2×h/2 = 每帧 3.11MB，比 RGBA 少 62%）。
       // 载荷格式由 `scripts/anim.mjs` 的 ffmpeg 参数（`-pix_fmt nv12`）对接，两边必须一起改。
@@ -1351,6 +1370,10 @@ const api = {
       id: ids[0] ?? '', t: t, blocks, focus: focusRects[0] ?? null, W, H,
       limits: layoutLimits(engine.style?.layout),
       paint, textLayerDrawn: textDrawn,
+      // C1 几何判据的数据：安全边距 / 此刻字幕矩形 / overlap 受控豁免
+      pad: engine.style?.grid?.pad ?? 0,
+      captionRect: engine.lastCaptionRect ?? null,
+      allowOverlap: engine.style?.layout?.allowOverlap ?? [],
     });
     // 返回整份 verdict（**含真实的 t**）：CLI 直接把它 push 进采样数组。
     // 曾返回过 { id, t: clock, verdict } —— CLI 那边照着旧字段名读，报告里全是 undefined。

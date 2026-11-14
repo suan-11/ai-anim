@@ -36,6 +36,25 @@
 
 ---
 
+## 0.5 前置必读摘要（注入被截断时，这一段要能独立成立）
+
+**8 条铁律**（写错不报错，成片随机出错）：
+
+1. 不用 `Math.random()` → `rng(seed)`；2. 不用 `Date.now()` → `f.t` / `f.lt`；
+3. 不逐帧累积（`this.x += v*dt`）→ 位置写成 `f(t - birth)`；4. 抖帧不用 `Math.floor(t*60)` → `f.idx`；
+5. 手持感不用逐帧白噪声 → `shakeSmooth(f.t, amp)`；6. 每帧先 `text.clear()`；
+7. 用 `ctx.text`，不用引擎的 `text`；8. 声明了 `handlesTransition` 就必须铺整帧背景（`world: 'auto'`），否则纯黑且不报错。
+
+**三条交付门**：`anim check`（背景 / 版面 / 卡点 / 事件密度）→ `anim still` 抽查每段中间帧并**真的看图** → `anim video` 成功（自带 ffprobe 复核）。
+
+**五个最容易搞错的默认值**：`maxSamples` 只会**往下压**（写 64 会被夹到 24，它是提速旋钮不是加密采样）；
+`fade` 是**黑掉的量**（开场淡入要写 `1 - prog(...)`）；`shake` 单位是**物理像素**；
+`--only` 会把选中的段**平移到开头**（此时 `-t` 是段内时间）；`prog(t, a, b)` 的 `b` 是**结束时刻**，不是时长。
+
+> 完整规则见 §4（铁律）/ §10（交付自检）；长清单在 [`docs/DELIVERY.md`](DELIVERY.md)。
+
+---
+
 ## 1. 三条命令先跑起来
 
 ```sh
@@ -64,11 +83,9 @@ npm run dev                                     # 浏览器里实时预览（空
 > `ANIM_FFMPEG` / `ANIM_FFPROBE`）。CLI 自己起私有 Vite 并 spawn 无头 Chrome，用管道读回帧 ——
 > **受限沙箱（只允许写工作区那档）会 `spawn EPERM`**，报错点在 `openSession`，看不出是权限问题。
 > PowerShell 里**别用管道接原生程序输出**（`| Select-Object` 会以"命名管道"为由被拒）—— 直接跑。
-> 沙箱里推仓库：**用 Git 自带的 ssh，不是系统那个** —— 系统 `C:/Windows/System32/OpenSSH/ssh.exe`
-> 在本机实测**返回 255 且毫无输出**（连 `ssh -V` 都是），看不出原因，别在那里浪费时间。
-> 能用的是 `C:/Program Files/Git/usr/bin/ssh.exe`（`ssh -T git@github.com` 会说 "Hi suan-11!"）；
-> ⚠ **路径有空格，必须加引号**（不加会被拆成 `C:/Program`，报 "No such file or directory"）：
-> `git -c core.sshCommand='"C:/Program Files/Git/usr/bin/ssh.exe"' push origin HEAD`；
+> 沙箱里推仓库：**用 Git 自带的 ssh**（`C:/Program Files/Git/usr/bin/ssh.exe`），不是系统的
+> `C:/Windows/System32/OpenSSH/ssh.exe`（本机实测返回 255 且毫无输出，连 `ssh -V` 都是）。⚠ **路径有空格必须加引号**：
+> `git -c core.sshCommand='"C:/Program Files/Git/usr/bin/ssh.exe"' push origin HEAD`。
 > 预提交钩子（sh 脚本）起不来时用 `--no-verify`，但**手动跑一遍钩子里的三项自检**。
 > ⚠ **仓库搬过一次家**（`NekoHome-Studio/ai-anim` → `suan-11/ai-anim`）：GitHub 会重定向所以老远端照样能推，
 > 但每次打一行 `Please use the new location`。`git remote set-url origin git@github.com:suan-11/ai-anim.git` 一次就干净了。
@@ -279,29 +296,14 @@ export default makeShot('chart', {
 | 想要 | 用什么 |
 |---|---|
 | 完整镜头的骨架 | `makeShot(id, { setup, draw, post })` |
-| **信息段的骨架**（标题/面板底/侧标注/出处/页脚/错峰全包，只写 `draw(ctx, rect)`） | `infoShot(id, { title, kicker, caption, source, draw })`（`src/kit/info.js`；版面与 focus 声明由骨架承担） |
-| **Three.js 镜头**（真网格） | `makeThreeShot(id, { camera, setup, update, overlay, post })`（§5.5 ③ / `docs/THREE.md`） |
-| 现成的整镜头（画面本身） | `shot('chart', { values: [...], title: '…' })`（`src/shots/`，也可直接写进时间线） |
-| **动图表情包** | `stickerShot(id, { frame: (i) => url, count })`（`src/kit/sticker.js`）。⚠ **别直接播 GIF**：先 `ffmpeg -vf "fps=12,scale=320:-1"` 抽成 PNG 序列、按 `floor(lt*fps)%n` 取帧（`render(t)` 必须是 t 的纯函数）；`comp.draw` **没有旋转** |
-| 只要背景 + 转场 | `makeWorldKit(ctx)` → `wk.openFrame(ctx)` |
-| 按锚点写整行字 | `type.writeLine(text, x, y, { anchor })` ≡ `type.write(…, { align })`（`align` 自 2026-10-24 是整行对齐） |
-| 整行淡入 | `fade(f.lt, delay)` → `{ alpha: [0,1], t, staggerDur }` |
-| 面板 / 眉标 / 页脚 / 准星 / 标记 | `panel` `kicker` `footer` `reticle` `marker` |
-| 填充矩形（一条批） | `lines.fillRect(x, y, w, h, [r,g,b,a])` |
-| **填充面**（圆 / 多边形 / 扇环 / 带洞） | `lines.fillCircle` · `fillPoly(pts)` · `fillPoly([outer, inner])`（带洞）· `fillSector(cx,cy,r0,r1,a0,a1)`。⚠ 角度 0=右、π/2=**下**；先填充后描边（`COOKBOOK` §17）。**别为了「更平滑」把 `step` 压到 0.25** —— 竖向平滑由多子帧亚像素抖动负责（`ENGINE` §11.6），压小只换来一堆条数 |
-| **换成像方式**（半调 / 字符画 / 1-bit / 热成像 / CRT / 雕版 / **多方向排线**） | `instrumented(ctx, { mode, cell }, (target) => {…})`（`src/kit/views.js`）。⚠ 整帧（含文字）先画进离屏目标再换，且必须最后一步（`COOKBOOK` §16）。**要真「刻痕」用 `woodcut`**（按明暗加方向；`engrave` 只有一个方向）—— 它的 `cell` 有 **22px 下限**，低于会被夹住并写 warning（§16.4） |
-| **像素风**（调色板 / 块栅格 / 抖动 / 12fps 台阶） | `paletteOf` `pixelText` `drawSprite` `pixelGradient` `snapTime`（`src/kit/pixel.js`），整镜头用 `shot('pixel', {…})`。⚠ 三条写错不报错：抖动阈值按**块**坐标取；精灵 / 像素字落在整块上；台阶用 `f.t` 不用 `f.lt`（`COOKBOOK` §19） |
-| **手绘笔迹** | `strokePath` / `strokeArc` / `inkOn`（`src/kit/stroke.js`），整镜头用 `shot('handwrite', {…})`。⚠ 轮廓法在**曲率半径 < 半宽**处必然自交（偶奇规则填成针孔）—— `drawStroke` 的 auto 会自动退到胶囊链；笔迹**不许半透明**（要用 `inkOn(P.c, 0.9, paper)`，§20.1） |
-| **相机接力**（段间镜头飞过去、内容换手） | 时间线写 `transition: 'relay'`；camera3 场景 `camera3({ ...relayPose3(ctx, home), H })` 一行接入（写之前读 `docs/ENGINE.md` §3.7.7） |
-| **零状态 GPU 粒子** | `makeParticles(ctx, { count, preset: 'sparks'|'orbit'|'drift' })`（`src/kit/particles.js`，1-14）。位置 = f(index, t) 的纯函数，无 CPU 上传；加法混合（信号色发光那档）。⚠ 不参与引擎亚像素抖动；预设名写错当场抛 |
-| **整片换介质**（默认 off） | 风格包字段 `view: 'halftone'` 或 `{ mode, cell, passes, misreg }`（写错当场抛）；`passes: 2..4` = N 版套印，整片生效、字幕仍清晰（`COOKBOOK` §16.1–16.2） |
-| **像「胶片放出来的」** | `return { weave: 0.5, flicker: 0.25, scratch: 0.2 }`（默认全 0 = 逐像素不变，全由 `t` 驱动；`COOKBOOK` §16.3） |
-| **剪纸 / 纸艺层叠** | `paperShape({x,y,w,h,seed})` → `paperStack(lines, layers, { pan, parallax })`（`src/kit/paper.js`）。⚠ 三条**出图才看得见**的比例：撕边幅度 = **边长 × 1.5–3%**（12px 在 2000px 的纸上就是直线）；白芯只浅 **7%**（35% ⇒ 雪白高光带）；投影**不透明**（半透明会在扫描行之间出条纹）。撕边在 `setup` 里算一次（只吃 seed，不吃 t）。见 `docs/MOTION.md` §3.7 |
-| "代码行"排版（分段着色、等宽） | `codeRow(type, [{ s: 'GET ', c: css(P.ash) }, { s: '/v1/items', c: css(P.signal) }], x, y)` |
-| **带回弹的落位**（不用自己积分） | `spring(f.lt - t0)` → 0→1，指数弹簧解析解（`src/core/util.js`；更弹 `spring(dt, 1, 140, 12)`） |
-| 有机漂移 / 呼吸 / 不规则抖动 | `noise1/2/3`、`fbm1/fbm2`（确定性） |
-| 半透明 / 提亮到发光 | `withAlpha(P.signal, 0.18)`（`lines` 第 4 分量）、`mul(P.bone, 1.6)`（>1 才泛光） |
-| 全片摄影机的方向 / 数值 | `cameraAt(t)` / `cameraDir(t)`（`kit/world.js`；`cameraPost(t, extra)`） |
+| 信息段的骨架（标题/面板/出处/页脚全包，只写 `draw`） | `infoShot(...)`（`src/kit/info.js`） |
+| Three.js 真网格镜头 | `makeThreeShot(...)`（见 §5.5 ③） |
+| **填充面**（圆/多边形/扇环/带洞） | `lines.fillCircle` / `fillPoly` / `fillSector`（先填充后描边；角度 π/2 朝**下**） |
+| **换成像方式**（半调/字符画/雕版/排线） | `instrumented(ctx, { mode, cell }, fn)`（整帧先画进离屏目标，最后一步） |
+| 像素风（`pixelText` 像素字 / 块栅格 / 抖动）/ 手绘笔迹 / 零状态 GPU 粒子 | `src/kit/pixel.js` · `stroke.js` · `particles.js` |
+| 带回弹的落位 | `spring(f.lt - t0)`（指数弹簧解析解） |
+
+> **其余 20+ 条元件（面板/眉标/页脚/准星、`paperStack` 纸艺、`stickerShot`、`codeRow`、`withAlpha`/`mul`…）见 [`docs/KIT.md`](KIT.md)** —— 带「写错不报错」的坑。
 
 ⚠ **`makeShot` 与镜头库模板是两条平行的路**：`src/shots/` 的模板自己就铺满整帧（自带背景），
 所以别把模板塞进 `makeShot().draw()` 里 —— 那会覆盖掉 `makeShot` 铺的背景。一段里二选一，详见 `docs/ENGINE.md` §14.5。
@@ -424,10 +426,7 @@ export default makeThreeShot('cube', {
 | 几何本身是数学式子：无限重复晶格、圆角融合、掏空、雕版排线 | ② raymarch | 每像素几十次 SDF，出片时间会明显变长 |
 | **成百上千个同样的单元**（实例化）、材质 / 光照 / 阴影、真深度真遮挡、以后要导入 `.glb` | ③ Three.js 真网格（`three` 已在 `dependencies`，**不是"最后的备选"**） | 每子帧重渲一次 + 一次全屏合成；写法和另两种一样简单（`makeThreeShot`） |
 
-⚠ **能画出来 ≠ 画出来好看，也不等于一样快**。别为了"手写更纯粹"把本该用 ③ 的画面硬压成 ①/②：
-需要真遮挡、材质光照、或成百上千个单元时，③ 才是省事又好看的那条路。
-写法、三种合成模式、坑清单见 **`docs/THREE.md`**；实现在 `src/core/three-bridge.js`
-（桥）与 `src/kit/three.js`（镜头骨架）。
+⚠ **能画出来 ≠ 好看 ≠ 一样快**：要真遮挡 / 材质光照 / 成百上千单元就用 ③，别为"手写更纯粹"硬压成 ①/②。写法、三种合成模式、坑清单见 **`docs/THREE.md`**；实现 `src/core/three-bridge.js`（桥）+ `src/kit/three.js`（骨架）。
 
 五条**写错不报错、只出错画面**的（其余规格见 `docs/ENGINE.md` §3.7 ①② / §3.8 ③）：
 
@@ -453,10 +452,10 @@ node scripts/anim.mjs analyze <任务名>     # 生成 audio/<文件名>.analysi
 之后画面就能真的踩拍子（全表见 `docs/ENGINE.md` §10.2–§10.3）：
 
 ```js
-f.beat / f.beatPhase    // 连续拍号（3.4 = 第 3 拍走了 40%）/ 0→1 走向下一拍
-f.a.kick / snare / hat  // 打击事件强度（±60ms 窗口）· f.a.rms/low/mid/high/vocal/flux 是 0..1 包络
-music.timeOfBeat(16)    // 第 16 拍的时刻 —— 用它来定切割点；music.beatAt / nearestBeat 同理
-music.hit('kick', t, 0.12)   // 衰减脉冲（做撞击位移/闪白最省事）；music.hits('kick', t-2, t) 取一段内的
+f.beat / f.beatPhase         // 连续拍号（3.4 = 第 3 拍走 40%）/ 0→1 走向下一拍
+f.a.kick / snare / hat       // 打击强度（±60ms）；f.a.rms/low/mid/high/vocal/flux = 0..1 包络
+music.timeOfBeat(16)         // 第 16 拍时刻（定切点）；beatAt / nearestBeat 同理
+music.hit('kick', t, 0.12)   // 衰减脉冲（撞击/闪白）；hits('kick', t-2, t) 取一段
 ```
 
 **切镜头要对齐节拍**：用 `cut(scene, { dur: { beat: 16 } })` 或 `cut(scene, { at: music.timeOfBeat(16), dur: 8 })`，而不是手写秒数。`at` 和 `dur` 都接受 `{ beat: n }` / `{ bar: n }`（配置档节点上的 `at` / `dur` 同理，见 §3.2）。
@@ -476,45 +475,18 @@ node scripts/anim.mjs say <任务> --table en   # 表写到 audio/en.{timing,nar
 
 > 贴平台响度靶子要**显式**：`anim mix <任务> --target streaming`（默认只报数字、不动音轨；`docs/NARRATION.md` §7）。
 
-写法（`tasks/<任务>/narration.mjs`，**旁白是唯一的时间源**）：
-
-```js
-export const VOICE = 'zh-CN-YunxiNeural';   // 换音色只改这一行，重跑 say+mix（场景代码不用动）
-export const TAIL = 1.2;                    // 每段最后一句说完后至少留这么久画面
-export const MAX_STRETCH = 1.9;             // 画面最多放慢几倍（再慢就像卡住）
-export const SCENES = [
-  { id: 'hook', internal: 4.2,              // internal = 这个镜头画面最后一次揭晓的内部时刻
-    lines: [ { cue: 0.6, text: '先看一句话。' },        // cue = 说这句时画面该走到哪
-             { cue: 2.6, text: '这串「嗷呜啊」，叫「兽语」。' } ] },
-];
-```
+写法（`tasks/<任务>/narration.mjs`，**旁白是唯一的时间源**）：`VOICE` / `TAIL` / `MAX_STRETCH` / `SCENES`（每段 `internal` + 逐句 `cue`）——完整字段与示例见 [`docs/NARRATION.md`](NARRATION.md)。
 
 `say` 逐句合成、**量出真实时长**、解出每段的 `stretch`/`slot`，写 `audio/timing.{json,mjs}` + `narration.json` +
 `<任务>-vo.mp3` 并打印时长表；场景侧只写 `const t = f.lt / (ctx.params?.stretch ?? 1)`。
 它挡住的坑：**叠句**、放慢到 `MAX_STRETCH` 还不够、没有节拍源。⚠ 旁白尾巴自带约 0.9s 静音 —— 别用文件时长。
 
-`task.config.mjs` 里这样接（`duration` 直接用生成的表）：
+`task.config.mjs` 里接 `audio.{music,vo,mix}` + `narration` + 用 `timing.scenes[i].slot/stretch` 定段长（`duration` 直接用生成的表）——接线示例见 [`docs/NARRATION.md`](NARRATION.md)。
 
-```js
-import timing from './audio/timing.mjs';
-export default {
-  audio: { music: './audio/bed.mp3', vo: './audio/x-vo.mp3', mix: './audio/x-mix.mp3' },
-  narration: './narration.json',              // 场景里 ctx.narration.at(f.t) / .recent(f.t, 1.2)
-  timeline: seq([ cut(hook, { dur: timing.scenes[0].slot, overlap: timing.overlap,
-                              params: { stretch: timing.scenes[0].stretch } }) ]),
-};
-```
+**词级时间戳**（"唱到哪亮哪"）：`say` 把词级时间戳写进 `narration.json` 的 `lines[].words`（整片绝对时间），
+直接喂 `type.karaoke`；完整用法见 [`docs/NARRATION.md`](NARRATION.md)。
 
-**词级时间戳**（"唱到哪亮哪"/字幕）：`say` 会把驱动给的词级时间戳写进 `narration.json` 的
-`lines[].words`（**整片绝对时间**），直接喂给 `type.karaoke`：
-
-```js
-const l = ctx.narration.at(f.t) ?? ctx.narration.recent(f.t, 1.2);   // 说完之后字幕再留一会儿
-if (l?.words) type.karaoke(l.text, l.words, 200, 800, f.t, { size: 84, base: css(P.ash), sung: css(P.signal) });
-```
-
-没有 TTS 也能用：手写 `narration: { lines: [{ id, text, start, dur }] }`，`dur: { vo: 'line-id' }` 按那句的长度定时长
-（名字写错会抛错）。离线回归 `tools/test-say.mjs`（无需联网/GPU）；真 TTS 通电 `tools/probe-tts-edge.mjs`。
+没有 TTS 也能手写 `narration.lines` + `dur: { vo: 'line-id' }`（名字写错会抛错）。离线回归 `tools/test-say.mjs`。
 
 #### 字幕：交给引擎，别自己画（`docs/CAPTIONS.md`）
 
@@ -565,9 +537,8 @@ node scripts/anim.mjs queue a b --segments 10 --gpu high # 睡前排队：顺序
 node scripts/anim.mjs verify <任务>     # 成片抽帧 vs 同 t 重渲，逐像素（拼接/帧数/色彩/旧版本一次查完）
 node scripts/anim.mjs qa <任务>         # 纯 ffmpeg 读数：解码 / 黑场 / 静帧 / 音量（--strict 才当门）
 
-# 画面基线：它是**变更探测器**，不是"画面永远不许变"（docs/BACKLOG.md §4）
-#   · 保画面（bug fix / 重构 / 性能）⇒ --baseline 必须全绿，绿了才证明你没顺手改画面
-#   · 改画面（有意的视觉改进）⇒ --accept --note "改了什么、为什么"：先看前后对比图，再存基线
+# 画面基线 = **变更探测器**，不是"永远不许变"（docs/BACKLOG.md §4）
+#   · 保画面（bug fix / 重构 / 性能）⇒ --baseline 全绿；改画面（有意的视觉改进）⇒ --accept --note "改了什么、为什么"
 node scripts/anim.mjs hashes <任务> --every 2 --save     # 首次存基线（已存在会拒绝覆盖）
 node scripts/anim.mjs hashes <任务> --baseline           # 变了 ⇒ 退出码 1 + hashes-diff.png
 node scripts/anim.mjs hashes <任务> --accept --note "…"
@@ -580,36 +551,18 @@ node scripts/anim.mjs shake <任务> [--from 0 --to 48]      # 抖动是"平滑�
 node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再定：填充重的片子差 2×
 ```
 
-**分块渲染（`--segments`）三条必知**：切点只落在段边界、避开转场；**块级判断**（BACKLOG 1-45）——
-只改 `tasks/` 下的场景 ⇒ 只重渲它所在那块；改 `src/core` `src/style` `src/app.js` `src/timeline.js` 或 `public/`
-（**引擎地基**）⇒ 整批重渲；改 `src/kit` `src/shots` 这类**通用件** ⇒ 只重渲**真正 import 到它**的块
-（按 import 图收窄，含 `import { makeShot }` 只跟那一条、`shot('chart')` 只跟 chart 模板）；渲染参数变了 ⇒ 整批。
+**分块渲染**：切点只落在段边界、避开转场；块级判断见 [`DELIVERY.md`](DELIVERY.md) §3（改 `tasks/` 只重渲那一块 /
+改引擎地基整批 / 改 `src/kit` `src/shots` 按 import 图收窄）。**这只管「正在渲的那一支」**，不是「已交付的成片作废」。
 
-> **⚠ 这条规则管的是「正在渲的这一支」，不是「已经交出去的片子」。**
-> 「引擎改了 ⇒ 整批重渲」是**缓存失效**规则（否则会拼出半新半旧画面），它**不**意味着已交付的成片作废。
-> 交付物是哪一版渲的，看版本戳：`node scripts/anim.mjs stamp [<任务>]` —— 读 `tasks/<任务>/render-stamp.json`
-> （`video` 成功时写，**按内容算签名**，不是 mtime；mtime 在 `git clone` 后集体刷新，会让「成片比源码旧」全线误判）。
-> 四档：`current` / `engine-drift`（**不需要重渲**，交付物不作废）/ `scene-drift`（这支片子自己的文件改过，想看到效果才重渲）/ `missing`。
-> ⚠ 长时间单进程推流**会中途卡死**（实测 1260/4550 帧处 12 分钟无进度而进程还在）—— 分块每块重启浏览器，天然规避。
+> **交付物是哪一版渲的：`node scripts/anim.mjs stamp [<任务>]`** —— 四档 `current` / `engine-drift`（**不需要重渲**）/
+> `scene-drift`（这支片子自己的文件改过）/ `missing`。戳**按内容算签名**，不是 mtime。
 
-**出片速度**（本机实测、1080p60、`samples=1`）：7.5 fps，raymarch 类加 `--gpu high` 再翻倍；
-传输已换 **NV12**（3.11MB/帧）。读数与瓶颈见 `docs/PERF.md` §5.3–§5.4。
-运动模糊**逐帧自适应**：静止帧 8 子帧、普通运镜 24、甩镜/砸字吃到 72 或 216 —— `--samples 1` 关掉，`--shutter 0.2` 调窄。
+**⚠ 渲染期间一个文件都别写**：CLI 起私有 Vite，改文件 ⇒ HMR 重载 ⇒ WebSocket 断流，报 `net::ERR_CONNECTION_REFUSED`。
+唯一被实测挡住的是 `out/**`（并发子代理先落 `out/_staging/`）。长片子用 `--segments` —— 也顺带规避「单进程推流中途卡死」。
 
-**⚠ 渲染期间一个文件都别写**（第七轮实测收紧）：CLI 起私有 Vite，文件一改就 HMR 重载 → WebSocket 断流。
-`watch.ignored` 里那些（`**/*.md`、`docs/**`、`tasks/*/audio/**`…）**挡不住编辑器的原子写** ——
-它会留下 `.xxx.tmpdir/…tmp`（**不以 `.md` 结尾**），Vite 撞 `EBUSY` 直接崩，渲染报 `net::ERR_CONNECTION_REFUSED`。
-唯一被实测挡住的是 **`out/**`**（并发子代理的产出先落 `out/_staging/`，渲完再搬）。
-`video` 收尾会用 **ffprobe 复核自己的产物**（帧数不符就报错并删废文件，分块模式逐块复核）。
-
-**4K 与竖屏都不用改场景**：`--scale 2`（或任务里 `scale: 2`，接受 1..4）出真 4K，只要 shader 里别拿物理像素
-当逻辑像素用；写 `width: 1080, height: 1920` 即竖屏（引擎自动换栅格 `GRID_PORTRAIT` + 字号阶梯 ×1.35，
-字幕抬到 61%–70% 避开 B 站 UI）。写竖屏场景前读 `docs/LAYOUT.md` §6.5（判据不放宽，正文不许越过
-`contentBottom`、标注合并成一行）；回归 `node tools/test-portrait.mjs`。
-
-**编码器不可用会自动兜底**：默认 `libx264`，出片前探一次 —— Windows 上常见的 **LGPL 构建没有它**
-（硬写默认值的结果是 ffmpeg 打一行 `Unrecognized option 'x264-params'` 就退出）。现在自动退到
-`h264_mf` / `libopenh264` 并警告；要原配方（crf16 + tune grain）就装 GPL 构建或用 `--vcodec` / `ANIM_VCODEC`。
+**编码器不可用会自动兜底**：默认 `libx264`，出片前探一次（Windows 的 LGPL 构建没有它），自动退 `h264_mf` / `libopenh264`
+并警告；要原配方就装 GPL 构建或用 `--vcodec` / `ANIM_VCODEC`。**4K / 竖屏都不用改场景**：`--scale 2`、`width: 1080, height: 1920`；
+竖屏先读 [`LAYOUT.md`](LAYOUT.md) §6.5。出片速度与运动模糊档位见 [`PERF.md`](PERF.md) §5.3–§5.4。
 
 ---
 
@@ -694,89 +647,29 @@ node scripts/anim.mjs check <任务>
 
 ## 10. 交付前自检
 
-1. `check <任务>` 无报错、无空档告警、每段都不是全黑、**背景守门通过**（三点 15%/50%/85% × 单/多子帧
-   两条路径：过曝、两条路径不一致、**段内亮度不均**、**交叠段没铺整帧背景**都会报）。
-2. `still` 抽查了**每一段**的中间帧，并且**真的用 Read 看了图**（配置档任务同理：段名 = 模板名或你写的 `id`，
-   `--only` 用的就是它，例如 `still <任务> -t 6 --only chart,title`）。
+> **判定细节、完整命令块、以及每条门「为什么这么判」都在 [`docs/DELIVERY.md`](DELIVERY.md)** ——
+> 这一节只留**要跑什么**与**红了怎么办**。编号（§10.11.56 之类）是外部锚点，不许删改。
+
+1. `check <任务>`：无报错、无空档、每段不全黑、**背景守门通过**（过曝 / 单多子帧不一致 / 段内亮度不均 / 交叠段没铺底 都会报）。
+2. `still` 抽查**每一段**中间帧，并**真的用 Read 看了图**（`--only` 时 `-t` 是段内时间）。
 3. 有音乐的片子：切点对齐在拍上（`dur: { beat: n }`）。
-4. `video` 出片成功（CLI 会用 ffprobe 复核产物：帧数不符就报错并删废文件，分块模式逐块复核）；
-   再确认就 `verify <任务>` + `qa <任务>`（解码/黑场/静帧/音量 —— 切点处的短暂黑闪只有它会扫出来）。
-5. 段间没有黑隙（`check` 报「空档」），最后一段有淡出或明确收尾。
-6. 代团队/项目对外发声的片子：`tasks/<任务>/FACTS.md` 逐句标出处（模板 `docs/FACTS-TEMPLATE.md`），
-   并列出「刻意没写的东西及原因」。
-7. 有旁白的片子：`anim say` 输出里**无叠句警告**、无 `MAX_STRETCH` 顶格警告、说话占比不离谱（>80% 会提醒），
-   每段最后一句之后还有 `TAIL` 秒画面（`solveTiming` 保证并打印）。改完旁白先跑 `node tools/test-say.mjs`（免 GPU）。
-8. **风格由内容决定**（`docs/STYLE.md`）：先按内容选最合适的 `style`；只有连着发布两支同题材、
-   上一支刚用过同一套时才考虑换脸（建议不是门）。对比图：`still <任务> -t <时刻> --style paper`（不改文件）。
-9. **有旁白的片子开了引擎字幕**（`docs/CAPTIONS.md`）：`captions: true` 且 `lint-narration-dup` **零命中**，
-   `check` 里没有「压进字幕保留带」的警告。平台要软字幕就 `subs <任务>`（**开过 captions 就别再烧一遍**）。
-10. **一屏只让观众看一件事**（`docs/LAYOUT.md`）：`check` 的「版面守门」段没有 `⚠`，且**声明了主体**
-    （场景对象上写 `focus: 'center'` 或 `{ x, y, w, h }`）—— 不声明时那两条判据**根本没跑**（进 `skipped`）。
-    判据「主体之外 ≤ 2 块、每屏 ≤ 6 块字」默认只 warn，**交付自检加 `--strict`** 才当门。观众原话：
-    「有些动画元素相互遮挡害得我搞不清楚到底要看哪个主体」。
-11. **画面上的数字必须有出处**（`docs/BACKLOG.md` 1-22；判据与边界见 `docs/FACTS-TEMPLATE.md` ★ 一节）。
-    **画面全是代码算的，「编一个数字」的成本是零**，只能靠硬规则：数值显示位（`type.write` 的字符串、`chart` 的
-    `values`、`codeRow`、模板的 `title`/`sub`/`footer`、旁白与字幕）里的字面量数字，要么在 `tasks/<任务>/FACTS.md`
-    有出处，要么写占位符 `— figure —`。自查 `lint-fabricated-numbers` 零命中。⚠ 它只扫显示位且**不进退出码**：
-    **算出来的数**（模板串插值 / `.toFixed()` / `values` 里的变量）单列「没验」—— 登记口径或写占位符。坐标/字号/时长/阈值/颜色分量不算。
-11.5 **切点对得上拍子**（有音乐时）：`check` 的「卡点」那行要是 `✓ N/N 个切点都在 ±30ms 内`（`--strict` 要求 ≥90%）。
-    对不上就改段长（`dur: { beat: n }`）或把 `narration.mjs` 的 `BPM` 设成实测值；单独体检 `tools/lint-beat-align.mjs`
-    （它从音频**自己重建**网格，不信 `analysis.json` 的 bpm 估计）。
-11.5b **纯音乐片子（没有旁白表）的切点要单独量**：上面那条只在有 `audio/timing.json` 时跑，
-    音乐片子没有那张表 ⇒ 段长随手写也不会有人报（实测被用户当场指出「没有卡点啊喂」）。
-    自查：`node tools/lint-cut-beats.mjs <任务> [--bar] [--json]` —— 段表 `build()` 出来后逐个切点量到实测拍的距离。
-    ⚠ 拍点对齐只是**下界**：歌词还要对得上人声 —— 有官方 LRC 就用它（`audio/lrc-*.json`），别按字数均摊。
-    歌词片再加一层：`node tools/lint-lyric-sync.mjs <任务>`（段首到人声起音 中位 ≤150ms / p90 ≤400ms；`check` 里已经跑这条）。
-11.55 **颜色要在一个色系里**（换风格时最容易翻的车：底色冷、强调色暖、第二强调色在第三个色系）：
-    `node tools/lint-color-family.mjs [--task <任务>]` —— 主色系加权 ≥55%、前二 ≥85%、底与字亮度差 ≥0.25、
-    信号色与底色拉得开。强调色（ember/blood/acid）默认跟着 `signal` 旋转，风格只改 signal 也不散。
-    `check` 里已经跑这条；**连着发布两支**时再比一次：`lint-color-family.mjs --task A --compare B` —— 同族且色相差 <25° 就是撞色系。
-11.56 **别让它变成 PPT**：每段声明 `state: { from, to, diff }`（只动透明度/缩放不算）与 `relayTo`（接力物），
-    然后 `node tools/lint-anti-ppt.mjs <任务>`（状态差 / 接力物断链 / 淡出转场 / 时长 CoV / 每 10s 钩子 / 成片是否匀速漂移）。
-    参照样本见 `tasks/demo/task.config.mjs`，规则与 P1/P2 见 `docs/ANTI-PPT.md`。
-11.6 **每一秒都有东西看**（有音乐时也要）：`check` 的「事件密度」读的是**成片**帧间差 —— `最长静止 ≤ 3.5s`、
-    `稀薄窗口 ≤ 25%`（低于均值一半的 2 秒窗口）。超了就补持续运动（推近/扫线/逐条落位），别指望 2px 游标
-    或 0.09 alpha 的水印（检测器和人眼都看不见）。单独体检 `tools/lint-event-density.mjs <任务>`。
-11.7 **提交前钩子会跑一次自检**（只读已有成片，不渲染）：`node tools/install-git-hooks.mjs` 装一次，之后
-    `git commit` 会对**你改到的任务**跑 `anim report`，判据红就拦住；只是被引擎改动顺带扫到的片子只提醒不拦。
-    绕过：`--no-verify`。
-11.8 **机器判据过了之后，还要人过一遍 docs/RULES.md**（R/Q/S/C/P 十二条判例准则：节奏/构图/声音/文案/流程）。
-    输出格式 R1 ✓ / Q2 ✗(第 3 段)；有意违反要在 `tasks/<任务>/FACTS.md` 写明违反了哪条、为什么。
-12. **自检最多 3 轮，3 轮不过就交人**（第 4 轮起就是在猜）；发布前派一个**只挑毛病不夸**的审查者，
-    交回**按时间码排序的问题清单 + 证据**（哪一秒、哪张图、什么问题）。原文与理由见
-    [`docs/REFERENCE-video-use.md`](docs/REFERENCE-video-use.md) §3.3；切点优先看 `anim cuts`。
+4. `video` 出片成功（它自己 ffprobe 复核帧数）；再确认就 `verify` + `qa`。
+5. 段间没有黑隙，最后一段有淡出或明确收尾。
+6. 对外发声的片子：`tasks/<任务>/FACTS.md` 逐句标出处，并列出「刻意没写的东西及原因」。
+7. 有旁白：`anim say` 无叠句 / 无 `MAX_STRETCH` 顶格警告、每段末句后仍有 `TAIL` 秒画面；改完先跑 `tools/test-say.mjs`。
+8. **风格由内容决定**（`docs/STYLE.md`）：连着两支同题材才考虑换脸（建议不是门）。
+9. 有旁白且开字幕：`captions: true` + `lint-narration-dup` **零命中** + 没有「压进字幕保留带」警告；软字幕用 `subs`，**别再烧一遍 `.ass`**。
+10. **一屏一个主体**：`check` 的版面守门无 `⚠`，且场景声明了 `focus`（不声明 = 判据没跑）；`--strict` 才把 warn 当门。
+11. **画面上每个数字都要有出处**：显示位里出现的字面量数字，要么 `FACTS.md` 有出处，要么写 `— figure —`；自查 `lint-fabricated-numbers`（不进退出码，得人看）。
+11.5 卡点（有旁白表）：`check` 的「卡点」行要是 `✓ N/N 个切点都在 ±30ms 内`；对不上就改段长或把 `BPM` 设成实测值。
+11.5b **纯音乐片子**单独量：`tools/lint-cut-beats.mjs <任务>`；歌词片再加 `tools/lint-lyric-sync.mjs`（拍点对齐只是**下界**）。
+11.55 **颜色在一个色系里**：`tools/lint-color-family.mjs`（主色系 ≥55% / 前二 ≥85% / 底字对比 ≥0.25）；连着发布两支再 `--compare` 判撞色系。
+11.56 **别让它变成 PPT**：每段声明 `state.diff` 与 `relayTo`，跑 `tools/lint-anti-ppt.mjs`（状态差 / 接力物 / 淡出转场 / 时长 CoV / 钩子 / 匀速漂移）。
+11.6 **每一秒都有东西看**：`check` 的事件密度（最长静止 ≤3.5s、稀薄窗口 ≤25%）；补**大面积持续运动**，别补 2px 游标。
+11.7 提交前钩子：`tools/install-git-hooks.mjs` 装一次，`git commit` 会对改到的任务跑 `anim report`；绕过 `--no-verify`。
+11.8 机器判据过了之后，人再过一遍 `docs/RULES.md`（R/Q/S/C/P 十二条判例准则）。
+12. **自检最多 3 轮**，3 轮不过就交人；发布前派一个只挑毛病的审查者，交回按时间码排序的问题清单 + 证据。
 
 ### 出问题时按这个顺序查
 
-> **症状 → 原因只有一张表**：在上面 §8（这里不再复制 —— 两份表迟早漂移成互相矛盾）。
-
-```sh
-# ① 体检（三点采样 + 多子帧 + 背景守门/版面/卡点/事件密度）
-node scripts/anim.mjs check <任务> [--quick | --strict]
-
-# ② 画面不对 → 出图看，别猜
-node scripts/anim.mjs still <任务> -t …   # 单帧
-node scripts/anim.mjs cuts  <任务>        # 切点两侧 ±1.5s 接触表
-node scripts/anim.mjs audit <任务>        # 交叠段在交叠期到底画了什么
-
-# ③ 引擎层 / 确定性 / 像素级量具
-node scripts/anim.mjs determinism <任务> --from 0 --frames 40   # 跨帧依赖定位（分叉即退出码 1）
-node scripts/anim.mjs probe-alpha <任务>    # 整行淡入（alpha）到底生效没有
-node scripts/anim.mjs dumpframe <任务> -t 0.5 --run-up          # 裸帧 + 引擎内部量
-node scripts/anim.mjs dumppx <任务> --times 1.5 --out x.raw     # 浏览器那一帧的裸像素
-node scripts/anim.mjs probe <任务> --times 4,12   # 渲染顺序会不会改变结果
-node scripts/anim.mjs diff <任务> --times 12      # 同一时刻渲两次差多少
-node scripts/anim.mjs gpu [<任务>]                # 浮点纹理缺失 = 这台机器不能跑 HDR
-node tools/probe-raymarch.mjs / probe-three.mjs / probe-colorspace.mjs / png-rows.mjs
-node tools/test-cam-math.mjs / test-say.mjs / test-karaoke.mjs / test-timeline-guard.mjs  # 纯 JS
-
-# ④ 出片之后
-node scripts/anim.mjs verify <任务>             # 抽帧 vs 重渲（拼接/帧数/色彩）
-node scripts/anim.mjs hashes <任务> --baseline  # 变更探测器（变了 ⇒ 对比图 + 退出码 1）
-node tools/regress-all.mjs [--only smoke]       # 整份回归（日志 out/_regress/）
-node tools/regress-all.mjs --ci                 # **CI 那批**（unit:/meta:/harness:/say:）
-                                                # ← 加测试只改清单，不要改 verify.yml（手抄必漂移）
-```
-
-> 输出里出现不认识的诊断词 → **`docs/DIAGNOSIS.md`**：三列（输出词 / 含义 / 修法），每条带 `文件:行号` 证据，
-> 并写明退出码语义与「空 ≠ 干净」的读法（哪些行代表**没跑**而不是通过）。
+> 症状 → 原因只有一张表：§8。完整命令块（体检 / 出图 / 引擎量具 / 出片之后）见 [`docs/DELIVERY.md`](DELIVERY.md) §2。

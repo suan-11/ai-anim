@@ -470,7 +470,7 @@ Build scenes for ONE film: <任务名>. Nothing else.
 2. 目标时长与段数（按 8–13 秒/段估，给出总长）
 3. 事实骨架（FACTS 草稿）：每个会出现在画面上的数字 / 日期 / 引文 + 出处；
    **查不到就写 `— 待确认 —`，不许编、不许推测**
-4. 分段表：段 id / 时长 / 这一段的**视觉主角是什么**（不写颜色、不写字号）/ 旁白要说的那一句
+4. 分段表（逐段分镜表，见 §11.5）：段 id / 时长 / **主体名词** / 屏上文字 / 运动一句话 / 拟用模板或 kit / 旁白要说的那一句
 5. 每段的视觉母题：先用 `node scripts/anim.mjs shots` 里已有的模板，写模板名 + 参数；
    没有合适的写"要新写"，并说明为什么
 6. 风格与字幕：`style` 名 + `captions` 开不开 + 与上一支的同味风险自查三项（§5）
@@ -495,6 +495,26 @@ Build scenes for ONE film: <任务名>. Nothing else.
 | §5（风格对照） | 第 6 块的同味风险 |
 | §4 的 A 级硬约束 | 第 7 块的 anti-list |
 | §0 / §10（落盘与并行） | 产出位置（`tasks/<任务名>/SCENE-BRIEF.md`）与"不并行写仓库" |
+
+### 11.5 分镜三件套（C2）：写场景前先对齐意图
+
+brief 的第 4 块分段表，从「段 id / 时长 / 视觉主角 / 旁白」升级成**逐段分镜表**，每段五列：
+
+| 段 id | 时长 | 主体名词 | 屏上文字 | 运动（一句话） | 拟用模板 / kit |
+|---|---|---|---|---|---|
+| hook | 4s | 镜组 | 穿过镜头 | 摄影机向前穿 | makeThreeShot |
+
+**固化的协作顺序**（别跳步）：
+
+1. **分镜表**：brief 里先把上表填完（主体能用一个名词说清，说不清 = 这段没想好）。
+2. **placeholder 时间线**：每段先用 `shot('placeholder', { subject, onscreen, motion, ref })` 占位
+   （配置档写 `{ type: 'placeholder', subject, onscreen, motion, ref }`）。它是网格底占位卡，不是成片。
+3. **`anim board <任务>` 确认**：每段抽一格 + 「id · 时长 · note」标注，出 `out/<任务>/board.png`，
+   用 Read 看图确认结构/节奏对，再往下走。
+4. **逐段替换为真镜头**：把 placeholder 一段段换成真模板/手写场景。`check` 见到时间线里还有
+   placeholder 会 warn（`--strict` 进 errs）—— 全换完才算交付。
+
+> `placeholder` 的 `energy: 'none'`、`fits` 恒 false ⇒ `anim shots --pick` 永远抽不到它；它只用于分镜占位。
 
 ---
 

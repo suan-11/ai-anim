@@ -198,14 +198,14 @@ export function victimSpan(enterDur = 1, ratio = VICTIM_RATIO_DEFAULT) {
  * | 'relay' | 相机接力：位姿混合 + 交叠窗换手，由 engine composite 拦截，不走 transitionPass | 相邻两段都声明了 relayPose（手写 camera3 / makeThreeShot）的镜头之间 |
  */
 export const TRANSITION_MODES = /** @type {const} */ ([
-  'push', 'mix', 'none', 'wipe', 'iris', 'glitch', 'pixel', 'dissolve',
+  'push', 'mix', 'none', 'wipe', 'iris', 'sweep', 'diamond', 'frame', 'corners', 'seam', 'turn', 'split', 'slats', 'glitch', 'pixel', 'dissolve',
   // 相机接力（BACKLOG 1-12）：位姿混合 + 交叠窗换手，由 engine composite 的 relay 分支
   // 拦截（见 src/core/relay.js），不走 transitionPass —— 所以没有 shader、
   // isPassTransition('relay') 为 false（与 'mix' / 'none' 同一类）。
   'relay',
 ]);
 
-const PASS_MODES = new Set(['push', 'wipe', 'iris', 'glitch', 'pixel', 'dissolve']);
+const PASS_MODES = new Set(['push', 'wipe', 'iris', 'sweep', 'diamond', 'frame', 'corners', 'seam', 'turn', 'split', 'slats', 'glitch', 'pixel', 'dissolve']);
 
 /**
  * 校验转场模式名。**写错当场抛**（并列出可用清单）。
@@ -249,6 +249,15 @@ export function transitionFadeAt(mode) {
   switch (resolveTransitionMode(mode)) {
     case 'wipe': return 0.85;
     case 'iris': return 0.9;
+  case 'sweep': return 0.85;
+    case 'diamond': return 0.92;
+    case 'frame': return 0.92;
+    case 'corners': return 0.92;
+    case 'seam': return 0.92;
+  // turn 的旧帧是**几何**消失的（每条转到 90° 就不画），不需要全局淡出；叠上去中段会发灰
+  case 'turn': return 1;
+    case 'split': return 1;
+    case 'slats': return 1;
     case 'glitch': return 0.7;
     case 'pixel': return 0.8;
     case 'dissolve': return 1;
@@ -300,8 +309,18 @@ export function transitionPass(gl, opts = {}) {
   const collision = hasRatio ? planCollision({ enterDur: 1, ratio: opts.victimRatio }) : null;
   /** 没给 fadeAt 也没给 ratio ⇒ 按**模式**取默认（`'push'` 仍是 0.55，逐像素不变）。 */
   const fadeAt = opts.fadeAt ?? (collision ? collision.fadeAt : transitionFadeAt(mode));
+  // 镜碎那一族已从转场层删掉（整帧 UV 变形做不出玻璃，见 docs/MOTION-SPIN-SHATTER.md 的复盘）。
+  // 这三个 uniform 保留只为兼容：没有 shader 声明就没人读它们；别再往这里加新旋钮。
+  // 百叶翻面的两个旋钮（段上 transitionOpts 可覆盖）
+  const cols = opts.cols ?? 10;
+  const bands = opts.bands ?? 8;          // slats 的条数（与 turn 的 cols 各管各的：一个转、一个平移）
+  const stagger = opts.stagger === undefined ? 0.35 : opts.stagger;
+  const shards = opts.shards ?? 7;
+  const seed = opts.seed ?? 7;
+  const power = opts.power ?? 0.8;
+
   const pass = /** @type {Pass & { collision: ReturnType<typeof planCollision> | null, mode: string }} */ (
-    new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt },
+    new Pass(gl, TRANSITION_FRAG[mode], { under: { value: null }, k: 1, dir: [1, 0], push, blur, fadeAt, shards, seed, power, cols, stagger, bands },
       { key: opts.key ?? (mode === 'push' ? 'trans_push' : `trans_${mode}`), blend: true, jitter: false }));   // 重采样已有内容：不吃抖动
   /** 这一笔用的是哪一套比例（没传 `victimRatio` 时是 `null` = 老行为） */
   pass.collision = collision;
@@ -447,3 +466,4 @@ export function makeTransitionKit(ctx, opts = {}) {
     },
   };
 }
+

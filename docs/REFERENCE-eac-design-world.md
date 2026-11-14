@@ -111,7 +111,7 @@
 | 音量 | `volumedetect` 的 `mean_volume` / `max_volume` | 静音轨、贴满刻度 |
 
 **我们的缺口在哪**：`check` 每段只采 15% / 50% / 85% 三个点（[`AGENTS.md`](../AGENTS.md) §10.1），
-`rhythm` 是按 0.5s 步长**重新渲染**再差分（`scripts/anim.mjs:5571`），`verify` 只在若干时刻抽帧比对（`:3613`）。
+`rhythm` 是按 0.5s 步长**重新渲染**再差分（`scripts/cmd/rhythm.mjs:90`），`verify` 只在若干时刻抽帧比对（`scripts/cmd/verify.mjs:236`）。
 **三者都不覆盖"切点两侧 0.3 秒的黑闪"** —— 三点采样正好跨过去。
 
 ⚠ **不能照抄阈值就 gate**：我们的片尾本来就有 0.6s 压黑（`outro`），hold 段本来就不动（`rhythm` 的标定样本）。
@@ -135,7 +135,7 @@
 
 | # | 缺口 | 证据 | 本轮动作（已完成） |
 |---|---|---|---|
-| 1 | **ASS 文本没有转义**：`cmdSubs` 把旁白原文直接拼进 `Dialogue:`，含 `\` / `{` / `}` 的行会被当成换行或覆盖块 | `scripts/anim.mjs:6408`；旁白没有这类字符时看不出来 | ✅ 1-40：`assText()` / `assTime()` + `tools/test-subs.mjs` |
+| 1 | **ASS 文本没有转义**：`cmdSubs` 把旁白原文直接拼进 `Dialogue:`，含 `\` / `{` / `}` 的行会被当成换行或覆盖块 | `scripts/cmd/subs.mjs:30`；旁白没有这类字符时看不出来 | ✅ 1-40：`assText()` / `assTime()` + `tools/test-subs.mjs` |
 | 2 | **没有整片扫描**（见 §3） | `check` 三点采样 / `rhythm` 重渲 / `verify` 抽帧 | ✅ 1-39：`anim qa`，纯 ffmpeg，不起浏览器 |
 | 3 | **`type.write` 缺 blur 通道** | `src/core/text.js:259-334` 只有 stagger/from/dist/alpha | ✅ 1-41：`blur` 参数（数组才随进度插值）+ `title` 的 `blur` + `tasks/_blur-lab/` |
 

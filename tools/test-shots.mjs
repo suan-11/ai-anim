@@ -31,6 +31,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** 仓库根：从脚本所在目录往上找 package.json。 */
@@ -68,6 +70,8 @@ const TEMPLATES = [
   'handwrite',
   'reveal', 'cascade', 'transform',
   'deconstruct',
+  // C2 分镜三件套：占位卡
+  'placeholder',
 ];
 
 /** 任务侧的 8 个场景模块 → 它们必须保持的段名。 */
@@ -293,7 +297,12 @@ async function main() {
   /* ---------------- §2.5 用途元数据（1-42） ---------------- */
   console.log('\n§2.5 用途元数据（use / energy / avoid，1-42）');
   const ENERGY = Array.isArray(M.SHOT_ENERGY) ? M.SHOT_ENERGY : null;
-  check('SHOT_ENERGY 是五档且有序（低→高）', !!ENERGY && ENERGY.join('/') === '低/中低/中/中高/高',
+  // 五档必须有序（低→高）；C2 起允许在末尾附一个 'none' 占位档（分镜占位卡，不参与能量筛选）
+  const ENERGY_CORE = ['低', '中低', '中', '中高', '高'];
+  const energyOk = !!ENERGY && ENERGY.length >= 5
+    && ENERGY_CORE.every((e, i) => ENERGY[i] === e)
+    && ENERGY.slice(5).every((e) => e === 'none');
+  check('SHOT_ENERGY 五档有序（低→高），额外只允许 none 占位档', energyOk,
     ENERGY ? `实际：${ENERGY.join('/')}` : '没有导出 SHOT_ENERGY');
 
   const metaProblems = [];
@@ -398,7 +407,7 @@ async function main() {
     '缺省语义漂了：要么"缺字段=筛空"要么"false 淘汰不了"');
 
   // `anim shots --json` 的载荷（shotsCatalog）必须把新元数据带出去 —— 读 anim.mjs 源码锚它（同 §2.5 的接法）。
-  const animSrc2 = readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+  const animSrc2 = readCliSource();
   const catStart = animSrc2.indexOf('function shotsCatalog(');
   const catBody = catStart > 0 ? animSrc2.slice(catStart, animSrc2.indexOf('\n}', catStart)) : '';
   check('shotsCatalog 转发 tags / w / fitsNote（--json 的读者靠它做选型）',
@@ -793,7 +802,7 @@ async function main() {
       `beat 扫到的是 ${JSON.stringify(beatUsage)}`);
 
     // ⑤ 接线自检：cmdCheck 里真的调了它，而且 errs 真的并上了（1-19 的教训）
-    const animSrc = readFileSync(path.join(ROOT, 'scripts', 'anim.mjs'), 'utf8');
+    const animSrc = readCliSource();
     const start = animSrc.indexOf('async function cmdCheck(');
     // ⚠ 终点锚锚在函数定义上（别锚注释文本，见 tools/test-check-skipped.mjs 同名那条）
     const end = animSrc.indexOf('async function writeContactSheet', start);

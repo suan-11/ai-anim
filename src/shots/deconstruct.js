@@ -1,7 +1,7 @@
 // @ts-check
 // Real meshes, depth and shadows: the same 27 modules separate and return; nothing respawns.
 import { makeThreeShot } from '../kit/three.js';
-import { deconstructPose, phase } from '../kit/action-motion.js';
+import { deconstructPose, deconstructInspection, traceLeader, phase } from '../kit/action-motion.js';
 import { css, mixColor } from '../core/util.js';
 import { describe } from './action-stage.js';
 
@@ -28,9 +28,13 @@ export function deconstructShot(opts = {}) {
         color: palette('signal'), emissive: palette('signal'), emissiveIntensity: .16,
         roughness: .25, metalness: .24,
       });
+      // Isolate the selected shell module from its 25 peers sharing bodyMaterial.
+      this.inspectMaterial = this.bodyMaterial.clone();
+      this.bodyColor = this.bodyMaterial.color.clone();
+      this.inspectColor = palette('signal');
       this.model = new THREE.Group();
       this.modules = Array.from({ length: 27 }, (_, i) => {
-        const mesh = new THREE.Mesh(this.geometry, i === 13 ? this.coreMaterial : this.bodyMaterial);
+        const mesh = new THREE.Mesh(this.geometry, i === 13 ? this.coreMaterial : i === 24 ? this.inspectMaterial : this.bodyMaterial);
         mesh.castShadow = mesh.receiveShadow = true;
         this.model.add(mesh);
         return mesh;
@@ -74,12 +78,13 @@ export function deconstructShot(opts = {}) {
     },
     update(ctx, api) {
       const p = ctx.f.p;
-      const inspect = phase(p, .39, .66);
-      const returnView = phase(p, .78, .99);
+      const focus = deconstructInspection(p);
+      const inspect = phase(p, .48, .68);
+      const returnView = phase(p, .76, .94);
       const yaw = .61 + .44 * inspect - .44 * returnView;
       // Camera changes only for inspection; no perpetual orbit during the final hold.
       const pullback = 1.6 + (o.spread - 1) * 2.5;
-      const distance = 13.5 + pullback * phase(p, .15, .40) - pullback * phase(p, .76, .98);
+      const distance = 13.5 + pullback * phase(p, .10, .42) - pullback * phase(p, .74, .94);
       api.setCamera({ pos: [Math.sin(yaw)*distance, 5.5 - .8*inspect + .8*returnView, Math.cos(yaw)*distance], target:[0,-.35,0] });
       this.model.rotation.set(0, -.10, 0);
       const positions = this.guideGeometry.attributes.position;
@@ -91,8 +96,11 @@ export function deconstructShot(opts = {}) {
         positions.setXYZ(i*2+1,...pose.position);
       }
       positions.needsUpdate = true;
-      this.guideMaterial.opacity = .14 * phase(p,.24,.42) * (1-phase(p,.69,.82));
-      this.coreMaterial.emissiveIntensity = .12 + .35*phase(p,.25,.44)*(1-phase(p,.70,.88));
+      this.guideMaterial.opacity = .14 * phase(p,.24,.42) * (1-phase(p,.69,.82)) * (1 - .65*Math.max(focus.core.focus,focus.shell.focus));
+      this.coreMaterial.emissiveIntensity = .12 + .35*phase(p,.25,.44)*(1-phase(p,.70,.88)) + .18*focus.core.focus;
+      this.inspectMaterial.color.copy(this.bodyColor).lerp(this.inspectColor,.55*focus.shell.focus);
+      this.inspectMaterial.emissive.copy(this.inspectColor);
+      this.inspectMaterial.emissiveIntensity = .12*focus.shell.focus;
       this.model.updateMatrixWorld(true);
     },
     overlay(ctx, api) {
@@ -102,38 +110,34 @@ export function deconstructShot(opts = {}) {
       type.write(o.kicker,pad,H*.075,{size:22,family:'mono',tracking:4,color:css(P.signal)});
       const titleSize = Math.min(76,(W-pad*2)/Math.max(1,String(o.title).length)*.9);
       type.reveal(o.title,W*.5,H*.18,{size:titleSize,weight:800,align:'center',color:css(P.bone),progress:phase(f.p,.015,.10)});
-      const coreReady = phase(f.p,.38,.49)*(1-phase(f.p,.52,.58));
-      const shellReady = phase(f.p,.56,.66)*(1-phase(f.p,.69,.75));
+      const focus = deconstructInspection(f.p);
       lines.begin();
-      if(coreReady>0 || shellReady>0) {
+      if(focus.core.focus>0 || focus.shell.focus>0) {
         const core = api.project(0,0,0);
         const side = this.modules[24].getWorldPosition(this.point);
         const shell = api.project(side.x,side.y,side.z);
-        for(const [point,x,y,caption,col] of [
-          [core,W*.80,H*.50,'核心',P.signal,coreReady],
-          [shell,W*.18,H*.59,'外层模块',P.bone,shellReady],
+        for(const [point,x,y,caption,col,cue] of [
+          [core,W*.80,H*.50,'核心',P.signal,focus.core],
+          [shell,W*.18,H*.59,'外层模块',mixColor(P.bone,P.signal,.45),focus.shell],
         ]) {
-          const ready = col === P.signal ? coreReady : shellReady;
-          if (!(ready > 0)) continue;
+          if (!(cue.focus > 0)) continue;
           if(!point.visible) continue;
           const elbowX = x + (x < W/2 ? W*.065 : -W*.065);
-          const endX = point.x + (elbowX-point.x)*ready;
-          const endY = point.y + (y-point.y)*ready;
-          lines.seg(point.x,point.y,endX,endY,1.5,[...col,.65]);
-          if(ready>.99) lines.seg(elbowX,y,x,y,1.5,[...col,.65]);
-          lines.circle(point.x,point.y,4,2,[...col,ready],24);
-          type.reveal(caption,x,y-14,{size:28,weight:600,align:x<W/2?'left':'right',color:css(col),progress:ready});
+          const path = traceLeader([[point.x,point.y],[elbowX,y],[x,y]],cue.leader);
+          lines.polyline(path,1.5,[...col,.65*cue.opacity]);
+          lines.circle(point.x,point.y,4,2,[...col,cue.focus],24);
+          type.reveal(caption,x,y-14,{size:28,weight:600,align:x<W/2?'left':'right',color:css(col),progress:cue.label,alpha:cue.opacity});
         }
       }
       lines.flush(ctx.out);
       // The footer is a post-observation handoff, so it never competes with the two callouts.
-      type.reveal(o.label,W*.5,H*.88,{size:28,align:'center',color:css(mixColor(P.bone,P.ash,.25)),progress:phase(f.p,.76,.84)});
+      type.reveal(o.label,W*.5,H*.88,{size:28,align:'center',color:css(mixColor(P.bone,P.ash,.25)),progress:phase(f.p,.905,.94)});
       text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
       // Remove the skeleton's generic global drift: camera motion already lives in real 3D.
       return { zoom:1, shake:[0,0], rot:0, bloom:.12, grain:0, vignette:.12, ca:0 };
     },
     dispose() {
-      for(const name of ['geometry','bodyMaterial','coreMaterial','guideGeometry','guideMaterial','floorGeometry','floorMaterial']) this[name]?.dispose();
+      for(const name of ['geometry','bodyMaterial','coreMaterial','inspectMaterial','guideGeometry','guideMaterial','floorGeometry','floorMaterial']) this[name]?.dispose();
     },
   });
   scene.focus = 'center';

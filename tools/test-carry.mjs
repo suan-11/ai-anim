@@ -22,6 +22,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
+import { readCliSource } from './lib/cli-source.mjs';
+
 import {
   morphRect, iris, zoomThrough, hop, gather, operatorCam,
   CARRY_MOVE_FRAC, CARRY_SCALE_FRAC, CARRY_ANCHOR_FRAC,
@@ -35,7 +37,8 @@ const SRC = readFileSync(path.join(HERE, '../src/kit/carry.js'), 'utf8');
 const TL_SRC = readFileSync(path.join(HERE, '../src/timeline.js'), 'utf8');
 const KIT_INDEX = readFileSync(path.join(HERE, '../src/kit/index.js'), 'utf8');
 const REGRESS = readFileSync(path.join(HERE, 'regress-all.mjs'), 'utf8');
-const CLI = readFileSync(path.join(HERE, '../scripts/anim.mjs'), 'utf8');
+// CLI 的源码视图：anim.mjs + （拆分后）scripts/cmd/*.mjs + scripts/lib/cli/*.mjs —— 见 tools/lib/cli-source.mjs
+const CLI = readCliSource();
 
 let passed = 0;
 const failed = [];
