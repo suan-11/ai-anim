@@ -60,6 +60,10 @@ tasks/wave-wall/
 tasks/wave-wall-cover/
 # · 调试用的单镜头脚手架（直接 import wave-wall 的场景，跟着片子留本地）
 tasks/wave-preview/
+# · JFA 距离场科普片（2026-11；106 秒带旁白与字幕，只留本地）+ 它的 B 站封面任务
+#   （`jfa-cover` 的单镜头直接 import ../jfa/scenes/*，两个必须一起挡）
+tasks/jfa/
+tasks/jfa-cover/
 
 # 只服务上面那几支片子的配乐脚本，跟着片子一起留在本地。
 scripts/make-sodium-audio.mjs
