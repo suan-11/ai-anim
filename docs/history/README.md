@@ -4,11 +4,16 @@
 > ⚠ **不要把这里的"没做的 / 留给下一轮"当成待办** —— 那是**当时**的状态。
 > 现在唯一有效的待办清单是 [`../BACKLOG.md`](../BACKLOG.md)（已经逐条核对过，把后来做掉的划掉了）。
 >
-> **要看当前状态**：`../STATUS.md`（最近几轮 §18–§19）、`../../AGENTS.md` §9（目录与文档导航）、
+> **要看当前状态**：`../STATUS.md`（轮次索引）、`../HANDOVER.md`（交接页）、`../../AGENTS.md` §9（目录与文档导航）、
 > `../ENGINE.md`（规格）、`../COOKBOOK.md`（做法）。**本文档与代码不一致时，一律以代码为准。**
 >
 > 归档规则：内容**不删**（它记录了"问题是怎么被发现的"：证据链、复现命令、当时的读数），
 > 只在文件顶部加一段状态说明；**已归档的文件不再更新**。
+>
+> ⚠ **归档文件里的相对链接按 `docs/` 解析，不按本目录** —— 它们是从 `docs/` 原样搬下来的，
+> 里面的 `](PERF.md)` / `](history/HANDOFF-x.md)` 要读成 `docs/PERF.md` / `docs/history/HANDOFF-x.md`。
+> 这是搬运的已知代价（2026-11-15 实测：`BACKLOG-done-2026-10.md` 与 `PLAN-2026-11-08.md` 共 40 处），
+> 按上面的规则不去改归档正文。
 
 ---
 
@@ -17,7 +22,7 @@
 | 文件 | 原位置 | 是什么 | 现状以谁为准 |
 |---|---|---|---|
 | [`HANDOVER-2026-11-04.md`](HANDOVER-2026-11-04.md) | `docs/HANDOVER.md` §0–§10 | 2026-11-08 交接快照（**上一台机器**：qyac 远端 / 70-75 回归 / RTX 2060 参考机）——PLAN A4 归档 | [`../HANDOVER.md`](../HANDOVER.md) 顶部续接记录 + 实时 Git |
-| [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) | `docs/PLAN-2026-11-08.md` | 三线改进计划（工程健康/出片效率/画面下限）A1–A6/B0/C1–C4，**2026-11-14 全部收口**（CI 80/80） | 代码 + [`../BACKLOG.md`](../BACKLOG.md)；原路径保留作销账记录 |
+| [`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) | `docs/PLAN-2026-11-08.md`（**2026-11-15 删除**：与归档副本逐字节相同，去重） | 三线改进计划（工程健康/出片效率/画面下限）A1–A6/B0/C1–C4，**2026-11-14 全部收口**（CI 80/80） | 代码 + [`../BACKLOG.md`](../BACKLOG.md)；**这是唯一副本** |
 | [`HANDOFF.md`](HANDOFF.md) | `docs/HANDOFF.md` | 引擎最早那一轮的交接单（出片管线暴露的问题） | `STATUS.md` §1–§9 → [`STATUS-rounds-1-6.md`](STATUS-rounds-1-6.md) |
 | [`HANDOFF-THREEJS.md`](HANDOFF-THREEJS.md) | `docs/HANDOFF-THREEJS.md` | 把 Three.js 接进引擎的**设计档 + 坑清单**（提案） | [`../THREE.md`](../THREE.md)（怎么写）· [`../ENGINE.md`](../ENGINE.md) §3.8（规格） |
 
@@ -26,6 +31,7 @@
 | [`IMPROVEMENTS-4-5.md`](IMPROVEMENTS-4-5.md) | `docs/IMPROVEMENTS-4.md` · `IMPROVEMENTS-5.md` | 第四轮（`tasks/optifine` 那轮）与第五轮（风格包 + 字幕层） | 代码 · 未落地项见 [`../BACKLOG.md`](../BACKLOG.md) |
 | [`STATUS-rounds-1-6.md`](STATUS-rounds-1-6.md) | `docs/STATUS.md` §1–§13 | `STATUS.md` 前六轮的详细记录（§1–§13） | `../STATUS.md`（§14 起）；**章节号原样保留** |
 | [`STATUS-rounds-7-10.md`](STATUS-rounds-7-10.md) | `docs/STATUS.md` §14–§17 | `STATUS.md` 第七～十轮的详细记录（A 档镜头库 / B 档配置档 / 渲染提速 / NV12） | `../STATUS.md`（§18 起）；**章节号原样保留** |
+| [`STATUS-rounds-11-12.md`](STATUS-rounds-11-12.md) | `docs/STATUS.md` §18–§19（**2026-11-15 归档**：`STATUS.md` 已瘦身为轮次索引，2311 B） | 第十一～十二轮（sodium 画面可读性 / Three.js 真网格）的详细记录 | 代码 + `../STATUS.md` 索引；**章节号原样保留** |
 | [`HANDOFF-spectrum-friction.md`](HANDOFF-spectrum-friction.md) | `docs/HANDOFF-spectrum-friction.md` | 《把信号拆开》那一轮的用法摩擦（P-3～P-5 的来源） | [`../BACKLOG.md`](../BACKLOG.md) §0 · 代码 |
 | [`HANDOFF-directions.md`](HANDOFF-directions.md) | `docs/HANDOFF-directions.md` | 方向定案：硬约束 C-1～C-8 / 四阶段路线 / 12 周排期 | [`../BACKLOG.md`](../BACKLOG.md) §0 / §1.F（已销账） |
 | [`HANDOFF-2026-10-25.md`](HANDOFF-2026-10-25.md) | `docs/HANDOFF-2026-10-25.md` | 2026-10-25 周末工程批次（W1 + W2 + flat 风格） | [`../BACKLOG.md`](../BACKLOG.md) §1.F |
@@ -60,7 +66,8 @@
 | `docs/STATUS.md` §14…§17 | [`STATUS-rounds-7-10.md`](STATUS-rounds-7-10.md)（**§ 号不变**） |
 | `docs/HANDOFF-R8RG8.md` | 本目录同名文件（bikeshed 两份 HANDOFF 随片子留在本地，不入库） |
 | `docs/ROADMAP.md` | **已删除**（2026-10-18；三档 A/B/C 全部落地）—— §5 立场并入 [`../CONFIG-ONLY.md`](../CONFIG-ONLY.md) §11，§2 术语在 [`../CONFIG-ONLY.md`](../CONFIG-ONLY.md) 头部 |
-| `docs/STATUS.md` §14…§19 | [`../STATUS.md`](../STATUS.md) |
+| `docs/STATUS.md` §14…§17 | [`STATUS-rounds-7-10.md`](STATUS-rounds-7-10.md)（**§ 号不变**） |
+| `docs/STATUS.md` §18…§19 | [`STATUS-rounds-11-12.md`](STATUS-rounds-11-12.md)（**§ 号不变**） |
 | `docs/HANDOFF-2026-10-25.md` · `-night` · `2026-10-30.md` · `-media` · `2026-10-31.md` · `-pixel-hatch` | 本目录同名文件（2026-11-01 批量归档） |
 | `docs/HANDOFF-directions.md` · `docs/HANDOFF-spectrum-friction.md` | 本目录同名文件（2026-11-01 批量归档） |
 | `docs/HANDOFF-bikeshed-proposal.md` · `-postmortem` · `docs/HANDOFF-sodium-feedback.md` | 本目录同名文件（2026-11-01 归档；仍是**本地文档**，不入库） |

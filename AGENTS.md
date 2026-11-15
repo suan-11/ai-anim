@@ -641,6 +641,7 @@ node scripts/anim.mjs check <任务>
 | `docs/PERF.md` | 渲染性能实测与验收口径 |
 | `docs/HANDOVER.md` | **交接页**：现状 / 这轮做了什么 / 怎么验证 / 环境坑 / 欠账（新接手先读这个） |
 | `docs/BACKLOG.md` | **「还没做的事」的唯一清单** —— 要动引擎先看这份 |
+| `docs/REFERENCE-garden-skills.md` | 外部 skill `motion-showreel` 的拆解：**入口照它、结构不照它**（结论 + 五条待办 1-75～1-79） |
 | `docs/history/` | **归档，别当待办读**（索引：`history/README.md`） |
 
 ---

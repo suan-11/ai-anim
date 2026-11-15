@@ -1,6 +1,8 @@
 # BACKLOG —— 还没做的事（唯一的待办清单）
 
-> **2026-11-14 · 改进计划已全部收口**：[`PLAN-2026-11-08.md`](PLAN-2026-11-08.md) 三线 11 项（A1–A6 / B0 / C1–C4）全完成，CI 80/80，计划归档 `history/PLAN-2026-11-08.md`。当前唯一开放的内容欠账是 `pv-kattachi` 歌词同步（见 §2）。
+> **2026-11-15 · 新增 §1.G「对标输入的缺口」五条（1-75～1-79）**：拆 [REFERENCE-garden-skills.md](REFERENCE-garden-skills.md) 得出，建议顺序 1-76 → 1-77 → 1-78 → 1-75 → 1-79。
+
+> **2026-11-14 · 改进计划已全部收口**：[`history/PLAN-2026-11-08.md`](history/PLAN-2026-11-08.md) 三线 11 项（A1–A6 / B0 / C1–C4）全完成，CI 80/80，计划归档 `history/PLAN-2026-11-08.md`。当前唯一开放的内容欠账是 `pv-kattachi` 歌词同步（见 §2）。
 
 > **2026-11-08 · 已完成条目已归档**：带 `~~删除线~~` 或明确写「已完成 / 已拍板完成」的条目（含顶部按日期堆叠的历史批次说明、§4「已经关掉的」整节）**逐字迁入** [history/BACKLOG-done-2026-10.md](history/BACKLOG-done-2026-10.md)；本文只留 §0 拍板区、仍开放的条目、磁盘清理现状与维护规则。已迁走的编号见 §5。
 
@@ -63,6 +65,22 @@
 | 1-49 | **母题库**：`sodium` 积木 / `spectrum` 波形格阵 / `bikeshed` 会议室 抽进 `src/kit/motifs/` | 画面变化用 `hashes --accept --note` 记录 | 同 §5 Phase 2 |
 | ~~1-74~~ | **已修（2026-11-11）**：`gl.clear()` 现在算一次「整帧覆盖绘制」（`src/core/gl.js` 的 `clear` 调 `_notePaint`）。背景守门原来只数 `Pass.render` —— 而 `AGENTS.md` §3 教场景写的第一句正是 `gl.clear(ctx.out, …)`，于是「只靠 clear 铺底」的模板（`outro`）被误判。引擎在 `beginPaint` **之前**那次兜底黑屏不会被数（那时 `paint` 为 null）。复现原状：`tasks/_gate-probe` 的 outro 段。**原始记录：** **`outro` 模板 + `world: 'auto'` 被背景守门判成「没铺底」**（2026-11-09 在做转场样片时撞到）：`outro` 自己 `gl.clear(ctx.out, P.bg)` 且声明 `outputs.visual = 'full-frame'`，但在配置档节点上同时写 `world: 'auto'` + `handlesTransition: true` 时，`check` 的「背景守门」把它列进 `missing`。换成 `title` 模板同样的写法就通过 ⇒ 怀疑是 `outro` 的清屏路径没被守门的计数器认到（或它与 `world` 铺底的顺序/目标不一致）。复现：`tasks/trans-showcase` 的 `e` 段改回 `type: 'outro'` 跑 `check --quick` |
 | 1-56 | **绿幕 / 透明导出**（**2026-11-01 拍板：立项要做，排在 1-12 之后**）（2026-10-26 从 `REFERENCE-jizura.md` 拆出，**不排期**）：`video --alpha` 背景层出纯色、文字层单独出一条，后期合成用 | 判据：两条轨帧数与主片一致（ffprobe 复核）；`qtrle` 或 PNG 序列两种可选。对"一个人做片子"收益中等，先登记 | [`docs/REFERENCE-jizura.md`](REFERENCE-jizura.md) §4 |
+
+### 1.G 对标输入的缺口（2026-11-15 拆 `ConardLi/garden-skills` 得出）
+
+> 来源：[REFERENCE-garden-skills.md](REFERENCE-garden-skills.md)。那套 skill 与我们是**同一条管线**
+> （确定性 `render(t)` → 逐帧截图 → ffmpeg），架构上没有可抄的；下面五条是**它比我们多做的那一段**，
+> 前两条是硬缺口（有证据），其余是判据颗粒度。
+>
+> **建议顺序**：1-76（输入端，其余判据都靠它才有外部参照）→ 1-77（半天）→ 1-78 → 1-75 → 1-79。
+
+| # | 事 | 从哪接着做 | 出处 |
+|---|---|---|---|
+| 1-76 | **参考片拆解器 `anim ref <外片.mp4>`** —— 吃**别人的成片**，量出：①场景切点表 ②BPM 候选（切点间隔直方图）③每段运动量 ④运动热图 | **不造新算法，只换输入源**：ffmpeg 抽帧（复用 `scripts/lib/media.mjs`）→ 复用 `scripts/cmd/rhythm.mjs` 与 `tools/lint-event-density.mjs` 的帧差代码 → 新增 `scripts/cmd/ref.mjs` + 纯 JS 回归夹具（判据可离线测，不用 GPU）。做完把它接进 [SCENE-BRIEF-TEMPLATE.md](SCENE-BRIEF-TEMPLATE.md) §11 的"对标"环节。⚠ **现状证据**：`anim sheet` / `anim cuts` 走 `openSession({ task })` **只渲自己任务**；`grep -i "scenecut\|heat" tools/` **0 命中** | [REFERENCE-garden-skills.md](REFERENCE-garden-skills.md) §3.2 |
+| 1-77 | **`qa` 的期望值校验 + NOT CHECKED 极性** —— `--expect-size/--expect-fps/--expect-duration/--audio required\|none`；**没传的规格打 NOT CHECKED，不算通过** | 沿用 `scripts/lib/media.mjs:270` 的 `LOUDNESS_TARGET`（表 + assess + 逐项说人话）写法。⚠ 默认行为必须仍是"只报读数"（`qa` 现在的设计原则，`--strict` 才当门）；只有显式传 `--expect-*` 才翻极性。`check` 侧**已经做对**（`pushSkipped`/`formatSkipped`，`tools/test-check-skipped.mjs` 已断言），这条只补 `qa`。**约半天** | 同上 §3.3 |
+| 1-78 | **循环片一等公民**：`video --loop` 构建旋钮 + `qa --loop` 验接缝（末帧 vs 首帧差 ≤ 阈值）+ `docs/MOTION.md` 补 Loop 时长建议（4–12s） | 像素比对代码可从 `anim hashes` 复用。⚠ **现状证据**：`grep -r -- "--loop" scripts/` **0 命中**。理由不是审美 —— 循环片（bumper / 直播待机 / 官网 hero）是**唯一能把判据完全机器化**的产出形态 | 同上 §3.4 |
+| 1-79 | **声音方向写进 brief + 共享合成器** | ①`SCENE-BRIEF-TEMPLATE.md` §11 的 brief 增 `sound` 栏（声音对标 / 律动 / 和声 / 配器 / 曲线 + **"默认要避免的清单"**），半天；②把 `scripts/make-*-audio.mjs`（6 份，最大 36 KB）的共同部分提成 `scripts/lib/score.mjs`（鼓/贝斯/铺底/FM/侧链/混响/lo-fi），`task.config` 写 `score: './score.mjs'`。⚠ ②动手前**先量重复率**：各片音色差异大时抽出来反而拧巴。参照 `docs/SFX.md` 的「语义规则：不再每个切点一声风」（同款亏已吃过一次，只修了摆位没修方向） | 同上 §3.5 |
+| 1-75 | **风格包补「辨识信号 / 最俗的版本」两节** —— 每套风格写 3–5 条辨识信号（**至少一条不在俗套里**）+ 3–4 条"这套最俗的版本长什么样"，写 brief 时必须声明翻掉了哪几条 | 纯文档，**不动代码**：先做 top 8 套写进 [STYLE.md](STYLE.md) §3，`anim styles` 输出加一行指针。⚠ 现状：`src/style/index.js` 的 7 个字段全是**机器参数**，没有一个字写"这套长什么样才叫像它"。补上后 [STYLE.md](STYLE.md) §6「风格由内容决定」才第一次有判据 | 同上 §3.1 |
 
 ---
 
@@ -167,6 +185,7 @@
 | ~~1-69~~ | 已归档 → [history/BACKLOG-done-2026-10.md](history/BACKLOG-done-2026-10.md) |
 | ~~1-70~~ | 已归档 → [history/BACKLOG-done-2026-10.md](history/BACKLOG-done-2026-10.md) |
 | ~~1-71~~ | 已归档 → [history/BACKLOG-done-2026-10.md](history/BACKLOG-done-2026-10.md) |
+| ~~1-73~~ | **成片版本戳 `anim stamp`**（`ef76dd5`，2026-11-07）—— 本表从未登记过它，但已交付，见 [CHANGES-vs-upstream.md](CHANGES-vs-upstream.md)；2026-11-15 补指针 |
 
 其余已归档编号（`1-8`、`1-11`、`1-13`、`1-15`、`1-23`、`1-34`、`1-43`、`1-44`、`1-46`、`1-52`、`1-54`、`1-55`、`1-57`、`1-61`、`1-63`~`1-66`、`1-72`、`1-45b`、`2-1`、`C-1`、`P-4`~`P-8`）同样在那份归档里，按编号搜即可。
 

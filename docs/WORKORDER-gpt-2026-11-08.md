@@ -4,7 +4,7 @@
 > 门不绿就停在原地，把原始输出贴回来，不要「顺手修一下」继续往下走。
 >
 > 仓库：`C:/Users/haoxu/Downloads/NekoHome/ai-anim`（分支 `master`，起点 `2081e81`）
-> 依据：`docs/PLAN-2026-11-08.md` §3（A 线）；状态基线见 `docs/HANDOVER.md`。
+> 依据：`docs/history/PLAN-2026-11-08.md` §3（A 线）；状态基线见 `docs/HANDOVER.md`。
 
 ## 0. 铁律（违反任何一条，这一轮作废）
 
