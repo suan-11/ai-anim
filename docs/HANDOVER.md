@@ -9,6 +9,18 @@
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
 
+### 2026-11-16 交接（1-76 参考片拆解器落地）
+
+**一句话**：BACKLOG §1.G 的第一条 **1-76 `anim ref` 参考片拆解器做完**，CI **81/81**，工作区干净（HEAD `f8eb034`，在 master，尚未推 PR）。
+
+- **新命令 `anim ref <外片.mp4>`**：吃别人的成片，量出 ①场景切点表 ②BPM 候选 ③每段运动量 ④时间+空间运动热图，另出 ffmpeg tile 整片接触表。读数落 `out/_ref/<片名>/ref.json` + `sheet.png`。
+- **不造新算法**：帧差口径复用 diff-series；纯函数判据在 `scripts/lib/ref-analysis.mjs`（detectCuts 孤立尖峰 / bpmCandidates 网格拟合+偏差 tie-break / segmentMotion / motionHeat / aggregateCellHeat），命令在 `scripts/cmd/ref.mjs`。
+- **离线回归** `tools/test-ref.mjs` 19 项进 CI（合成序列，不用 GPU/ffmpeg）。已接进 SCENE-BRIEF §11.6「对标」环节。
+- **⚠ 边界**：只认**硬切**（帧差孤立尖峰）；溶解/渐变转场检不出切点属正常。实测 trans-showcase（多溶解转场）只检到 3 个硬切，读数仍有用。
+- **验证**：regress-all --ci 81/81 · test-ci-coverage ✓ · gen-shot-cards --check ✓ · gen-changes --check ✓ · lint-doc-facts ✓。实跑 `ref out/trans-showcase/trans-showcase.mp4` 出图核对过。
+
+**接手下一步**：§1.G 建议顺序剩 **1-77（qa 期望值 + NOT CHECKED 极性）→ 1-78（循环片 --loop）→ 1-75（风格辨识信号）→ 1-79（声音 brief + score.mjs）**。`pv-kattachi` A/B/C 仍待用户拍板。本条改动在本地 master，**要交付需推 PR**（走 qyac，参照上一轮 feat/plan-completion 流程）。
+
 ### 2026-11-15 交接（文档压缩归档 + 新增 §1.G）
 
 **一句话**：这一轮**没有改任何代码**，只做文档的「总结 / 归档 / 加待办」三件事；代码与 `tasks/` 一字未动，CI 基线仍是 80/80。
