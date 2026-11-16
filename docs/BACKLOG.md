@@ -82,6 +82,16 @@
 | 1-79 | **声音方向写进 brief + 共享合成器** | ①`SCENE-BRIEF-TEMPLATE.md` §11 的 brief 增 `sound` 栏（声音对标 / 律动 / 和声 / 配器 / 曲线 + **"默认要避免的清单"**），半天；②把 `scripts/make-*-audio.mjs`（6 份，最大 36 KB）的共同部分提成 `scripts/lib/score.mjs`（鼓/贝斯/铺底/FM/侧链/混响/lo-fi），`task.config` 写 `score: './score.mjs'`。⚠ ②动手前**先量重复率**：各片音色差异大时抽出来反而拧巴。参照 `docs/SFX.md` 的「语义规则：不再每个切点一声风」（同款亏已吃过一次，只修了摆位没修方向） | 同上 §3.5 |
 | 1-75 | **风格包补「辨识信号 / 最俗的版本」两节** —— 每套风格写 3–5 条辨识信号（**至少一条不在俗套里**）+ 3–4 条"这套最俗的版本长什么样"，写 brief 时必须声明翻掉了哪几条 | 纯文档，**不动代码**：先做 top 8 套写进 [STYLE.md](STYLE.md) §3，`anim styles` 输出加一行指针。⚠ 现状：`src/style/index.js` 的 7 个字段全是**机器参数**，没有一个字写"这套长什么样才叫像它"。补上后 [STYLE.md](STYLE.md) §6「风格由内容决定」才第一次有判据 | 同上 §3.1 |
 
+### 1.H hallmark 对标（1-80～1-82）
+
+拆 [REFERENCE-hallmark.md](REFERENCE-hallmark.md) 得出（网页 anti-slop skill，不同域，只学判据组织）：
+
+| 编号 | 事 | 从哪接着做 | 出处 |
+|---|---|---|---|
+| 1-80 | **豁免纪律**：判据 id + guard 证据 + reason + 同一判据连续豁免计数（≥3 升 house style 警告） | 现在 `allowOverlap` / `--accept` / `world:false` 豁免无痕。统一成可记录块，report 统计连续豁免，≥3 次提示 house style | REFERENCE-hallmark.md §3① |
+| 1-81 | **结构反收敛**：结构指纹（段长 CoV / 切点类型分布 / 每段运动量向量）vs `out/_history/` 最近 3 支，>N 维同构报「结构收敛」 | 接上刚做的 `anim ref`（切点/运动量）+ 1-75（风格辨识信号）；先出纯函数 + 夹具 | REFERENCE-hallmark.md §3② |
+| 1-82 | **判据分层 tier**：每条判据标 `floor|reflex|finish`，report 分层计数（`Floor 0 FAIL · Reflex 2 (1 waived) · Finish 3`），与 `--strict` 语义对齐 | 先从 `lint-anti-ppt` / `check` 现有判据开始标，不动判据逻辑只改报告 | REFERENCE-hallmark.md §3③ |
+
 ---
 
 ## 2. 内容 / 片子
