@@ -81,6 +81,7 @@
  *                                                        成片抽帧 vs 同 t 重渲，按**帧号**逐像素比
  *                                                        （--from 是成片在任务时间轴上的起点）
  *   node scripts/anim.mjs qa <task> [--file x.mp4 --strict --freeze 3]
+ *        [--expect-size 1920x1080 --expect-fps 30 --expect-duration 26 --audio required|none]  期望值校验（1-77，没传=NOT CHECKED）
  *                                                        成片级技术扫描（纯 ffmpeg，不起浏览器）：
  *                                                        解码 / 黑场 / 静帧 / 音量，报区间。
  *                                                        默认只报读数，--strict 才把 warn 当失败

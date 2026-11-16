@@ -522,6 +522,74 @@ export function formatLoudness(m, opts = {}) {
 const s2 = (x) => (Number.isFinite(Number(x)) ? Number(x).toFixed(2) : 'NaN');
 
 /**
+ * qa 期望值校验（BACKLOG 1-77）——「对标 hallmark 的 NOT CHECKED 极性」。
+ * 纯函数：吃 scan（probeMediaInfo/scanMediaFile 的读数）+ 期望，逐项给 pass / fail / not-checked。
+ * **没传的规格 = not-checked（不算通过）**；显式传了又不符 = fail（翻极性，当门）。
+ * 默认 qa 仍只报读数：一个 --expect-* 都不传时，这里全 not-checked，不产生任何 error。
+ */
+export const QA_SPEC_LIST = ['size', 'fps', 'duration', 'audio'];
+
+/** '1920x1080' / '1920×1080' → {w,h}；写法不对返回 null。 */
+export function parseSizeSpec(s) {
+  const m = String(s).trim().match(/^(\d+)\s*[x×*]\s*(\d+)$/i);
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : null;
+}
+
+/**
+ * @param {{width?:number|null,height?:number|null,fps?:number,duration?:number,hasAudio?:boolean}} scan
+ * @param {{size?:string,fps?:string|number,duration?:string|number,audio?:string,durTol?:number,fpsTol?:number}} expects
+ * @returns {{spec:string,status:'pass'|'fail'|'not-checked',expected:string|null,actual:string,text:string}[]}
+ */
+export function assessExpectations(scan, expects = {}) {
+  const durTol = expects.durTol ?? 0.5;
+  const fpsTol = expects.fpsTol ?? 0.5;
+  const sizeStr = `${scan.width ?? '?'}×${scan.height ?? '?'}`;
+  const fpsStr = scan.fps ? scan.fps.toFixed(2) : '?';
+  const durStr = Number.isFinite(scan.duration) ? scan.duration.toFixed(3) + 's' : '?';
+  const audStr = scan.hasAudio ? '有音轨' : '无音轨';
+  const results = [];
+  const push = (spec, status, expected, actual, text) => results.push({ spec, status, expected, actual, text });
+  const given = (v) => v != null && v !== '';
+
+  if (given(expects.size)) {
+    const want = parseSizeSpec(expects.size);
+    if (!want) push('size', 'fail', String(expects.size), sizeStr, `--expect-size 写法不对：${expects.size}（要 宽x高，如 1920x1080）`);
+    else {
+      const ok = scan.width === want.w && scan.height === want.h;
+      push('size', ok ? 'pass' : 'fail', `${want.w}×${want.h}`, sizeStr, ok ? `尺寸 ${want.w}×${want.h} ✓` : `尺寸要 ${want.w}×${want.h}，实际 ${sizeStr}`);
+    }
+  } else push('size', 'not-checked', null, sizeStr, `尺寸 NOT CHECKED（没传 --expect-size；读数 ${sizeStr}）`);
+
+  if (given(expects.fps)) {
+    const want = Number(expects.fps);
+    if (!Number.isFinite(want) || want <= 0) push('fps', 'fail', String(expects.fps), fpsStr, `--expect-fps 要一个正数（收到 ${expects.fps}）`);
+    else {
+      const ok = Number.isFinite(scan.fps) && Math.abs(scan.fps - want) <= fpsTol;
+      push('fps', ok ? 'pass' : 'fail', String(want), fpsStr, ok ? `帧率 ${want}fps ✓` : `帧率要 ${want}fps，实际 ${fpsStr}fps`);
+    }
+  } else push('fps', 'not-checked', null, fpsStr, `帧率 NOT CHECKED（没传 --expect-fps；读数 ${fpsStr}fps）`);
+
+  if (given(expects.duration)) {
+    const want = Number(expects.duration);
+    if (!Number.isFinite(want) || want <= 0) push('duration', 'fail', String(expects.duration), durStr, `--expect-duration 要一个正秒数（收到 ${expects.duration}）`);
+    else {
+      const ok = Number.isFinite(scan.duration) && Math.abs(scan.duration - want) <= durTol;
+      push('duration', ok ? 'pass' : 'fail', `${want}s`, durStr, ok ? `时长 ${want}s ✓（±${durTol}s）` : `时长要 ${want}s（±${durTol}s），实际 ${durStr}`);
+    }
+  } else push('duration', 'not-checked', null, durStr, `时长 NOT CHECKED（没传 --expect-duration；读数 ${durStr}）`);
+
+  if (expects.audio === 'required' || expects.audio === 'none') {
+    const want = expects.audio === 'required';
+    const ok = Boolean(scan.hasAudio) === want;
+    push('audio', ok ? 'pass' : 'fail', expects.audio, audStr, ok ? `音轨 ${expects.audio} ✓` : (want ? '要求有音轨（--audio required），实际无音轨' : '要求无音轨（--audio none），实际有音轨'));
+  } else if (given(expects.audio)) {
+    push('audio', 'fail', String(expects.audio), audStr, `--audio 只认 required / none（收到 ${expects.audio}）`);
+  } else push('audio', 'not-checked', null, audStr, `音轨 NOT CHECKED（没传 --audio；读数 ${audStr}）`);
+
+  return results;
+}
+
+/**
  * 扫描用的 ffmpeg 滤镜串，以及它**实际生效的两个阈值**。
  * ⚠ 滤镜和报告里的数字必须同源：改了滤镜不改这里，打印出来的判据就是假的
  * （`classifyMediaScan()` 的 `thresholds` 直接读这份常量）。

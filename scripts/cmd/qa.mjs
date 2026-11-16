@@ -24,7 +24,12 @@ import { ROOT, pickTask, taskOut } from "../lib/cli/paths.mjs";
  * node scripts/anim.mjs qa demo
  * node scripts/anim.mjs qa demo --strict --freeze 5      # 静帧超过 5s 才算问题
  * node scripts/anim.mjs qa demo --file out/demo/shot_0-3.mp4 --json
+ * node scripts/anim.mjs qa demo --expect-size 1920x1080 --expect-fps 30 --expect-duration 26 --audio required
  * ```
+ *
+ * 期望值校验（BACKLOG 1-77，对标 hallmark 的 NOT CHECKED 极性）：
+ * `--expect-size/--expect-fps/--expect-duration/--audio required|none` 显式传了才当门（不符=失败）；
+ * **没传的规格打 NOT CHECKED，不算通过**。一个都不传时行为与从前逐字一致（只报读数）。
  */
 async function cmdQa() {
   const task = pickTask();
@@ -39,14 +44,18 @@ async function cmdQa() {
     if (!Number.isFinite(v) || v < 0) die(`--${k === 'maxFreeze' ? 'freeze' : k} 要一个非负秒数（收到 ${JSON.stringify(v)}）`);
   }
 
-  const { scanMediaFile, classifyMediaScan } = await import("../lib/media.mjs");
+  const { scanMediaFile, classifyMediaScan, assessExpectations } = await import("../lib/media.mjs");
   const scan = scanMediaFile(file, { decode: withDecode });
   const verdict = classifyMediaScan(scan, { head, tail, maxFreeze });
   const frames = scan.fps ? Math.round(scan.duration * scan.fps) : null;
+  const expects = { size: opt('expect-size'), fps: opt('expect-fps'), duration: opt('expect-duration'), audio: opt('audio'), durTol: Number(opt('dur-tol', '0.5')) };
+  const specResults = assessExpectations(scan, expects);
+  const specFails = specResults.filter((x) => x.status === 'fail');
+  const notChecked = specResults.filter((x) => x.status === 'not-checked').length;
 
   if (flag('json')) {
-    log(JSON.stringify({ scan, verdict, strict }, null, 2));
-    process.exitCode = verdict.errors.length || (strict && verdict.warnings.length) ? 1 : 0;
+    log(JSON.stringify({ scan, verdict, specs: specResults, strict }, null, 2));
+    process.exitCode = (verdict.errors.length + specFails.length) || (strict && verdict.warnings.length) ? 1 : 0;
     return;
   }
 
@@ -62,12 +71,18 @@ async function cmdQa() {
     for (const it of group) log(`  ${label[it.tier]} ${it.text}`);
   }
   if (!verdict.items.length) log('  ✓ 解码、黑场、静帧、音量四项都没有异常读数');
+  log('');
+  log('  规格校验（显式 --expect-* 才当门；没传 = NOT CHECKED，不算通过）：');
+  const sIcon = { pass: '✓', fail: '✗', 'not-checked': '○' };
+  for (const x of specResults) log(`    ${sIcon[x.status]} ${x.text}`);
 
   log('');
-  log(`结论：${verdict.errors.length ? '失败' : (strict && verdict.warnings.length ? '失败（--strict）' : '通过')}`
-    + `（${verdict.errors.length} 错 / ${verdict.warnings.length} 警 / ${verdict.infos.length} 条读数`
+  const errCount = verdict.errors.length + specFails.length;
+  log(`结论：${errCount ? '失败' : (strict && verdict.warnings.length ? '失败（--strict）' : '通过')}`
+    + `（${errCount} 错 / ${verdict.warnings.length} 警 / ${verdict.infos.length} 条读数`
     + (withDecode ? '' : '；--no-decode：解码这一条没验') + '）');
+  if (notChecked) log(`  ○ ${notChecked} 项规格 NOT CHECKED —— 未验 ≠ 通过（要验就传 --expect-size / --expect-fps / --expect-duration / --audio）`);
   if (verdict.warnings.length && !strict) log('  （警告默认不改退出码；要当门用加 --strict）');
-  process.exitCode = verdict.errors.length || (strict && verdict.warnings.length) ? 1 : 0;
+  process.exitCode = errCount || (strict && verdict.warnings.length) ? 1 : 0;
 }
 export { cmdQa as run };
