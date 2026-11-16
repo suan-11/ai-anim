@@ -8,20 +8,20 @@
 ## 一、总量
 
 ```
-152 个提交 · 661 个文件 · +110,049 / −8,782 行
-基线 237e985　当前 3dea39b fix(shot-cards): placeholder 登记 board 分类 —— 修 CI gen-shot-cards --check（PR #10 炸的那条）
+158 个提交 · 675 个文件 · +111,053 / −9,074 行
+基线 237e985　当前 6d669a4 feat(ref): 1-76 参考片拆解器 anim ref —— 切点表/BPM候选/每段运动量/时间+空间热图，纯函数离线回归 19 项
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
-| tasks | 319 | 55,921 | 308 |
+| tasks | 326 | 56,250 | 308 |
 | assets | 14 | 16,801 | 0 |
-| scripts | 66 | 10,661 | 7,292 |
-| tools | 87 | 8,821 | 193 |
+| scripts | 68 | 10,938 | 7,292 |
+| tools | 88 | 8,913 | 193 |
 | src | 70 | 8,678 | 169 |
-| docs | 76 | 6,989 | 404 |
+| docs | 80 | 7,290 | 696 |
 | skills | 20 | 1,724 | 0 |
-| (root) | 5 | 324 | 416 |
+| (root) | 5 | 329 | 416 |
 | .github | 2 | 114 | 0 |
 | .githooks | 1 | 16 | 0 |
 | public | 1 | 0 | 0 |
@@ -30,6 +30,12 @@
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| 6d669a4 | 2026-11-16 | feat(ref): 1-76 参考片拆解器 anim ref —— 切点表/BPM候选/每段运动量/时间+空间热图，纯函数离线回归 19 项 |
+| ae06920 | 2026-11-15 | chore(ignore): jfa / jfa-cover 留本地 —— 106 秒带旁白的科普片与它的封面任务 |
+| 529a7eb | 2026-11-15 | docs: 拆 garden-skills motion-showreel + 待办 §1.G 五条；STATUS §18–§19 归档、PLAN 去重 |
+| 09bc11a | 2026-11-14 | feat(lens-moves): add motion score and synchronized sound bed |
+| 1b05335 | 2026-11-14 | feat(lens-moves): add orbit offset and reveal camera passes |
+| 5f20da5 | 2026-11-14 | docs(changes): 重生成改动清单（placeholder 镜头卡入表） |
 | 3dea39b | 2026-11-14 | fix(shot-cards): placeholder 登记 board 分类 —— 修 CI gen-shot-cards --check（PR #10 炸的那条） |
 | 317d40e | 2026-11-14 | docs(backlog): 计划全收口销账 + 开 2-2 pv-kattachi 歌词同步收尾（待拍板 A/B/C） |
 | 15b2454 | 2026-11-14 | docs(handover): 2026-11-14 交接 —— PLAN 全收口 CI 80/80，pv-kattachi 待决 A/B/C 与核听入口 |
