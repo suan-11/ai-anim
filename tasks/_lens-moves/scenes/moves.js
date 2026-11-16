@@ -113,6 +113,10 @@ export default function lensMove(mode = 'offset') {
       const light = new THREE.PointLight(color([.15, .7, .63]), 2, 24, 1.4);
       light.position.set(0, .8, -11); scene.add(light);
       this.route = createFlightPath(THREE);
+      this.slingPath = new THREE.CatmullRomCurve3([
+        [8.8, 2.2, 7.0], [7.4, 1.1, 2.0], [3.6, .5, -1.5],
+        [.7, .12, -6.5], [.05, 0, -16.5],
+      ].map(point => new THREE.Vector3(...point)), false, 'centripetal');
       this.eye = new THREE.Vector3();
     },
     update(ctx, api) {
@@ -122,14 +126,18 @@ export default function lensMove(mode = 'offset') {
           ? phase(t, .55, 2.65)
           : mode === 'reveal'
             ? phase(t, .15, 2.2)
+            : mode === 'sling'
+              ? phase(t, .25, 2.5)
             : stageOpening(i, t);
         const group = this.stages[i];
         group.position.z = mode === 'orbit'
           ? -i * (.72 + .92 * open)
           : mode === 'reveal'
             ? -i * (.58 + .34 * open)
+            : mode === 'sling'
+              ? -i * (.56 + .82 * open)
             : stageDepth(i, t);
-        group.rotation.z = (i % 2 ? -1 : 1) * (mode === 'orbit' ? .20 : .13) * open;
+        group.rotation.z = (i % 2 ? -1 : 1) * (mode === 'orbit' ? .20 : mode === 'sling' ? .18 : .13) * open;
       }
       const u = flightProgress(t);
       if (mode === 'orbit') {
@@ -140,19 +148,27 @@ export default function lensMove(mode = 'offset') {
       } else if (mode === 'reveal') {
         this.route.getPointAt(1 - u, this.eye);
         api.setCamera({ pos: this.eye.toArray(), target: [0, 0, -3.5 - 10.5 * (1 - u)] });
+      } else if (mode === 'sling') {
+        this.slingPath.getPointAt(u, this.eye);
+        const targetX = .7 * (1 - phase(t, 3.1, 5.5));
+        api.setCamera({ pos: this.eye.toArray(), target: [targetX, .04 * Math.sin(u * Math.PI * 2), -2.2 - 14.5 * phase(t, 1.2, 5.8)] });
       } else {
         this.route.getPointAt(u, this.eye);
         this.eye.x += .38 * Math.sin(u * Math.PI) + .48 * Math.sin(u * Math.PI * 3.2);
         this.eye.y += .24 * Math.cos(u * Math.PI * 2.4);
         api.setCamera({ pos: this.eye.toArray(), target: [.1 - .45 * u + .16 * Math.sin(u * Math.PI * 2.2), .08 * Math.cos(u * Math.PI * 2), -3.5 - 20.5 * phase(t, .5, 3.1)] });
       }
-      const roll = mode === 'orbit' ? .045 * Math.sin(u * Math.PI * 1.4) : .025 * (1 - phase(t, 0, 4));
+      const roll = mode === 'orbit'
+        ? .045 * Math.sin(u * Math.PI * 1.4)
+        : mode === 'sling'
+          ? .075 * Math.sin(u * Math.PI * 1.25) * (1 - phase(t, 4.8, 7.2))
+          : .025 * (1 - phase(t, 0, 4));
       this.camera.up.set(Math.sin(roll), Math.cos(roll), 0);
     },
     overlay(ctx) {
       const { text, type, gl, comp, P } = ctx;
       text.clear();
-      const label = mode === 'orbit' ? '环绕' : mode === 'reveal' ? '后撤揭示' : '偏轴穿行';
+      const label = mode === 'orbit' ? '环绕' : mode === 'reveal' ? '后撤揭示' : mode === 'sling' ? '甩入光轴' : '偏轴穿行';
       if (ctx.f.p < .18) {
         type.write('OPTICAL AXIS / THREE MOVES', 190, 132, {
           size: 22, family: 'mono', tracking: 3, color: P.css('signal'),
