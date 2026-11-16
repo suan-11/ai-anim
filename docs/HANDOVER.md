@@ -9,6 +9,17 @@
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
 
+### 2026-11-16 深夜（用户睡前自主推进：1-77 / 1-78 + 样片正式版）
+
+**一句话**：用户睡前说「多干点」。这一轮做完 **BACKLOG 1-77 + 1-78**，两支样片出**正式版**，CI **83/83**，磁盘 **5.04GB / 10GB**。改动都在本地 master（**未推 PR**，避免与仍开着的 #13 重叠，等用户醒后定）。
+
+- **1-77 qa 期望值 + NOT CHECKED 极性**：`qa --expect-size/--expect-fps/--expect-duration/--audio required|none`。`assessExpectations`（media.mjs 纯函数）；默认全 NOT CHECKED 不产生 fail（行为不变），显式不符翻极性当门。`tools/test-qa-expect.mjs` 21 项。
+- **1-78 循环片一等公民**：`video --loop`（出片后量接缝）+ `qa --loop`（首末帧差 ≤2 无缝，--strict 当门）。`scripts/lib/loop-seam.mjs` + `tools/test-loop-seam.mjs` 8 项 + MOTION §3.9。夹具 `_loop-lab` 实证无缝（差 0.49）。**坑：grain/ca 逐帧噪声会让接缝假红（开 7.93 / 关 0.49），循环片要关噪声或做成周期。**
+- **样片正式版**：`abyss-descent`（1080p+运动模糊，294.7MB）/ `light-seconds`（2.7MB）。qa + `--expect-*` 全过。abyss 的 4 条黑场警是**深海设计性黑暗**（非缺陷）；深度计数器在快速下潜段有轻微运动模糊拖影（可读）。
+- **验证**：regress-all --ci 83/83 · gen-shot-cards --check ✓ · lint-agents-refs ✓ · 两支正式版 qa + 期望值校验通过。
+
+**接手下一步**：§1.G 剩 **1-75（风格辨识信号）→ 1-79（声音 brief + score.mjs）**；§1.H **1-80 豁免纪律 / 1-81 结构反收敛 / 1-82 判据分层**。本地 master 领先 origin 一批提交（#13 内容 + 1-77/1-78 + 样片），**要交付先理清 PR 拆分**。`pv-kattachi` A/B/C 仍待用户拍板（分块已清，草稿保留）。
+
 ### 2026-11-16 交接（1-76 参考片拆解器落地）
 
 **一句话**：BACKLOG §1.G 的第一条 **1-76 `anim ref` 参考片拆解器做完**，CI **81/81**，工作区干净（HEAD `f8eb034`，在 master，尚未推 PR）。
