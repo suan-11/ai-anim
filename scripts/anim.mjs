@@ -27,6 +27,7 @@
  *                                                        （三点采样不落在切点上，切点要单独看；
  *                                                         画方框的那一格就是切点 = 后一段第一帧）
  *   node scripts/anim.mjs video <task> [--from 1 --to 5]  逐帧渲染 + ffmpeg 出 mp4（收尾自动 ffprobe 复核）
+ *        [--loop]  出片后验循环接缝（首末帧差 ≤2 算无缝，1-78）
  *   node scripts/anim.mjs shot  <task> --from 0 --to 4    出无音轨的短预览 mp4（快）
  *   node scripts/anim.mjs queue <taskA> <taskB> […选项]    睡前排队渲几支：顺序渲完（并行实测更慢）、
  *                                                          每支结束响一声、全部结束响三声、某支失败不中断后续；
@@ -82,6 +83,7 @@
  *                                                        （--from 是成片在任务时间轴上的起点）
  *   node scripts/anim.mjs qa <task> [--file x.mp4 --strict --freeze 3]
  *        [--expect-size 1920x1080 --expect-fps 30 --expect-duration 26 --audio required|none]  期望值校验（1-77，没传=NOT CHECKED）
+ *        [--loop]  验循环接缝（首末帧差，1-78）
  *                                                        成片级技术扫描（纯 ffmpeg，不起浏览器）：
  *                                                        解码 / 黑场 / 静帧 / 音量，报区间。
  *                                                        默认只报读数，--strict 才把 warn 当失败

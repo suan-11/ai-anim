@@ -752,6 +752,14 @@ async function cmdVideo(short = false) {
     }
     const st = statSync(out);
     log(`  文件大小 ${mb(st.size)}`);
+    if (flag('loop')) {
+      const { loopSeam } = await import('../lib/loop-seam.mjs');
+      const seam = loopSeam(out);
+      if (seam) {
+        log(`  循环接缝（--loop）：${seam.text}`);
+        if (!seam.seamless) log('    循环片要让画面在时长处回到起点（render(0) ≈ render(时长)），见 docs/MOTION.md「Loop」');
+      } else warn('  ⚠ 循环接缝没验成（解码失败）');
+    }
     if (r.breakdown) {
       const b = r.breakdown;
       const f1 = (x) => x.toFixed(1);

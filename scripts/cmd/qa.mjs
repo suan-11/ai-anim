@@ -52,6 +52,15 @@ async function cmdQa() {
   const specResults = assessExpectations(scan, expects);
   const specFails = specResults.filter((x) => x.status === 'fail');
   const notChecked = specResults.filter((x) => x.status === 'not-checked').length;
+  if (flag('loop')) {
+    const { loopSeam } = await import('../lib/loop-seam.mjs');
+    const seam = loopSeam(file);
+    const it = seam
+      ? { kind: 'loop', tier: seam.seamless ? 'info' : 'warn', at: null, text: seam.text }
+      : { kind: 'loop', tier: 'warn', at: null, text: '循环接缝没验成（解码失败）—— NOT CHECKED' };
+    verdict.items.push(it);
+    verdict[it.tier === 'warn' ? 'warnings' : 'infos'].push(it);
+  }
 
   if (flag('json')) {
     log(JSON.stringify({ scan, verdict, specs: specResults, strict }, null, 2));
