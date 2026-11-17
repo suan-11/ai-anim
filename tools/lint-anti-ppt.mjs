@@ -26,6 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from '../src/timeline.js';
 import { decodeDiffSeries, motionStats } from './lib/diff-series.mjs';
+import { bucketByTier, tierSummary, ANTI_PPT_TIERS } from './lib/judge-tiers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -52,6 +53,8 @@ export function analyzeSegments(segs, opts = {}) {
   const minCoverage = opts.coverage ?? (strict ? 1 : 0.7);
   const maxHookMiss = opts.hookMiss ?? (strict ? 0 : 0.25);
   const problems = [];
+  const codes = [];
+  const fail = (c, t) => { problems.push(t); codes.push(c); };
   const info = [];
   const n = segs.length;
   if (!n) return { problems: ['时间线是空的'], info, stats: {} };
@@ -72,9 +75,9 @@ export function analyzeSegments(segs, opts = {}) {
   });
   const coverage = declared / n;
   if (coverage < minCoverage) {
-    problems.push(`状态差声明率 ${Math.round(coverage * 100)}%（要求 ≥${Math.round(minCoverage * 100)}%）：${n - declared}/${n} 段没写 state.diff`);
+    fail('C1', `状态差声明率 ${Math.round(coverage * 100)}%（要求 ≥${Math.round(minCoverage * 100)}%）：${n - declared}/${n} 段没写 state.diff`);
   }
-  for (const w of weak.slice(0, 6)) problems.push('状态差不成立：' + w);
+  for (const w of weak.slice(0, 6)) fail('C1', '状态差不成立：' + w);
   info.push(`状态差：${declared}/${n} 段声明（${Math.round(coverage * 100)}%）`);
 
   // ---- C2 接力物
@@ -84,15 +87,15 @@ export function analyzeSegments(segs, opts = {}) {
     run++;
     if (run > worstRun) { worstRun = run; worstAt = `${i - run + 2}-${i + 1}`; }
   });
-  if (worstRun >= 3) problems.push(`接力物断了：第 ${worstAt} 段连续 ${worstRun} 段没有 relayTo（没有东西从上一镜活到下一镜）`);
+  if (worstRun >= 3) fail('C2', `接力物断了：第 ${worstAt} 段连续 ${worstRun} 段没有 relayTo（没有东西从上一镜活到下一镜）`);
   const relayCount = segs.filter((s) => s.relayTo).length;
   info.push(`接力物：${relayCount}/${n} 段声明了 relayTo（最长断链 ${worstRun}）`);
 
   // ---- C3 转场黑名单
   const alphaTrans = segs.filter((s) => ['mix', 'dissolve'].includes(String(s.transition ?? '')));
   const bareOverlap = segs.filter((s) => Number(s.overlap ?? 0) > 0 && !s.handlesTransition);
-  if (alphaTrans.length) problems.push(`用了透明度/阈值淡出转场：${alphaTrans.length} 段（${alphaTrans.slice(0, 4).map((s) => typeOf(s) || '?').join(' / ')}）—— 改方向+速度匹配的运动承接`);
-  if (bareOverlap.length) problems.push(`有 ${bareOverlap.length} 段写了 overlap 却没声明 handlesTransition —— 引擎会退回交叉溶解（透明度）`);
+  if (alphaTrans.length) fail('C3', `用了透明度/阈值淡出转场：${alphaTrans.length} 段（${alphaTrans.slice(0, 4).map((s) => typeOf(s) || '?').join(' / ')}）—— 改方向+速度匹配的运动承接`);
+  if (bareOverlap.length) fail('C3', `有 ${bareOverlap.length} 段写了 overlap 却没声明 handlesTransition —— 引擎会退回交叉溶解（透明度）`);
   info.push(`转场：${alphaTrans.length} 段淡出 / ${bareOverlap.length} 段裸 overlap`);
 
   // ---- C4 节奏
@@ -100,14 +103,14 @@ export function analyzeSegments(segs, opts = {}) {
   const mean = durs.reduce((a, b) => a + b, 0) / n;
   const sd = Math.sqrt(durs.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
   const cov = mean > 0 ? sd / mean : 0;
-  if (cov < 0.25 && !lyricFilm) problems.push(`镜头时长太均匀：CoV ${cov.toFixed(2)}（要求 ≥0.25）—— 建立/信息/冲击/呼吸要交替`);
+  if (cov < 0.25 && !lyricFilm) fail('C4', `镜头时长太均匀：CoV ${cov.toFixed(2)}（要求 ≥0.25）—— 建立/信息/冲击/呼吸要交替`);
   const total = startOf(segs[n - 1]) + durs[n - 1];
   const breatheMissing = [];
   for (let t0 = 0; t0 + 30 <= total + 0.01; t0 += 30) {
     const inWin = segs.some((s) => startOf(s) >= t0 && startOf(s) < t0 + 30 && durOf(s) >= 2.5);
     if (!inWin) breatheMissing.push(`${t0}-${t0 + 30}s`);
   }
-  if (breatheMissing.length) problems.push(`缺呼吸镜头（每 30s 至少一段 ≥2.5s）：${breatheMissing.join(' / ')}`);
+  if (breatheMissing.length) fail('C4', `缺呼吸镜头（每 30s 至少一段 ≥2.5s）：${breatheMissing.join(' / ')}`);
   info.push(`节奏：CoV ${cov.toFixed(2)} · 平均 ${mean.toFixed(2)}s · 呼吸窗口缺 ${breatheMissing.length} 个` + (lyricFilm ? '（歌词片：节奏由歌决定，这两条不 gate）' : ''));
 
   // ---- C5 钩子
@@ -126,10 +129,10 @@ export function analyzeSegments(segs, opts = {}) {
     if (!hit) misses.push(`${t0}-${t1}s`);
   }
   const missRate = windows ? misses.length / windows : 0;
-  if (missRate > maxHookMiss && !lyricFilm) problems.push(`钩子太少：${misses.length}/${windows} 个 10s 窗口没有强事件（允许 ≤${Math.round(maxHookMiss * 100)}%）：${misses.slice(0, 5).join(' / ')}`);
+  if (missRate > maxHookMiss && !lyricFilm) fail('C5', `钩子太少：${misses.length}/${windows} 个 10s 窗口没有强事件（允许 ≤${Math.round(maxHookMiss * 100)}%）：${misses.slice(0, 5).join(' / ')}`);
   info.push(`钩子：${windows - misses.length}/${windows} 个窗口有强事件`);
 
-  return { problems, info, stats: { coverage, cov, missRate, relayCount, worstRun, total } };
+  return { problems, codes, info, stats: { coverage, cov, missRate, relayCount, worstRun, total } };
 }
 
 /** 成片帧间差的变异系数（匀速漂移 = 一直在动但方差极小）。解码与统计走共享的 diff-series（C4）。 */
@@ -152,7 +155,8 @@ if (isMain) {
 const mod = await import(new URL('../tasks/' + task + '/task.config.mjs', import.meta.url).href);
 const cfg = mod.default ?? mod.config;
 const segs = build(cfg.timeline, { bpm: 120, duration: cfg.duration ?? 0 });
-const { problems, info, stats } = analyzeSegments(segs);
+const { problems, codes, info, stats } = analyzeSegments(segs);
+const allCodes = [...codes];
 
 // C6 声音层次（信息项）
 const audio = cfg.audio && typeof cfg.audio === 'object' ? cfg.audio : {};
@@ -167,15 +171,16 @@ if (existsSync(outDir)) {
   if (cands.length) motion = motionVariance(path.join(outDir, cands.sort((a, b) => statSync(path.join(outDir, b)).size - statSync(path.join(outDir, a)).size)[0]));
 }
 if (motion) {
-  if (motion.cv < 0.30) problems.push(`成片像匀速漂移：帧间差变异系数 ${motion.cv.toFixed(2)}（要求 ≥0.30）—— 一直动但没有事件`);
-  if (motion.staticSpan > 3.5) problems.push(`有 ${motion.staticSpan.toFixed(1)}s 完全静止（上限 3.5s）`);
+  if (motion.cv < 0.30) { problems.push(`成片像匀速漂移：帧间差变异系数 ${motion.cv.toFixed(2)}（要求 ≥0.30）—— 一直动但没有事件`); allCodes.push('C7'); }
+  if (motion.staticSpan > 3.5) { problems.push(`有 ${motion.staticSpan.toFixed(1)}s 完全静止（上限 3.5s）`); allCodes.push('C7'); }
   info.push(`成片运动：CV ${motion.cv.toFixed(2)} · 平均帧间差 ${motion.mean.toFixed(2)} · 最长静止 ${motion.staticSpan.toFixed(1)}s`);
 } else {
   info.push('成片运动：没跑（还没有 mp4 —— 这条不假装通过）');
 }
 
+const tc = bucketByTier(allCodes, ANTI_PPT_TIERS);
 if (flag('json')) {
-  console.log(JSON.stringify({ task, problems, info, stats, motion }, null, 2));
+  console.log(JSON.stringify({ task, problems, codes: allCodes, tiers: tc, info, stats, motion }, null, 2));
 } else {
   console.log(`反 PPT 味体检：${task}（${segs.length} 段 / ${(stats.total ?? 0).toFixed(1)}s）`);
   for (const line of info) console.log('  · ' + line);
@@ -186,6 +191,7 @@ if (flag('json')) {
   } else {
     console.log('\n✓ 没有 PPT 味问题');
   }
+  console.log(`分层：${tierSummary({ floorFail: tc.floor, reflexFail: tc.reflex, finishNotes: tc.finish })}（C6 声音层是信息项；floor=正确性不可豁免，reflex 可豁免 --strict 当门）`);
 }
 if (problems.length) process.exitCode = 1;
 }
