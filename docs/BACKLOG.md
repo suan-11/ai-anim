@@ -89,7 +89,7 @@
 | 编号 | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
 | 1-80 | **豁免纪律**：判据 id + guard 证据 + reason + 同一判据连续豁免计数（≥3 升 house style 警告） | 现在 `allowOverlap` / `--accept` / `world:false` 豁免无痕。统一成可记录块，report 统计连续豁免，≥3 次提示 house style | REFERENCE-hallmark.md §3① |
-| 1-81 | **结构反收敛**：结构指纹（段长 CoV / 切点类型分布 / 每段运动量向量）vs `out/_history/` 最近 3 支，>N 维同构报「结构收敛」 | 接上刚做的 `anim ref`（切点/运动量）+ 1-75（风格辨识信号）；先出纯函数 + 夹具 | REFERENCE-hallmark.md §3② |
+| ~~1-81~~ | **已做（2026-11-17）**：`anim variety <task> [--save --last 3 --strict]`，结构指纹（段数/总时长/段长CoV/转场分布/段长离散）五维 ≥4 同构报收敛；`scripts/lib/structure-fingerprint.mjs` 纯函数 + `tools/test-structure-fingerprint.mjs` 15 项。**单段连续片指纹退化 ⇒ 明说不适用（修了假阳性）**。历史存 out/_history/。**原始需求**：结构反收敛：结构指纹（段长 CoV / 切点类型分布 / 每段运动量向量）vs `out/_history/` 最近 3 支，>N 维同构报「结构收敛」 | 接上刚做的 `anim ref`（切点/运动量）+ 1-75（风格辨识信号）；先出纯函数 + 夹具 | REFERENCE-hallmark.md §3② |
 | 1-82 | **判据分层 tier**：每条判据标 `floor|reflex|finish`，report 分层计数（`Floor 0 FAIL · Reflex 2 (1 waived) · Finish 3`），与 `--strict` 语义对齐 | 先从 `lint-anti-ppt` / `check` 现有判据开始标，不动判据逻辑只改报告 | REFERENCE-hallmark.md §3③ |
 
 ---
