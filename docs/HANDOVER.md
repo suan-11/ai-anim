@@ -9,6 +9,20 @@
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
 
+### 2026-11-17（对标待办批量收口：1-75 / 1-79 / 1-80 / 1-81 / 1-82）
+
+**一句话**：§1.G 剩的两条 + §1.H 三条**全做完**，CI **86/86**，都在本地 master（未推 PR）。至此 garden-skills / hallmark 两份对标拆出的待办**全部落地或量过缓做**。
+
+- **1-75 风格辨识信号**：top 8 套「长什么样才叫像它 + 最俗版本」写进 STYLE.md §3.2；`anim styles` 加指针；brief 风格栏须声明翻掉哪几条俗套。
+- **1-79 声音**：①brief 增第 8 块 sound（对标/律动/和声/配器/能量曲线 + 声音 anti-list），七块→八块。②**重复率实测**：三支 make-*-audio 音色/签名各异、共享 IO 早在 media.mjs ⇒ **score.mjs 缓做**（等 ≥2 支真要同一音色再抽，别拧巴）。
+- **1-80 豁免纪律**：`anim waivers <task> --add --judge --guard --reason`，三字段留痕（缺字段/理由太短/逐字复用都拒），同判据豁 ≥3 次升 house style。`scripts/lib/waivers.mjs` + 9 项回归。
+- **1-81 结构反收敛**：`anim variety <task> [--save]`，五维结构指纹 vs out/_history/ 最近几支，≥4 维同构报收敛。**修了单段片假阳性**（单段指纹退化 ⇒ 明说不适用）。15 项回归。
+- **1-82 判据分层**：`tools/lib/judge-tiers.mjs`（floor/reflex/finish），lint-anti-ppt 标 C1-C7 码、report 加「Floor X FAIL · Reflex Y · Finish Z」分层行 + json 带 tiers。**只改报告不动检测/退出码**。9 项回归。
+
+**验证**：regress-all --ci 86/86 · test-cli-layout 46 命令 · lint-agents-refs / lint-doc-facts ✓。新增 5 个纯函数回归套件（judge-tiers/waivers/structure-fingerprint + 之前的 qa-expect/loop-seam）。
+
+**接手下一步**：对标待办已清。可做的：①把本地这批**理成 PR**（master 领先 origin 一大截，含 #13 + 1-77/78 + 样片 + 本批）；②1-82 的分层往 `check` 侧接（现在只接了 anti-ppt）；③1-80 豁免真正接进 check 的 allowOverlap/world:false 判定点；④pv-kattachi A/B/C 仍待用户拍板。
+
 ### 2026-11-16 深夜（用户睡前自主推进：1-77 / 1-78 + 样片正式版）
 
 **一句话**：用户睡前说「多干点」。这一轮做完 **BACKLOG 1-77 + 1-78**，两支样片出**正式版**，CI **83/83**，磁盘 **5.04GB / 10GB**。改动都在本地 master（**未推 PR**，避免与仍开着的 #13 重叠，等用户醒后定）。

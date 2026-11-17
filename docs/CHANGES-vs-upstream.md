@@ -8,18 +8,18 @@
 ## 一、总量
 
 ```
-166 个提交 · 690 个文件 · +111,753 / −9,071 行
-基线 237e985　当前 3ad5dc3 chore(samples): 两支样片正式版版本戳
+172 个提交 · 698 个文件 · +112,173 / −9,073 行
+基线 237e985　当前 e3e903e feat(waivers): 1-80 豁免纪律 —— anim waivers 留痕 judge+guard+reason，缺字段/样板拒，同判据≥3次升 house style；9 项回归
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
 | tasks | 336 | 56,555 | 308 |
 | assets | 14 | 16,801 | 0 |
-| scripts | 70 | 11,092 | 7,292 |
-| tools | 90 | 8,989 | 193 |
+| scripts | 74 | 11,304 | 7,292 |
+| tools | 94 | 9,137 | 193 |
 | src | 70 | 8,678 | 169 |
-| docs | 81 | 7,455 | 693 |
+| docs | 81 | 7,515 | 695 |
 | skills | 20 | 1,724 | 0 |
 | (root) | 5 | 329 | 416 |
 | .github | 2 | 114 | 0 |
@@ -30,6 +30,12 @@
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| e3e903e | 2026-11-17 | feat(waivers): 1-80 豁免纪律 —— anim waivers 留痕 judge+guard+reason，缺字段/样板拒，同判据≥3次升 house style；9 项回归 |
+| fa20321 | 2026-11-17 | feat(judges): 1-82 判据分层 floor/reflex/finish —— judge-tiers 词表+汇总，anti-ppt 标 C1-C7 码 report 分层行（只改报告）；9 项回归 |
+| 26fd75f | 2026-11-17 | docs(brief): 1-79① brief 增 sound 栏（对标/律动/和声/配器/曲线+声音anti-list）；②重复率实测音色各异⇒score.mjs 缓做 |
+| de1a6b8 | 2026-11-17 | feat(variety): 1-81 结构反收敛 —— anim variety 五维结构指纹 vs 最近几支，单段片明说不适用；15 项纯函数回归 |
+| 215a955 | 2026-11-17 | docs(style): 1-75 top8 风格辨识信号/最俗版本（STYLE §3.2）+ anim styles 指针 + brief 须声明翻掉俗套 |
+| 5e8d1c8 | 2026-11-16 | docs(changes): 重生成改动清单（1-77/1-78 + 样片正式版入表） |
 | 3ad5dc3 | 2026-11-16 | chore(samples): 两支样片正式版版本戳 |
 | 933933d | 2026-11-16 | docs(handover): 2026-11-16 深夜自主推进 —— 1-77/1-78 落地 CI 83/83，两支样片正式版，磁盘 5.04/10GB |
 | f31c3c7 | 2026-11-16 | feat(loop): 1-78 循环片一等公民 —— video --loop / qa --loop 验首末帧接缝，loop-seam 纯函数 8 项回归，MOTION §3.9，_loop-lab 实证无缝(0.49) |
