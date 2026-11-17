@@ -22,6 +22,7 @@ async function cmdStyles() {
     log('');
   }
   log('细则（合并优先级 / 反审美疲劳的两条纪律 / 每片必须换掉的三项）：docs/STYLE.md');
+  log('每套长什么样才叫像它 + 最俗的版本（写 brief 要声明翻掉哪几条俗套）：docs/STYLE.md §3.2');
   log('想看看同一段画面在几套风格下各长什么样：node scripts/anim.mjs still style-sampler -t 2,6,10');
 }
 export { cmdStyles as run };
