@@ -79,6 +79,7 @@ const ITEMS = [
   { name: 'unit:loop-seam', cmd: ['tools/test-loop-seam.mjs'], note: '1-78 循环接缝纯函数：首末帧平均差 / 阈值判定 / NaN 不算无缝（合成缓冲离线测）' },
   { name: 'unit:structure-fingerprint', cmd: ['tools/test-structure-fingerprint.mjs'], note: '1-81 结构反收敛纯函数：段数/时长/CoV/转场分布/离散度 五维同构判定（合成段表离线测）' },
   { name: 'unit:judge-tiers', cmd: ['tools/test-judge-tiers.mjs'], note: '1-82 判据分层纯函数：floor/reflex/finish 词表 / 反PPT C1-C7 归类 / 按tier计数 / 汇总格式（离线测）' },
+  { name: 'unit:waivers', cmd: ['tools/test-waivers.mjs'], note: '1-80 豁免纪律纯函数：judge+guard+reason 三字段校验 / reason 复用检测 / 同判据≥3次升 house style（离线测）' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──

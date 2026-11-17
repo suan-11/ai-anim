@@ -24,6 +24,7 @@
  *   node scripts/anim.mjs board <task> [--at 0.5]          分镜板：每段一格 + id·时长·note（C2）
  *   node scripts/anim.mjs ref <外片.mp4> [--fps 8]         参考片拆解：切点表/BPM候选/每段运动量/运动热图（1-76）
  *   node scripts/anim.mjs variety <task> [--save --last 3 --strict]  结构反收敛：指纹 vs 最近几支（1-81）
+ *   node scripts/anim.mjs waivers <task> [--add --judge id --guard 证据 --reason 理由]  豁免留痕 + house style（1-80）
  *   node scripts/anim.mjs cuts <task> [--window 1.5] [--n 7]   切点两侧各 ±1.5s 出一张接触表
  *                                                        （三点采样不落在切点上，切点要单独看；
  *                                                         画方框的那一格就是切点 = 后一段第一帧）
@@ -191,6 +192,7 @@ import { run as cmdSheet } from "./cmd/sheet.mjs";
 import { run as cmdBoard } from "./cmd/board.mjs";
 import { run as cmdRef } from "./cmd/ref.mjs";
 import { run as cmdVariety } from "./cmd/variety.mjs";
+import { run as cmdWaivers } from "./cmd/waivers.mjs";
 import { run as cmdCuts } from "./cmd/cuts.mjs";
 import { run as cmdCarry } from "./cmd/carry.mjs";
 import { run as cmdRhythm } from "./cmd/rhythm.mjs";
@@ -258,6 +260,7 @@ const commands = {
   board: cmdBoard,
   ref: cmdRef,
   variety: cmdVariety,
+  waivers: cmdWaivers,
   cuts: cmdCuts,
   carry: cmdCarry,
   rhythm: cmdRhythm,
