@@ -14,7 +14,7 @@ import { Engine } from './core/engine.js';
 import { makePalette } from './core/palette.js';
 import { MusicData } from './core/audio.js';
 import { loadTaskList, loadTask } from './tasks.js';
-import { auditUnderRequires, planWorldAudit, worldAuditVerdict } from './timeline.js';
+import { auditUnderRequires, declaredSelfBase, planWorldAudit, worldAuditVerdict } from './timeline.js';
 import { layoutVerdict, LAYOUT_LIMITS } from './layout.js';
 import { DEFAULT_POST } from './core/post.js';
 
@@ -583,6 +583,15 @@ const api = {
        * check 会把它打出来 —— 阈值是"看得见"的，改没改一眼就知道。
        */
       layoutLimits: layoutLimits(engine?.style?.layout),
+      /**
+       * 受控豁免声明（docs/LAYOUT.md §2.5）：`layout.allowOverlap` 的**生效值**
+       * （风格包 / 任务顶层 / style 覆盖三层合并之后）。`check` 的豁免纪律（BACKLOG 1-80）
+       * 要拿它来问"这支片子有没有**无痕豁免**"—— 以前写了这一行就是静默豁免，
+       * 报告里一个字都不会出现。
+       */
+      layoutAllowOverlap: Array.isArray(engine?.style?.layout?.allowOverlap)
+        ? engine.style.layout.allowOverlap.filter((s) => typeof s === 'string' && s)
+        : [],
       /** 风格/版面的运行期警告（kit 的 assertInBand / captionNote 过长等会 push 到这里） */
       warnings: engine?.warnings ?? [],
     };
@@ -1290,7 +1299,17 @@ const api = {
         error: first.error,
       });
     }
-    return { results, selfBase: selfBaseRows, timeline: items.length };
+    /**
+     * **全量**的 `world: false` 声明（含不交叠的段）—— 给 `check` 的豁免纪律用（BACKLOG 1-80）：
+     * `selfBase` 那一栏只有**交叠段**（真的被背景守门豁免了），而报告要说清"全片哪些段这么声明"。
+     * 判据本身是纯函数 `declaredSelfBase()`（`src/timeline.js`，离线单测）。
+     */
+    return {
+      results,
+      selfBase: selfBaseRows,
+      declaredSelf: declaredSelfBase(items),
+      timeline: items.length,
+    };
   },
 
   /**

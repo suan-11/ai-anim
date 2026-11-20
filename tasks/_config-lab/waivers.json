@@ -1,0 +1,11 @@
+[
+  {
+    "judge": "background.coverage",
+    "guard": "段 whip 自己画整帧底（audit：窗后 0.037，模板设计值）",
+    "reason": "这一段是甩镜夹具：把上一段成帧甩上来就是它的底，不铺共享背景",
+    "at": "2026-11-20T11:46:47.705Z",
+    "segments": [
+      "whip"
+    ]
+  }
+]

@@ -362,8 +362,13 @@ function shortOf(g) {
  *
  * 受控豁免：allowOverlap 是一组字符串，块的 sample 文本含其中任一 ⇒ 该块不参与 overlap 判
  * （段级/任务级 layout.allowOverlap 声明，需显式说明关掉了什么）。
+ *
+ * `o.exempted`（可选，**只记账不判**）：真的被 allowOverlap 压掉的那几对字压字会 push 进去，
+ * 给 `check` 的豁免纪律用（BACKLOG 1-80）—— 否则"写了 allowOverlap"在报告里是**无痕**的，
+ * 谁也不知道它到底压掉了什么。
  * @param {any[]} groups textGroups 的产物
- * @param {{ W?:number, H?:number, pad?:number, captionRect?:any, allowOverlap?:string[] }} [o]
+ * @param {{ W?:number, H?:number, pad?:number, captionRect?:any, allowOverlap?:string[],
+ *           exempted?: { kind:string, a:string, b:string, matched:string|null }[] }} [o]
  * @returns {any[]} violations（kind/level/detail）
  */
 export function geometryViolations(groups, o = {}) {
@@ -372,6 +377,8 @@ export function geometryViolations(groups, o = {}) {
   const pad = Number.isFinite(o.pad) ? o.pad : 0;
   const captionRect = o.captionRect ?? null;
   const allowOverlap = Array.isArray(o.allowOverlap) ? o.allowOverlap : [];
+  /** 只记账：被 allowOverlap 压掉的字压字（调用方传进来才有；不传 = 与从前逐字一致） */
+  const exempted = Array.isArray(o.exempted) ? o.exempted : null;
   const gs = Array.isArray(groups) ? groups : [];
   const area = (g) => Math.max(0, g.x1 - g.x0) * Math.max(0, g.y1 - g.y0);
   const short = (g) => String(g.sample ?? '').slice(0, 12) || '(字块)';
@@ -387,10 +394,19 @@ export function geometryViolations(groups, o = {}) {
     for (let j = i + 1; j < gs.length; j++) {
       const a = gs[i], b = gs[j];
       if (inReservedBand(a, H) || inReservedBand(b, H)) continue;
-      if (exempt(a) || exempt(b)) continue;
       const smaller = Math.min(area(a), area(b));
       const ov = inter(a, b);
-      if (smaller > 0 && ov > 0.15 * smaller) {
+      const wouldViolate = smaller > 0 && ov > 0.15 * smaller;
+      if (exempt(a) || exempt(b)) {
+        // 只记**真的会被判成字压字**的那几对：声明是声明，使用是使用（1-80 的留痕核对要分得开）
+        if (wouldViolate && exempted) {
+          const matched = allowOverlap.find((s) => s
+            && (String(a.sample ?? '').includes(s) || String(b.sample ?? '').includes(s))) ?? null;
+          exempted.push({ kind: 'overlap', a: short(a), b: short(b), matched });
+        }
+        continue;
+      }
+      if (wouldViolate) {
         v.push({ kind: 'overlap', level: 'warn', got: ov / smaller, limit: 0.15,
           detail: `字压字：「${short(a)}」与「${short(b)}」交叠 ${Math.round(100 * ov / smaller)}%（>15%）` });
       }
@@ -519,8 +535,11 @@ export function layoutVerdict(o = {}) {
         });
   }
   // C1 几何判据：字压字 / 出画 / 撞字幕（与数量判据同一本绘制账；默认 warn，off-frame 是 error 级）
+  /** 受控豁免的**使用记录**（BACKLOG 1-80）：只记账，不进 violations（判据一个字没松） */
+  const overlapExempted = [];
   violations.push(...geometryViolations(groups, {
     W, H, pad: o.pad ?? 0, captionRect: o.captionRect ?? null, allowOverlap: o.allowOverlap ?? [],
+    exempted: overlapExempted,
   }));
   return {
     id: o.id ?? '',
@@ -561,6 +580,15 @@ export function layoutVerdict(o = {}) {
     offSubject: subjectOutside.length,
     /** 没声明 focus ⇒ 判据 ② 这一半**没跑** */
     noFocus: !rect,
+    /**
+     * 受控豁免的声明与**实际使用**（BACKLOG 1-80 的接线点；只做报告，判据不变）。
+     * `check` 拿它问"有没有无痕豁免"：`declared` 非空或 `exempted` 有记录，
+     * 就必须在 `tasks/<任务>/waivers.json` 里有一条 `layout.overlap` 的留痕。
+     */
+    allowOverlap: {
+      declared: Array.isArray(o.allowOverlap) ? o.allowOverlap.slice() : [],
+      exempted: overlapExempted,
+    },
     violations,
     ok: violations.length === 0,
   };

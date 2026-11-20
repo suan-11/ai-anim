@@ -631,6 +631,31 @@ t('C1 overlap：allowOverlap 豁免', () => {
   assert.ok(kinds(geometryViolations([a, b], { W: 1920, H: 1080 })).includes('overlap'), '未豁免要报');
   assert.ok(!kinds(geometryViolations([a, b], { W: 1920, H: 1080, allowOverlap: ['标注'] })).includes('overlap'), '豁免后不报');
 });
+t('C1 overlap：allowOverlap 的**实际使用**要记账（1-80 接线点）', () => {
+  const a = G(100, 300, 500, 400, '主体'), b = G(300, 300, 700, 400, '标注');
+  const exempted = [];
+  const v = geometryViolations([a, b], { W: 1920, H: 1080, allowOverlap: ['标注'], exempted });
+  assert.equal(v.length, 0, '判据一个字没松：豁免后仍然不报');
+  assert.equal(exempted.length, 1, '真的压掉一处就要记一条');
+  assert.equal(exempted[0].matched, '标注', '记账里带命中的豁免字符串（check 的留痕核对要用）');
+  assert.ok(exempted[0].a && exempted[0].b, '两条块名都留下（报告里能点名是哪两块）');
+  const none = [];
+  geometryViolations([a, G(600, 300, 900, 400, '标注')], { W: 1920, H: 1080, allowOverlap: ['标注'], exempted: none });
+  assert.equal(none.length, 0, '没有字压字时豁免不产生记账（不许把声明算成使用）');
+});
+t('C1 接线：layoutVerdict 把 allowOverlap 的声明与使用带出来（不改变判定）', () => {
+  const blocks = [B(300, 350, 60, 400, '主体'), B(320, 360, 40, 300, '标注')];
+  const off = layoutVerdict({ blocks, W: 1920, H: 1080 });
+  const on = layoutVerdict({ blocks, W: 1920, H: 1080, allowOverlap: ['标注'] });
+  assert.deepEqual(off.allowOverlap, { declared: [], exempted: [] }, '没声明时是空账');
+  assert.deepEqual(on.allowOverlap.declared, ['标注'], '声明照抄进去');
+  assert.ok(Array.isArray(on.allowOverlap.exempted), 'exempted 永远是数组（check 不用判空类型）');
+  assert.equal(on.violations.filter((x) => x.kind === 'overlap').length, 0, '记账不许变成判据');
+});
+t('接线：app.js 把 allowOverlap 传给版面判定、并暴露生效值给 check（1-80）', () => {
+  assert.ok(/allowOverlap: engine\.style\?\.layout\?\.allowOverlap/.test(APP), 'layoutRows 必须把 allowOverlap 传给纯函数');
+  assert.ok(/layoutAllowOverlap/.test(APP), 'info() 必须暴露生效的 allowOverlap（check 的留痕核对要用）');
+});
 t('C1 off-frame：锚点越出画幅 ⇒ error；画幅内 ⇒ 不报', () => {
   const out = G(1950, 300, 2000, 400);   // 锚点 x0=1950 > 1920
   const v = geometryViolations([out], { W: 1920, H: 1080 });

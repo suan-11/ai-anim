@@ -15,23 +15,29 @@ async function cmdWaivers() {
   if (!Array.isArray(waivers)) die("waivers.json 应是一个数组");
 
   if (flag("add")) {
+    const segRaw = String(opt("segments", "") ?? "").trim();
+    const segments = segRaw ? segRaw.split(",").map((s) => s.trim()).filter(Boolean) : null;
     const w = { judge: opt("judge", ""), guard: opt("guard", ""), reason: opt("reason", ""), at: new Date().toISOString() };
+    // --segments 只对「按段豁免」的判据有意义（当前是 background.coverage）；
+    // 不写 = 覆盖该判据的全部对象。空串/空数组会静默变成「什么都没覆盖」，所以非空才写进去。
+    if (segments && segments.length) w.segments = segments;
     const v = validateWaiver(w);
     if (!v.ok) die("豁免不成立：\n  " + v.errors.join("\n  ") + "\n（豁免不是骗过 check 的后门 —— 要有证据和关于这支片子的理由）");
     waivers.push(w);
     writeFileSync(file, JSON.stringify(waivers, null, 2));
-    log(`已记录豁免：${w.judge}（共 ${waivers.length} 条）`);
+    log(`已记录豁免：${w.judge}${w.segments ? `（${w.segments.length} 段：${w.segments.join(", ")}）` : ""}（共 ${waivers.length} 条）`);
   }
 
   if (!waivers.length) {
-    log(`${task}：没有豁免记录。要豁免某条判据：anim waivers ${task} --add --judge <id> --guard <证据> --reason <理由>`);
+    log(`${task}：没有豁免记录。要豁免某条判据：anim waivers ${task} --add --judge <id> --guard <证据> --reason <理由> [--segments 段1,段2]`);
     log("已知豁免点：" + Object.entries(WAIVER_JUDGES).map(([k, v]) => `${k}（${v}）`).join("；"));
+    log("check 已接线的判定点：layout.overlap（layout.allowOverlap）/ background.coverage（world: false）；其余登记项尚未接线，见 docs/WAIVERS.md");
     return;
   }
   log(`${task} 的豁免（${waivers.length} 条）：`);
   for (const w of waivers) {
     const v = validateWaiver(w);
-    log(`  ${v.ok ? "✓" : "✗"} ${w.judge} · guard: ${w.guard} · reason: ${w.reason}`);
+    log(`  ${v.ok ? "✓" : "✗"} ${w.judge}${w.segments ? `（${w.segments.join(", ")}）` : ""} · guard: ${w.guard} · reason: ${w.reason}`);
     if (!v.ok) warn("    不成立：" + v.errors.join("；"));
   }
   const dup = reusedReasons(waivers);

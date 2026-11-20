@@ -610,6 +610,43 @@ export function planWorldAudit(items) {
 }
 
 /**
+ * **声明了 `world: false` 的段**（全量，含不交叠的）—— 给 `check` 的豁免纪律用（BACKLOG 1-80）。
+ *
+ * 与 `planWorldAudit()` 的分工：那一份只收**交叠段**（只有交叠才有转场语义、才需要判"铺没铺底"），
+ * 这一份收**所有声明**，用来回答一个不同的问题：「哪些段拿走了背景守门的豁免」。
+ *
+ * `coveredByGuard` 是"这条声明**真的**让背景守门少判了一次"：
+ * 只有与前一段交叠的段才会进 `planWorldAudit()` 的 `selfBase`，不交叠的段本来就不参与判据
+ * —— 它的 `world: false` 只是说明"底我自己画"，没有豁免掉任何一条判据。
+ * 豁免纪律只对 `coveredByGuard: true` 的段要求留痕（否则每支镜头库夹具都要写一堆无意义的豁免）。
+ *
+ * @param {any[]} items `build()` 的产物或引擎的 `engine.timeline`
+ * @returns {{ id: string, index: number, start: number, end: number, overlap: number,
+ *             coveredByGuard: boolean }[]}
+ */
+export function declaredSelfBase(items) {
+  const list = Array.isArray(items) ? items : [];
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const it = list[i] ?? {};
+    if (it.world !== false) continue;
+    const prev = list[i - 1] ?? null;
+    const start = Number(it.start ?? 0), end = Number(it.end ?? 0);
+    const overlap = prev ? Math.max(0, Number(prev.end ?? 0) - start) : 0;
+    out.push({
+      id: String(it.id ?? `scene_#${i}`),
+      index: i,
+      start,
+      end,
+      overlap,
+      // 与 planWorldAudit() 的分流口径逐字一致：i>=1 且 start < prev.end 才是交叠段
+      coveredByGuard: i > 0 && overlap > 0,
+    });
+  }
+  return out;
+}
+
+/**
  * **背景守门的判定**（纯函数）：把采样计划 + 每一刻的绘制账目/亮度变成两个事实。
  *
  * ⚠ 这一条是**踩过假报之后**才长成这样的（2026-10-16，BACKLOG 头部 ⑦）：

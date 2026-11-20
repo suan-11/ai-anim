@@ -14,6 +14,8 @@ import { describeNarrationError, narrationConfigProblem } from "../lib/narration
 import { layoutReport, layoutSummary } from "../../src/layout.js";
 import { build } from "../../src/timeline.js";
 import { decodeDiffSeries, motionStats } from "../../tools/lib/diff-series.mjs";
+import { TIER_LEGEND, formatTriggered, summarizeCheckFindings } from "../../tools/lib/judge-tiers.mjs";
+import { auditExemptions, auditWaiverFile } from "../lib/waivers.mjs";
 /* ---------------- 镜头模板的依赖前置校验（BACKLOG 1-21 / docs/ENGINE.md §14.9）：纯函数区 */
 
 /**
@@ -378,9 +380,36 @@ async function cmdCheck() {
   const skipped = [];
   const strict = flag('strict');
 
+  /**
+   * **判据分层记账**（BACKLOG 1-82 第二步，2026-11-20）。
+   *
+   * 每一条判据**触发时**记一条 `{code, detail, waived}`；收尾按 `tools/lib/judge-tiers.mjs` 的
+   * `CHECK_TIERS` 汇总成一行 `Floor X FAIL · Reflex Y (Z waived) · Finish N`。
+   *
+   * 三条纪律（与 anti-ppt 的 C 码同一套）：
+   *   · **只记账，不改变门**：floor/reflex 的归类必须与当前退出码语义一致，别在这里偷偷 gate/un-gate；
+   *   · **计数单位是判据代码**：同一段三个采样点都非有限值 = 一条 `scene.nonfinite`（×3）；
+   *   · 豁免只能落在**真的接进 check 的判定点**上（当前是 `layout.overlap` / `background.coverage`），
+   *     其余 reflex 判据的豁免**还没接线**，不许假装被豁免了（docs/WAIVERS.md 的欠账表）。
+   *
+   * @type {Map<string, { code: string, detail: string, waived: boolean }>}
+   */
+  const findings = new Map();
+  /** 记一条判据触发。同一代码重复触发只留一条（detail 取第一次；有未豁免的实例就整条算未豁免）。 */
+  const finding = (code, detail = '', o = {}) => {
+    const cur = findings.get(code);
+    if (!cur) { findings.set(code, { code, detail: String(detail || ''), waived: !!o.waived }); return; }
+    if (!o.waived) cur.waived = false;
+    if (!cur.detail && detail) cur.detail = String(detail);
+  };
+
   // 1) 静态：非确定性写法（这是整个引擎的地基，必须拦）
   const statics = scanScenes(task);
   for (const s of statics) warn(`⚠ ${s}`);
+  if (statics.length) {
+    finding('scene.determinism', statics.length + ' 处非确定性写法');
+    warn('  → 这是引擎铁律（AGENTS.md §4）：成片会随机出错而且通常不报错。');
+  }
 
 
   /**
@@ -391,6 +420,59 @@ async function cmdCheck() {
    *   "旁白复述检查没跑成"（假 skipped）。**先攒后并**，别在 try 里引用后面的 const。
    */
   const staticErrs = [];
+
+  /**
+   * **豁免纪律**（BACKLOG 1-80 接线，2026-11-20）：读 tasks/<任务>/waivers.json。
+   *
+   * 以前 allowOverlap / world: false 这类豁免**无痕** —— 写了就等于静默关掉一条判据，
+   * 报告里一个字都不会出现。现在：
+   *   · 记录本身不合格（缺 guard / 理由太短 / 未知判据 id / 段范围写错）⇒ floor 级错误（进 errs）；
+   *   · 理由逐字复用（样板豁免）⇒ reflex（--strict 才 gate）；
+   *   · 同一判据豁 ≥3 次 ⇒ house style（finish，报告里提醒写进 design.md）；
+   *   · 两个**已接线的判定点**（layout.allowOverlap / world: false）会在下面被逐段核对
+   *     （见「背景守门」与「版面守门」两段），没有留痕就在那里报警。
+   *
+   * ⚠ 文件不存在 = 没有豁免记录，不是错误（大多数任务本来就没有豁免）。
+   */
+  const waiverPath = path.join(ROOT, 'tasks', task, 'waivers.json');
+  let waivers = [];
+  let waiverAudit = auditWaiverFile([]);
+  if (existsSync(waiverPath)) {
+    try {
+      const parsed = JSON.parse(readFileSync(waiverPath, 'utf8'));
+      if (!Array.isArray(parsed)) {
+        warn('⚠ ' + path.relative(ROOT, waiverPath) + ' 的内容该是**数组**（每项一条豁免：judge / guard / reason）');
+        finding('waiver.invalid', 'waivers.json 不是数组');
+        staticErrs.push('[豁免] waivers.json 的内容该是数组');
+      } else {
+        waivers = parsed;
+        waiverAudit = auditWaiverFile(waivers);
+        for (const bad of waiverAudit.invalid) {
+          const entry = '第 ' + (bad.index + 1) + ' 条（judge ' + (bad.judge || '?') + '）';
+          warn('⚠ 豁免记录不成立：' + entry + ' —— ' + bad.errors.join('；'));
+          finding('waiver.invalid', entry + '：' + bad.errors.join('；'));
+          staticErrs.push('[豁免] ' + entry + '：' + bad.errors.join('；'));
+        }
+        if (waiverAudit.reused.length) {
+          warn('⚠ 有 ' + waiverAudit.reused.length + ' 条豁免理由与另一条**逐字复用**（样板豁免）：' + waiverAudit.reused.map((r) => '「' + r + '」').join(' / '));
+          warn('  → 理由要关于**这一支片子**（为什么这里非豁免不可），复制的理由不算证据。');
+          finding('waiver.reused', waiverAudit.reused.length + ' 条理由逐字复用');
+          if (strict) staticErrs.push('[豁免] ' + waiverAudit.reused.length + ' 条理由逐字复用（样板豁免）');
+        }
+        for (const hs of waiverAudit.houseStyle) {
+          warn('⚠ house style：判据 ' + hs.judge + ' 已被豁免 ' + hs.count + ' 次 —— 这不是例外，是这支片子的风格，写进 design.md 正视它');
+          finding('waiver.house-style', hs.judge + ' ×' + hs.count);
+        }
+        if (waiverAudit.valid.length) {
+          log('豁免记录：' + waiverAudit.valid.length + ' 条成立（' + path.relative(ROOT, waiverPath) + '）');
+        }
+      }
+    } catch (err) {
+      warn('⚠ ' + path.relative(ROOT, waiverPath) + ' 解析失败：' + firstLine(err));
+      finding('waiver.invalid', 'waivers.json 解析失败');
+      staticErrs.push('[豁免] waivers.json 解析失败：' + firstLine(err));
+    }
+  }
   // 1.05) 静态：旁白表（narration）配了但加载不了 —— A-2。以前只在页面侧 console.warn 一句
   //（src/app.js 的 catch），滚进日志就没了：成片照常渲、check 照样绿，作者根本不知道
   // ctx.narration 是空的（字幕不出现、dur:{vo} 解不出来）。现在 Node 侧直接验证配置指向的
@@ -406,6 +488,7 @@ async function cmdCheck() {
         if (problem) {
           warn('⚠ ' + describeNarrationError(problem));
           warn('  → 修法：确认 tasks/' + task + '/' + m[2].replace(/^\.\//, '') + ' 存在且是 say 生成的合法 JSON；暂时不要就先把 narration 这行删掉');
+          finding('narration.config', describeNarrationError(problem));
           if (strict) staticErrs.push('[旁白表] ' + describeNarrationError(problem));
         }
       }
@@ -432,6 +515,7 @@ async function cmdCheck() {
           warn('⚠ 画面文字在复述旁白 —— 同屏两套完整句子就是观众说的"两条字幕"：');
           for (const line of txt.split(/\r?\n/).slice(0, 12)) warn(`  ${line}`);
           warn('  → 画面只留标注（名词 / 数字 / 单位 / 出处），句子交给旁白与字幕；见 docs/CAPTIONS.md');
+          finding('narration.dup', '画面文字在复述旁白');
           // 观众对 sodium 的反馈「不如纯看字幕了 / 不明所以」：43 句旁白里 12 句被逐字抄进了画面。
           // 默认只 warn（已交付的片子必然命中，让 check 非零退出会把回归清单永久染红）；
           // --strict 下进 errs —— 交付自检跑 --strict、回归清单跑默认，两边都照顾到。
@@ -483,6 +567,7 @@ async function cmdCheck() {
             const worst = bad.slice().sort((a, b) => Math.abs(b.offMs) - Math.abs(a.offMs))[0];
             warn(`⚠ 卡点：${bad.length}/${j.rows.length} 个切点没落在拍上（判据 ±${j.tolMs}ms，实测 ${j.bpm.toFixed(2)} BPM）`);
             for (const b of bad.slice(0, 4)) warn(`  · ${b.id}  ${b.offMs >= 0 ? '+' : ''}${b.offMs.toFixed(0)}ms 离最近拍`);
+            finding('beat.align', `${bad.length}/${j.rows.length} 个切点没落在拍上`);
             warn(`  → 段长改用 { beat: n } / { bar: n }，或把 narration.mjs 的 BPM 设成实测的 ${j.bpm.toFixed(2)}`);
             if (strict && j.rows.length - bad.length < need) {
               staticErrs.push(`[卡点] 只有 ${j.rows.length - bad.length}/${j.rows.length} 个切点对得上拍子（要求 ≥${need}，最差 ${Math.abs(worst.offMs).toFixed(0)}ms）`);
@@ -502,6 +587,7 @@ async function cmdCheck() {
               if (tq && typeof tq.score === 'number' && tq.score < 0.75) {
                 warn(`⚠ 拍网格置信度偏低（${(tq.score * 100).toFixed(0)}%，精确率 ${(tq.precision * 100).toFixed(0)}% / 召回 ${(tq.recall * 100).toFixed(0)}%）`
                   + ` —— bpm 有值不等于可信，别让画面重度依赖 f.beat`);
+                finding('beat.confidence', `置信度 ${(tq.score * 100).toFixed(0)}%`);
                 if (strict) staticErrs.push(`[拍网格] 置信度 ${(tq.score * 100).toFixed(0)}% < 75%`);
               }
             } catch { /* 读不出来就算了 */ }
@@ -542,6 +628,7 @@ async function cmdCheck() {
               warn('  · ' + w.start.toFixed(2) + 's  ' + (w.dMs >= 0 ? '+' : '') + w.dMs + 'ms  ' + w.text);
             }
             warn('  → 句首用官方 LRC / 人声起音，别按字数均摊');
+            finding('lyric.sync', '中位 ' + j.medianMs + 'ms / p90 ' + j.p90Ms + 'ms');
             if (strict) staticErrs.push('[歌词同步] 中位 ' + j.medianMs + 'ms / p90 ' + j.p90Ms + 'ms 超判据');
           }
         } else if (r.status === 2) {
@@ -573,6 +660,7 @@ async function cmdCheck() {
           if ((j.problems ?? []).length) {
             warn('⚠ 运动人格：' + j.problems.length + ' 条（默认只报；--strict 才当门）');
             for (const p of j.problems.slice(0, 3)) warn('  · ' + p);
+            finding('motion.persona', j.problems.length + ' 条');
             if (strict) staticErrs.push('[运动人格] ' + j.problems.length + ' 条超出「' + (j.motion?.persona ?? '?') + '」的参考区间');
           } else {
             log('  ✓ 运动人格：' + j.evaluated + ' 条判据都在「' + (j.motion?.persona ?? '?') + '」的区间内'
@@ -606,6 +694,7 @@ async function cmdCheck() {
           } else if ((j.issues ?? []).length) {
             warn('⚠ 缓动方向：' + j.issues.length + ' 处（默认只报；--strict 才当门）');
             for (const it of j.issues.slice(0, 3)) warn('  · ' + (it.file ?? '') + ':' + (it.line ?? '?') + ' ' + (it.kind ?? ''));
+            finding('easing.direction', j.issues.length + ' 处');
             if (strict) staticErrs.push('[缓动方向] ' + j.issues.length + ' 处搭配是反的（位移配线性 / 方向与出入场相反）');
           } else {
             log('  ✓ 缓动方向：' + j.progCount + ' 处 prog 没有反配');
@@ -644,6 +733,7 @@ async function cmdCheck() {
           if ((j.problems ?? []).length) {
             warn('⚠ 同时运动：' + info + '（默认只报；--strict 才当门）');
             for (const p of j.problems.slice(0, 1)) warn('  · ' + p);
+            finding('motion.concurrency', j.problems.length + ' 条');
             if (strict) staticErrs.push('[同时运动] ' + j.problems.length + ' 条超参考（' + info + '）');
           } else {
             log('  ✓ 同时运动：' + info);
@@ -679,6 +769,7 @@ async function cmdCheck() {
             warn('⚠ 色系散了：' + row.families + '（主色系 ' + Math.round(row.top * 100) + '% · 前二 ' + Math.round(row.top2 * 100) + '%）');
             for (const p of row.problems ?? []) warn('  · ' + p);
             warn('  → 强调色（ember/blood/acid）跟着 signal 走；或换一套风格（docs/STYLE.md）');
+            finding('color.family', row.families);
             if (strict) staticErrs.push('[色系] ' + (row.problems ?? []).join('；'));
           }
         }
@@ -714,6 +805,7 @@ async function cmdCheck() {
             warn(`⚠ 事件密度：${j.problems.join('；')}`);
             warn(`  → 最静的窗口：${j.worst.map((w) => w.t + 's(' + w.v + ')').join('  ')}`);
             warn('  → 补法：给这几段加持续运动（推近/逐条落位/扫描线），或把段缩短、并进相邻段');
+            finding('event.density', j.problems.join('；'));
             if (strict) staticErrs.push(`[事件密度] ${j.problems.join('；')}`);
           } else {
             log(`  ✓ 事件密度：最长静止 ${j.staticSpan.toFixed(1)}s · 稀薄窗口 ${(j.thinShare * 100).toFixed(0)}%（平均帧间差 ${j.mean}）`);
@@ -757,6 +849,7 @@ async function cmdCheck() {
           if (probs.length) {
             warn(`⚠ 运动节奏（C7）：${reading}` + (lyricFilm ? '（歌词片：CV 不 gate）' : ''));
             for (const p of probs) warn('  · ' + p);
+            finding('motion.rhythm', probs.join('；'));
             if (strict) staticErrs.push(`[运动节奏C7] ${probs.join('；')}`);
           } else {
             log(`  ✓ 运动节奏（C7）：${reading}` + (lyricFilm ? '（歌词片）' : ''));
@@ -778,6 +871,7 @@ async function cmdCheck() {
       if (ph.length) {
         warn(`⚠ 分镜占位：时间线里还有 ${ph.length} 段 placeholder（${ph.map((s) => s.id).join(' / ')}）—— 这是草稿，交付前逐段换成真镜头`);
         warn('  → 协作顺序：分镜表 → placeholder 时间线 → anim board 确认 → 逐段替换（docs/SCENE-BRIEF-TEMPLATE.md §11）');
+        finding('shot.placeholder', ph.length + ' 段');
         if (strict) staticErrs.push(`[分镜占位] 还有 ${ph.length} 段 placeholder 未替换`);
       }
     } catch { /* 读不到配置就不判 */ }
@@ -814,6 +908,7 @@ async function cmdCheck() {
             }
             if (stag.length) warn('  → 错峰：用 waterfallStagger(items, stagger).stagger 喂 type.write（按 0.5s/items 压回）');
             if (halo.length) warn('  → 辉光：峰值降到 0.45 以下（超限的辉光会把主体糊掉）；见 docs/MOTION.md §4');
+            finding('motion.caps', j.over.length + ' 处');
             if (strict) staticErrs.push('[运动上限] ' + j.over.length + ' 处越线（错峰跨度 / 辉光峰值）');
           }
           if (!j.over.length && !j.checked.length) {
@@ -893,12 +988,14 @@ async function cmdCheck() {
       try {
         const parsed = JSON.parse(readFileSync(motionPath, 'utf8'));
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          finding('motion-spec.invalid', 'motion.json 内容该是对象');
           staticErrs.push('[画面语义断言] ' + path.relative(ROOT, motionPath)
             + ' 的内容该是对象（{ "assert": [...], "thresholds": {...} }），收到 ' + (Array.isArray(parsed) ? '数组' : typeof parsed));
         } else {
           motionSpec = parsed;
         }
       } catch (err) {
+        finding('motion-spec.invalid', 'motion.json 解析失败：' + firstLine(err));
         staticErrs.push('[画面语义断言] motion.json 解析失败：' + firstLine(err));
       }
     }
@@ -920,6 +1017,7 @@ async function cmdCheck() {
         const a = JSON.parse(readFileSync(anchorsPath, 'utf8'));
         const deg = Array.isArray(a?.degraded) ? a.degraded : [];
         if (deg.length) {
+          finding('narration.anchors', deg.length + ' 个');
           warn('⚠ ' + deg.length + ' 个词锚点降级成了手写秒数（改词不会自动重排）：');
           for (const d of deg.slice(0, 12)) warn('  [' + d.id + '] ' + d.kind + ' 锚点：' + d.why);
           if (deg.length > 12) warn('  …以及另外 ' + (deg.length - 12) + ' 个');
@@ -943,7 +1041,11 @@ async function cmdCheck() {
     for (const it of info.timeline) {
       log(`  ${String(it.id).padEnd(16)} ${it.start.toFixed(2).padStart(8)} → ${it.end.toFixed(2).padStart(8)}  (${(it.end - it.start).toFixed(2)}s)${it.note ? '  ' + it.note : ''}`);
     }
-    const errs = [...staticErrs, ...depErrs, ...reportErrors(info)];
+    const reported = reportErrors(info);
+    if (reported.length) finding('timeline.error', reported.length + ' 条');
+    if (info.gaps?.length) finding('timeline.gap', info.gaps.length + ' 处空档');
+    if (depErrs.length) finding('shot.missing-audio', depErrs.length + ' 条');
+    const errs = [...staticErrs, ...depErrs, ...reported];
     // `--quick` 的判据要在这之前就知道（响度那一档、试渲染那一档都用它）。
     // ⚠ 它只是**冒烟**：每段只采 50% 一个点、只跑单子帧、响度只量前 60 秒 ——
     //   不看多子帧路径、不看入场头 1 秒。结论行里会写清"哪些没跑"。
@@ -983,6 +1085,7 @@ async function cmdCheck() {
         const a = assessLoudness(m);
         log(`响度：${formatLoudness(m)}（packaging = ${path.basename(tracks.packaging)}，真峰=true peak）`
           + `  ${a.tier === 'ok' ? '✓' : a.tier === 'warn' ? '⚠' : '✗'} ${a.verdict}`);
+        if (a.tier !== 'ok') finding('audio.loudness', a.verdict);
         if (m.seconds) {
           warn(`  ⚠ 这个读数**只量了前 ${m.seconds}s**（--quick 的省时档）—— 整合响度是整段的量，`
             + '别拿它当全片结论；要结论就去掉 --quick。');
@@ -1008,6 +1111,7 @@ async function cmdCheck() {
         + ` · 说完再留 ${info.captions.hold}s${info.captions.karaoke ? ' · 逐词高亮（研究上属负效应，慎用）' : ''}`);
     } else if (info.narrationLines > 0) {
       warn(`⚠ 这支片子有 ${info.narrationLines} 句旁白，但**没开字幕层** —— 观众看不到语音字幕。`);
+      finding('caption.missing', info.narrationLines + ' 句旁白');
       warn('  → task.config.mjs 里加一行 captions: true（用法与理由见 docs/CAPTIONS.md）。');
       warn('  → 以前字幕是出锅后用 ffmpeg 烧的，生成脚本还在 out/_staging/（out/ 会被 clean 清掉）。');
     }
@@ -1030,6 +1134,7 @@ async function cmdCheck() {
         if (until > seg.end + 0.05) crossed.push({ l, seg, until });
       }
       if (crossed.length) {
+        finding('caption.cross-scene', crossed.length + ' 句');
         warn(`⚠ ${crossed.length} 句字幕**跨越了场景切换**（规范要求字幕不得跨 scene change）：`);
         for (const c of crossed.slice(0, 6)) {
           warn(`  [${c.l.id}]「${String(c.l.text).slice(0, 18)}…」说到 ${c.l.end.toFixed(1)}s，`
@@ -1050,6 +1155,17 @@ async function cmdCheck() {
       // 声明了 `world: false`（"整帧底我自己负责"）的段：**不判铺底**，但这次真的采了读数
       // （BACKLOG 头部 ⑦）。以前它们一行都不出现，于是"交叠窗之后那 1 秒"连个数字都没有。
       const selfRows = world?.selfBase ?? [];
+      /**
+       * **豁免纪律**（BACKLOG 1-80 接线点 ①）：world: false 是「背景守门少判一次」的受控豁免。
+       * 以前写了这一行就等于**无痕**豁免 —— 现在要 waivers.json 里有一条 background.coverage
+       * 的留痕（judge + guard 证据 + 关于这支片子的 reason）；没留痕就报「无痕豁免」。
+       * 判据是纯函数 auditExemptions()（scripts/lib/waivers.mjs，离线单测）。
+       */
+      const declaredSelf = Array.isArray(world?.declaredSelf) ? world.declaredSelf : [];
+      const bgAudit = auditExemptions({
+        waivers, audit: waiverAudit,
+        selfSegments: selfRows.map((r) => ({ id: r.id, coveredByGuard: true })),
+      }).background;
       if (selfRows.length) {
         const darkSelf = selfRows.filter((r) => r.dark && (r.handlesTransition || r.declaredWorld !== 'none'));
         log(`\n背景守门（world: false 的段，**不判铺底**，只给读数）：${selfRows.length} 段`);
@@ -1059,6 +1175,7 @@ async function cmdCheck() {
           log(`  ${String(r.id).padEnd(14)} 整帧覆盖 ${String(r.full).padStart(3)} 次  ${means}`);
         }
         if (darkSelf.length) {
+          finding('background.dark-tail', darkSelf.map((r) => r.id).join(', '));
           // ⚠ 只 warn、不进 errs（2026-10-16 实测）：窗后中点**不是判据点** —— 转场模板在窗后
           //   走"没有 under"的分支，本来就可能是近黑的（whip 设计值 0.037–0.051）。这里只是把
           //   "真的低到 0.004 以下"（= 除了一层清屏色什么都没有）这件事**报出来**给人看；
@@ -1067,10 +1184,37 @@ async function cmdCheck() {
           warn('  → 这是**读数**不是判据：声明 world: false 是"底我自己负责"，不是"这段没人看着"。');
           warn('    甩镜尾巴的近黑（0.037–0.051）是模板设计；真的低到 0.004 以下才值得去看那一帧。');
         }
+        // 豁免留痕核对（BACKLOG 1-80 接线点 ①）：world: false 拿走了背景守门的判据，就得留痕。
+        if (bgAudit.uncovered.length) {
+          const ids = bgAudit.uncovered.join(', ');
+          warn(`\n⚠ 无痕豁免（world: false）：${bgAudit.uncovered.length}/${bgAudit.segments.length} 段声明了 world: false、`
+            + `因此被背景守门跳过，却没有 waivers.json 留痕：${ids}`);
+          warn('  → 豁免不是「写一行就完」：judge + guard（证据）+ reason（关于这支片子的理由）三字段，记在 tasks/<任务>/waivers.json。');
+          warn(`    记录：node scripts/anim.mjs waivers ${task} --add --judge background.coverage --guard "段 ${ids} 自己画整帧底（audit 读数见上）" --reason "……" --segments ${ids}`);
+          warn('    理由要关于这支片子 —— 逐字复用、模板话、缺证据都会被 check 拒（docs/WAIVERS.md）。');
+          finding('waiver.unrecorded.background', ids);
+          if (strict) errs.push(`[豁免] world: false 没有留痕：${ids}`);
+        } else {
+          log(`  ✓ 豁免已登记：background.coverage 覆盖全部 ${bgAudit.covered.length} 段（${bgAudit.covered.join(', ')}）`);
+          finding('waiver.unrecorded.background', bgAudit.covered.join(', '), { waived: true });
+        }
+      }
+      {
+        // 全量声明里那些**不交叠**的段：它们的 world: false 没有豁免掉任何判据（背景守门本来就不查它们），
+        // 所以不要求留痕 —— 说清楚，否则读者会以为「豁免纪律漏了一批段」。
+        const unguarded = declaredSelf.filter((s) => !s.coveredByGuard);
+        if (unguarded.length) {
+          log(`（另有 ${unguarded.length} 段声明 world: false 但不与上一段交叠 —— 它们没有豁免掉任何判据，不要求留痕）`);
+        }
+        if (bgAudit.stale) {
+          warn('⚠ 豁免记录 background.coverage 没有对应的判定点（全片没有「交叠 + world: false」的段）—— 可能已经不需要了');
+          finding('waiver.stale', 'background.coverage');
+        }
       }
       if (world?.results?.length) {
         const missing = world.results.filter((r) => r.missing);
         if (missing.length) {
+          finding('background.missing', missing.map((m) => m.id).join(', '));
           warn(`\n⚠ 背景守门：${missing.length}/${world.results.length} 个交叠段**没有铺满整帧的背景**`);
           for (const m of missing) {
             warn(`  [${m.id}] t=${m.t.toFixed(2)}s  整帧覆盖绘制 ${m.full} 次（本帧总绘制 ${m.drawAny} 次）${m.handlesTransition ? '，声明了 handlesTransition' : ''}`);
@@ -1127,6 +1271,7 @@ async function cmdCheck() {
         // 只在"上面已经打过别的行"时才不补空行 —— 否则标题会粘在上一段输出尾巴上
         const pad = (missing.length || judged.length) ? '' : '\n';
         if (missing.length) {
+          finding('under.missing', missing.map((m) => m.id).join(', '));
           warn(`\n⚠ 依赖 under：${missing.length}/${rows.length} 段声明要读 ctx.under，却**与上一段没有交叠**`);
           for (const m of missing) {
             warn(`  [${m.id}] 第 ${m.index + 1} 段 ${m.start.toFixed(2)} → ${m.end.toFixed(2)}s：与上一段没有 overlap`);
@@ -1147,6 +1292,7 @@ async function cmdCheck() {
             `${noPrev.length} 段没有上一段可比（第 1 段 / --only 之后）：${ids} —— 没验`);
         }
         if (dbl.length) {
+          finding('under.no-handles', dbl.map((m) => m.id).join(', '));
           warn(`⚠ 依赖 under：${dbl.length} 段读了 ctx.under，却没声明 handlesTransition（${dbl.map((m) => m.id).join(', ')}）`);
           warn('  → 引擎会在这上面**再叠一次交叉溶解**（engine.js: k > 0 && !scene.handlesTransition），');
           warn('    "甩走"会被稀释成两屏叠一起。改法：场景/时间线上写 handlesTransition: true。');
@@ -1248,6 +1394,7 @@ async function cmdCheck() {
           pushSkipped(skipped, '非有限值扫描（NaN/Inf）', `[${it.id} t=${t.toFixed(2)}s] ${nf.error}`);
         }
         if (nf && !nf.error && nf.bad > 0) {
+          finding('scene.nonfinite', `[${it.id}] t=${t.toFixed(2)}s NaN ${nf.nan} / Inf ${nf.inf}`);
           const pct = ((nf.bad / Math.max(1, nf.pixels)) * 100).toFixed(1);
           const where = nf.first ? `（首个坏像素 x=${nf.first.x} y=${nf.first.y}，${nf.first.kind}）` : '';
           warn(`      ← ⚠ 非有限值：NaN ${nf.nan} / Inf ${nf.inf} / 量级>5e4 ${nf.huge} 像素${where}`);
@@ -1260,6 +1407,7 @@ async function cmdCheck() {
         }
 
         if (one.mean < 0.004) {
+          finding('scene.black', `[${it.id}] t=${t.toFixed(2)}s mean ${one.mean.toFixed(4)}`);
           const msg = `[${it.id}] t=${t.toFixed(2)} 几乎全黑（mean=${one.mean.toFixed(4)}），场景可能没画东西`;
           warn(`      ← 几乎是全黑，场景可能没画东西`);
           errs.push(msg);
@@ -1267,6 +1415,7 @@ async function cmdCheck() {
         if (multi) {
           // 过曝：亮度顶到 0.99 以上的像素太多，或整块死白
           if (multi.blownRatio > 0.2 || multi.clippedRatio > 0.15) {
+            finding('scene.overexposed', `[${it.id}] t=${t.toFixed(2)}s 死白 ${(multi.clippedRatio * 100).toFixed(1)}%`);
             const msg = `[${it.id}] t=${t.toFixed(2)} 过曝：亮度>0.99 的像素占 ${(multi.blownRatio * 100).toFixed(1)}%，死白占 ${(multi.clippedRatio * 100).toFixed(1)}%`;
             warn(`      ← 过曝（>0.99 占 ${(multi.blownRatio * 100).toFixed(1)}%，死白 ${(multi.clippedRatio * 100).toFixed(1)}%）`);
             errs.push(msg);
@@ -1274,6 +1423,7 @@ async function cmdCheck() {
           // 单帧与多子帧的亮度必须一致：不一致 = 运动模糊路径有系统性错误（曾经过曝 n 倍）
           const ratio = multi.mean / Math.max(one.mean, 1e-6);
           if (ratio > 1.3 || ratio < 1 / 1.3) {
+            finding('scene.blur-path', `[${it.id}] t=${t.toFixed(2)}s ${ratio.toFixed(2)}×`);
             const msg = `[${it.id}] t=${t.toFixed(2)} 单子帧与多子帧亮度差了 ${ratio.toFixed(2)}×（单帧 ${one.mean.toFixed(3)} → 多子帧 ${multi.mean.toFixed(3)}）`;
             warn(`      ← 两条路径不一致（${ratio.toFixed(2)}×）：这是运动模糊求平均/累加的问题，成片会和预览完全不同`);
             // 但如果是"非有限值"，方向就完全不同（累加 pass 会把 NaN/Inf 丢掉 → 单帧白、多帧黑）：
@@ -1289,6 +1439,7 @@ async function cmdCheck() {
       const lo = Math.min(...rows.map((r) => r.one.mean));
       const hi = Math.max(...rows.map((r) => r.one.mean));
       if (lo < 0.02 && hi > 0.06) {
+        finding('scene.brightness-uneven', `[${it.id}] ${lo.toFixed(3)} → ${hi.toFixed(3)}`);
         const msg = `[${it.id}] 段内亮度很不均（最低 ${lo.toFixed(3)} → 最高 ${hi.toFixed(3)}）：入场/出场某一段可能没画上东西`;
         warn(`      ← 段内亮度不均（${lo.toFixed(3)} → ${hi.toFixed(3)}）：查入场的头 1 秒和收尾`);
         errs.push(msg);
@@ -1307,6 +1458,7 @@ async function cmdCheck() {
         if (seenWarnings.has(w)) continue;
         seenWarnings.add(w);
         warn(`⚠ ${w}`);
+        finding('scene.warning', w);
         nWarn++;
       }
       if (nWarn) warn('  → 上面是**渲染中**攒出来的运行期警告（每帧都发生也只报一次）；修掉它们或确认无害。');
@@ -1351,6 +1503,7 @@ async function cmdCheck() {
               + `  主体区 ${focusReading(w)}${extra}`);
           }
           if (summary.violates.length) {
+            finding('layout.guard', `${summary.violates.length}/${summary.judged} 段`);
             warn(`\n⚠ 版面守门：${summary.violates.length}/${summary.judged} 段**一屏的东西太多**`);
             warn('  观众对钠那期的原话：「有些动画元素相互遮挡害得我搞不清楚到底要看哪个主体」。');
             warn('  → 改法（都不需要动引擎）：① 读数**一次只揭一个**（同屏别一次亮 6 个数）；');
@@ -1388,6 +1541,46 @@ async function cmdCheck() {
     }
 
     /**
+     * **豁免纪律**（BACKLOG 1-80 接线点 ②）：`layout.allowOverlap` 是受控豁免 ——
+     * 以前写了这一行就等于静默关掉「字压字」判据，报告里一个字都不会出现。
+     * 现在：声明了、或采样期真的压掉了，就必须有 `layout.overlap` 的留痕；
+     * 判据是纯函数 `auditExemptions()`（`scripts/lib/waivers.mjs`，离线单测）。
+     */
+    {
+      /** 采样期真的被 allowOverlap 压掉的字压字（`layoutVerdict().allowOverlap.exempted`） */
+      const appliedOverlaps = [];
+      for (const samples of layoutSeen.values()) {
+        for (const s of samples) {
+          const list = s?.verdict?.allowOverlap?.exempted;
+          if (Array.isArray(list)) appliedOverlaps.push(...list);
+        }
+      }
+      const layoutEx = auditExemptions({
+        waivers, audit: waiverAudit,
+        allowOverlap: info.layoutAllowOverlap ?? [],
+        appliedOverlaps,
+      }).layout;
+      if (layoutEx.required) {
+        const declared = layoutEx.declared.join(' / ');
+        if (!layoutEx.waived) {
+          warn(`\n⚠ 无痕豁免（layout.allowOverlap）：声明了 ${layoutEx.declared.length} 个豁免字符串（${declared}）`
+            + `，采样期**真的**压掉了 ${layoutEx.applied} 处字压字，却没有 waivers.json 留痕。`);
+          warn('  → 版面豁免要写明「关掉了什么、为什么这一屏可以压」—— judge + guard + reason 三字段。');
+          warn(`    记录：node scripts/anim.mjs waivers ${task} --add --judge layout.overlap --guard "……（哪一屏、哪两块、为什么可压）" --reason "……"`);
+          finding('waiver.unrecorded.layout', `declared: ${declared}`);
+          if (strict) errs.push(`[豁免] layout.allowOverlap 没有留痕（${declared}）`);
+        } else {
+          log(`\n  ✓ 版面豁免已登记：layout.overlap（声明 ${layoutEx.declared.length} 个字符串，采样期压掉 ${layoutEx.applied} 处）`);
+          finding('waiver.unrecorded.layout', `declared: ${declared}`, { waived: true });
+        }
+      }
+      if (layoutEx.stale) {
+        warn('⚠ 豁免记录 layout.overlap 没有对应的判定点（allowOverlap 是空的、采样期也没压掉任何一处）—— 可能已经不需要了');
+        finding('waiver.stale', 'layout.overlap');
+      }
+    }
+
+    /**
      * 节奏腿（BACKLOG 1-35，2026-10-17）：镜头长度变异系数（CoV）—— **纯静态**，零渲染。
      *
      * 判据【外部经验值】：CoV ≥ 0.25 否则整片是节拍器（onetake 的 motion-web 三版教训：
@@ -1409,6 +1602,7 @@ async function cmdCheck() {
         log(`\n节奏（静态）：${r.count} 段镜头长度 CoV ${r.cov.toFixed(2)}（最短 ${r.min.toFixed(2)}s / 最长 ${r.max.toFixed(2)}s）`
           + `  ${r.metronome ? '⚠ 低于 0.25 —— 节拍器' : '· ≥ 0.25'}`);
         if (r.metronome) {
+          finding('rhythm.cov', `CoV ${r.cov.toFixed(2)}`);
           warn('  匀速镜头长度在观众眼里就是"一格一格翻灯片"，不管每个镜头内部多好看（onetake 的三版教训）。');
           warn('  → 镜头长度该由旁白与信息量决定（docs/NARRATION.md），长枪 8–13s、短击 2–4s、burst 里 0.2–0.5s，别平摊。');
           if (strict) errs.push(`[节奏] 镜头长度 CoV ${r.cov.toFixed(2)} < 0.25 —— 节拍器（${r.count} 段，最短 ${r.min.toFixed(2)}s / 最长 ${r.max.toFixed(2)}s）`);
@@ -1472,6 +1666,7 @@ async function cmdCheck() {
       }
       const v = motionVerdict(planRun, rows);
       if (v.errors.length) {
+        finding('motion.assert', v.errors.length + ' 条');
         warn('\n画面语义断言：' + v.errors.length + ' 条命中');
         for (const e of v.errors.slice(0, 12)) warn('  · [' + e.kind + '] ' + e.id + ' —— ' + e.message);
         if (v.errors.length > 12) warn('  · …另有 ' + (v.errors.length - 12) + ' 条');
@@ -1505,6 +1700,7 @@ async function cmdCheck() {
      */
     const rerr = await collectRenderErrors({ take: false });
     if (rerr.count) {
+      finding('scene.render-error', rerr.count + ' 帧');
       warn(`\n⚠ 场景在渲染时抛异常：${rerr.count} 帧`);
       for (const line of rerr.text.slice(0, 10)) warn('  · ' + line);
       warn(`  → 那些帧画出来的是**错帧卡片**（暗红底 + 红框 + ✗ SCENE ERROR），不是画面内容。`);
@@ -1514,6 +1710,7 @@ async function cmdCheck() {
     // 浏览器控制台里的 pageerror 一律算失败：场景里的 TypeError 会先在这里露出来
     // （以前只在末尾附注打印，很容易被漏读）。
     const pageErrs = getSession().consoleLog.filter((l) => l.startsWith('[pageerror]'));
+    if (pageErrs.length) finding('page.error', pageErrs.length + ' 条');
     for (const l of pageErrs) errs.push(`[浏览器异常] ${l}`);
 
     // 3) 可选：把每个采样点拼成接触表，一张图看全片（--sheet）
@@ -1554,6 +1751,25 @@ async function cmdCheck() {
     if (strict && skipped.length) {
       warn(`  --strict：把 ${skipped.length} 项"没跑"当成失败（退出码 1）。`);
       process.exitCode = 1;
+    }
+
+    /**
+     * **判据分层**（BACKLOG 1-82 第二步，2026-11-20）：把这次**触发过的**判据按
+     * floor / reflex / finish 汇总成一行 —— 「0 FAIL 只对 Floor 成立」，全绿从此有明确含义。
+     *
+     * ⚠ 只改报告：这里不新增、也不删除任何一条 errs，更不改退出码。
+     *   分层口径与「哪些豁免已接线」见 docs/WAIVERS.md §3。
+     */
+    {
+      const tier = summarizeCheckFindings([...findings.values()]);
+      log(`\n判据分层：${tier.line}`);
+      for (const t of ['floor', 'reflex', 'finish']) {
+        const rows = tier.codes.filter((c) => c.tier === t);
+        if (rows.length) log(`  ${t.padEnd(7)} ${formatTriggered(rows)}`);
+      }
+      if (!tier.codes.length) log(`  ${formatTriggered([])}`);
+      log(`  ${TIER_LEGEND}`);
+      log('  （只统计**触发过**的判据；没跑的项见上面的 skipped —— 0 ≠ 没接线。口径与实现：docs/WAIVERS.md §3）');
     }
     if (errs.length) {
       /**

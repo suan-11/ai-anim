@@ -30,7 +30,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { build, cut, seq, auditUnderRequires, planWorldAudit, worldAuditVerdict } from '../src/timeline.js';
+import { build, cut, seq, auditUnderRequires, declaredSelfBase, planWorldAudit, worldAuditVerdict } from '../src/timeline.js';
 import { shot } from '../src/shots/index.js';
 
 import { readCliSource } from './lib/cli-source.mjs';
@@ -205,6 +205,32 @@ t('handlesTransition 与 declaredWorld 的三种取值（none / auto / custom）
   assert.equal(mk({ handlesTransition: true }).handlesTransition, true, '段上显式写的优先');
 });
 
+t('declaredSelfBase：全量收 world: false（含不交叠的），只有交叠段才是「真的豁免了判据」', () => {
+  const items = [
+    seg({ id: 'a', start: 0, end: 4 }),
+    seg({ id: 'solo', start: 4.5, end: 8, world: false }),          // 不交叠：没有豁免掉任何判据
+    seg({ id: 'over', start: 7, end: 10, world: false }),           // 与 solo 交叠 1s：真的被背景守门跳过
+  ];
+  const rows = declaredSelfBase(items);
+  assert.equal(rows.length, 2, '两条声明都要出现在全量清单里（含不交叠的）');
+  assert.equal(rows[0].id, 'solo');
+  assert.equal(rows[0].coveredByGuard, false, '不交叠 ⇒ 没有豁免掉任何判据');
+  assert.equal(rows[1].id, 'over');
+  assert.equal(rows[1].coveredByGuard, true, '交叠 ⇒ 背景守门因此少判一次');
+  assert.equal(rows[1].overlap, 1);
+});
+t('declaredSelfBase：没有 world: false 的段 ⇒ 空（不是「全都没豁免」）', () => {
+  assert.deepEqual(declaredSelfBase([seg({ id: 'a', start: 0, end: 4 }), seg({ id: 'b', start: 3, end: 6 })]), []);
+});
+t('declaredSelfBase：world: true/auto/对象都不算 false（`world: false` 是逐字比较）', () => {
+  const rows = declaredSelfBase([
+    seg({ id: 'a', start: 0, end: 4 }),
+    seg({ id: 'b', start: 3, end: 6, world: 'auto' }),
+    seg({ id: 'c', start: 5, end: 8, world: {} }),
+  ]);
+  assert.deepEqual(rows, [], '只有 world === false 才进这条清单');
+});
+
 t('场景那份 handlesTransition 兜底（段上没有时）—— 与引擎同口径', () => {
   const items = [
     seg({ id: 'a', start: 0, end: 6 }),
@@ -282,6 +308,8 @@ t('接线：app.js 暴露 underAudit()/worldAudit()，CLI 真的调用、并把 
 t('接线：worldAudit 采两个时刻、world: false 单独一栏、黑帧要报', () => {
   assert.ok(/selfBaseRows/.test(APP), 'world: false 的段必须单独收（BACKLOG 头部 ⑦）');
   assert.ok(/world\.selfBase|selfRows/.test(ANIM), 'CLI 必须把那一栏打印出来（以前连一行都没有）');
+  assert.ok(/declaredSelfBase/.test(APP), 'app.js 必须用纯函数 declaredSelfBase()（全量声明，给 1-80 的留痕核对）');
+  assert.ok(/declaredSelf/.test(ANIM), 'check 必须读这份全量声明（不然「不交叠的 world:false 不要求留痕」就说不清）');
 });
 
 /* ────────────────────────────────────────────────────────────────── 汇总 */
