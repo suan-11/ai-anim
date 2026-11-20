@@ -8,20 +8,20 @@
 ## 一、总量
 
 ```
-172 个提交 · 698 个文件 · +112,173 / −9,073 行
-基线 237e985　当前 e3e903e feat(waivers): 1-80 豁免纪律 —— anim waivers 留痕 judge+guard+reason，缺字段/样板拒，同判据≥3次升 house style；9 项回归
+176 个提交 · 701 个文件 · +113,116 / −9,076 行
+基线 237e985　当前 9134f76 docs(waivers): 豁免纪律文档 + 分层/交付/诊断/交接同步
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
-| tasks | 336 | 56,555 | 308 |
+| tasks | 338 | 56,597 | 308 |
 | assets | 14 | 16,801 | 0 |
-| scripts | 74 | 11,304 | 7,292 |
-| tools | 94 | 9,137 | 193 |
-| src | 70 | 8,678 | 169 |
-| docs | 81 | 7,515 | 695 |
+| scripts | 74 | 11,634 | 7,292 |
+| tools | 94 | 9,441 | 194 |
+| src | 70 | 8,764 | 171 |
+| docs | 82 | 7,694 | 695 |
 | skills | 20 | 1,724 | 0 |
-| (root) | 5 | 329 | 416 |
+| (root) | 5 | 331 | 416 |
 | .github | 2 | 114 | 0 |
 | .githooks | 1 | 16 | 0 |
 | public | 1 | 0 | 0 |
@@ -30,6 +30,9 @@
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| 9134f76 | 2026-11-20 | docs(waivers): 豁免纪律文档 + 分层/交付/诊断/交接同步 |
+| 65224e8 | 2026-11-20 | feat(judges): 1-82②/1-80② —— check 判据分层 + 豁免留痕接进两个判定点 |
+| cd8868f | 2026-11-17 | docs(handover): 2026-11-17 对标待办批量收口 1-75/79/80/81/82，CI 86/86 |
 | e3e903e | 2026-11-17 | feat(waivers): 1-80 豁免纪律 —— anim waivers 留痕 judge+guard+reason，缺字段/样板拒，同判据≥3次升 house style；9 项回归 |
 | fa20321 | 2026-11-17 | feat(judges): 1-82 判据分层 floor/reflex/finish —— judge-tiers 词表+汇总，anti-ppt 标 C1-C7 码 report 分层行（只改报告）；9 项回归 |
 | 26fd75f | 2026-11-17 | docs(brief): 1-79① brief 增 sound 栏（对标/律动/和声/配器/曲线+声音anti-list）；②重复率实测音色各异⇒score.mjs 缓做 |
@@ -45,6 +48,7 @@
 | 27c9caf | 2026-11-16 | docs(handover): 2026-11-16 —— 1-76 anim ref 落地 CI 81/81，下一步 1-77 |
 | f8eb034 | 2026-11-16 | docs(changes): 重生成改动清单（anim ref 入表） |
 | 6d669a4 | 2026-11-16 | feat(ref): 1-76 参考片拆解器 anim ref —— 切点表/BPM候选/每段运动量/时间+空间热图，纯函数离线回归 19 项 |
+| e02b4f5 | 2026-11-16 | feat(lens-sling): add an edge whip into the optical axis |
 | ae06920 | 2026-11-15 | chore(ignore): jfa / jfa-cover 留本地 —— 106 秒带旁白的科普片与它的封面任务 |
 | 529a7eb | 2026-11-15 | docs: 拆 garden-skills motion-showreel + 待办 §1.G 五条；STATUS §18–§19 归档、PLAN 去重 |
 | 09bc11a | 2026-11-14 | feat(lens-moves): add motion score and synchronized sound bed |
