@@ -74,6 +74,12 @@ const ITEMS = [
   { name: 'unit:env-probe', cmd: ['tools/test-env-probe.mjs'], note: 'A5 浏览器判定：装了驱动包 ≠ 有浏览器；「只有安装包、没有浏览器」必须判 false（5 项离线夹具）' },
   { name: 'unit:board', cmd: ['tools/test-board.mjs'], note: 'C2 分镜板排版纯函数：段中点采样 / id·时长·note 标注 / at 夹取 / 长 note 截断' },
   { name: 'unit:post-presets', cmd: ['tools/test-post-presets.mjs'], note: 'C3 被拍摄感预设：零回归 / 覆盖优先级 / 写错抛错 / 只组合现有参数' },
+  { name: 'unit:ref', cmd: ['tools/test-ref.mjs'], note: '1-76 参考片拆解纯函数：切点尖峰 / BPM 网格拟合 / 每段运动量 / 时间+空间热图（合成序列离线测）' },
+  { name: 'unit:qa-expect', cmd: ['tools/test-qa-expect.mjs'], note: '1-77 qa 期望值 + NOT CHECKED 极性：默认全 not-checked 不产生 fail / 显式不符翻极性 / 容差 / 非法值（合成 scan 离线测）' },
+  { name: 'unit:loop-seam', cmd: ['tools/test-loop-seam.mjs'], note: '1-78 循环接缝纯函数：首末帧平均差 / 阈值判定 / NaN 不算无缝（合成缓冲离线测）' },
+  { name: 'unit:structure-fingerprint', cmd: ['tools/test-structure-fingerprint.mjs'], note: '1-81 结构反收敛纯函数：段数/时长/CoV/转场分布/离散度 五维同构判定（合成段表离线测）' },
+  { name: 'unit:judge-tiers', cmd: ['tools/test-judge-tiers.mjs'], note: '1-82 判据分层纯函数：floor/reflex/finish 词表 / 反PPT C1-C7 归类 / 按tier计数 / 汇总格式（离线测）' },
+  { name: 'unit:waivers', cmd: ['tools/test-waivers.mjs'], note: '1-80 豁免纪律纯函数：judge+guard+reason 三字段校验 / reason 复用检测 / 同判据≥3次升 house style（离线测）' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──

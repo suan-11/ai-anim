@@ -8,20 +8,20 @@
 ## 一、总量
 
 ```
-152 个提交 · 661 个文件 · +110,049 / −8,782 行
-基线 237e985　当前 3dea39b fix(shot-cards): placeholder 登记 board 分类 —— 修 CI gen-shot-cards --check（PR #10 炸的那条）
+172 个提交 · 698 个文件 · +112,173 / −9,073 行
+基线 237e985　当前 e3e903e feat(waivers): 1-80 豁免纪律 —— anim waivers 留痕 judge+guard+reason，缺字段/样板拒，同判据≥3次升 house style；9 项回归
 ```
 
 | 目录 | 文件 | 新增行 | 删除行 |
 |---|---:|---:|---:|
-| tasks | 319 | 55,921 | 308 |
+| tasks | 336 | 56,555 | 308 |
 | assets | 14 | 16,801 | 0 |
-| scripts | 66 | 10,661 | 7,292 |
-| tools | 87 | 8,821 | 193 |
+| scripts | 74 | 11,304 | 7,292 |
+| tools | 94 | 9,137 | 193 |
 | src | 70 | 8,678 | 169 |
-| docs | 76 | 6,989 | 404 |
+| docs | 81 | 7,515 | 695 |
 | skills | 20 | 1,724 | 0 |
-| (root) | 5 | 324 | 416 |
+| (root) | 5 | 329 | 416 |
 | .github | 2 | 114 | 0 |
 | .githooks | 1 | 16 | 0 |
 | public | 1 | 0 | 0 |
@@ -30,6 +30,26 @@
 
 | 提交 | 日期 | 内容 |
 |---|---|---|
+| e3e903e | 2026-11-17 | feat(waivers): 1-80 豁免纪律 —— anim waivers 留痕 judge+guard+reason，缺字段/样板拒，同判据≥3次升 house style；9 项回归 |
+| fa20321 | 2026-11-17 | feat(judges): 1-82 判据分层 floor/reflex/finish —— judge-tiers 词表+汇总，anti-ppt 标 C1-C7 码 report 分层行（只改报告）；9 项回归 |
+| 26fd75f | 2026-11-17 | docs(brief): 1-79① brief 增 sound 栏（对标/律动/和声/配器/曲线+声音anti-list）；②重复率实测音色各异⇒score.mjs 缓做 |
+| de1a6b8 | 2026-11-17 | feat(variety): 1-81 结构反收敛 —— anim variety 五维结构指纹 vs 最近几支，单段片明说不适用；15 项纯函数回归 |
+| 215a955 | 2026-11-17 | docs(style): 1-75 top8 风格辨识信号/最俗版本（STYLE §3.2）+ anim styles 指针 + brief 须声明翻掉俗套 |
+| 5e8d1c8 | 2026-11-16 | docs(changes): 重生成改动清单（1-77/1-78 + 样片正式版入表） |
+| 3ad5dc3 | 2026-11-16 | chore(samples): 两支样片正式版版本戳 |
+| 933933d | 2026-11-16 | docs(handover): 2026-11-16 深夜自主推进 —— 1-77/1-78 落地 CI 83/83，两支样片正式版，磁盘 5.04/10GB |
+| f31c3c7 | 2026-11-16 | feat(loop): 1-78 循环片一等公民 —— video --loop / qa --loop 验首末帧接缝，loop-seam 纯函数 8 项回归，MOTION §3.9，_loop-lab 实证无缝(0.49) |
+| eb556b8 | 2026-11-16 | feat(qa): 1-77 期望值校验 + NOT CHECKED 极性 —— --expect-size/fps/duration/--audio，默认只报读数不变，显式不符当门；21 项离线回归 |
+| a0d7cb1 | 2026-11-16 | feat(samples): 两支反 AI 味样片 —— 深渊下潜(连续下潜/真实 NOAA 数据) + 光行(线稿/光速里程碑)，结构风格刻意互异，qa 通过 |
+| a4f1de7 | 2026-11-16 | docs(reference): 拆解 Nutlope/hallmark —— 判据组织可学（豁免纪律/结构反收敛/门分层），具体 CSS 门不搬；BACKLOG 开 1-80~1-82 |
+| 27c9caf | 2026-11-16 | docs(handover): 2026-11-16 —— 1-76 anim ref 落地 CI 81/81，下一步 1-77 |
+| f8eb034 | 2026-11-16 | docs(changes): 重生成改动清单（anim ref 入表） |
+| 6d669a4 | 2026-11-16 | feat(ref): 1-76 参考片拆解器 anim ref —— 切点表/BPM候选/每段运动量/时间+空间热图，纯函数离线回归 19 项 |
+| ae06920 | 2026-11-15 | chore(ignore): jfa / jfa-cover 留本地 —— 106 秒带旁白的科普片与它的封面任务 |
+| 529a7eb | 2026-11-15 | docs: 拆 garden-skills motion-showreel + 待办 §1.G 五条；STATUS §18–§19 归档、PLAN 去重 |
+| 09bc11a | 2026-11-14 | feat(lens-moves): add motion score and synchronized sound bed |
+| 1b05335 | 2026-11-14 | feat(lens-moves): add orbit offset and reveal camera passes |
+| 5f20da5 | 2026-11-14 | docs(changes): 重生成改动清单（placeholder 镜头卡入表） |
 | 3dea39b | 2026-11-14 | fix(shot-cards): placeholder 登记 board 分类 —— 修 CI gen-shot-cards --check（PR #10 炸的那条） |
 | 317d40e | 2026-11-14 | docs(backlog): 计划全收口销账 + 开 2-2 pv-kattachi 歌词同步收尾（待拍板 A/B/C） |
 | 15b2454 | 2026-11-14 | docs(handover): 2026-11-14 交接 —— PLAN 全收口 CI 80/80，pv-kattachi 待决 A/B/C 与核听入口 |

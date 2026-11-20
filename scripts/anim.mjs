@@ -22,10 +22,14 @@
  *                                                        首段必是 00:00；短于 --min 的段并进上一章
  *   node scripts/anim.mjs sheet <task> --from 0 --to 10 -n 12  出接触表（一张图看一段）
  *   node scripts/anim.mjs board <task> [--at 0.5]          分镜板：每段一格 + id·时长·note（C2）
+ *   node scripts/anim.mjs ref <外片.mp4> [--fps 8]         参考片拆解：切点表/BPM候选/每段运动量/运动热图（1-76）
+ *   node scripts/anim.mjs variety <task> [--save --last 3 --strict]  结构反收敛：指纹 vs 最近几支（1-81）
+ *   node scripts/anim.mjs waivers <task> [--add --judge id --guard 证据 --reason 理由]  豁免留痕 + house style（1-80）
  *   node scripts/anim.mjs cuts <task> [--window 1.5] [--n 7]   切点两侧各 ±1.5s 出一张接触表
  *                                                        （三点采样不落在切点上，切点要单独看；
  *                                                         画方框的那一格就是切点 = 后一段第一帧）
  *   node scripts/anim.mjs video <task> [--from 1 --to 5]  逐帧渲染 + ffmpeg 出 mp4（收尾自动 ffprobe 复核）
+ *        [--loop]  出片后验循环接缝（首末帧差 ≤2 算无缝，1-78）
  *   node scripts/anim.mjs shot  <task> --from 0 --to 4    出无音轨的短预览 mp4（快）
  *   node scripts/anim.mjs queue <taskA> <taskB> […选项]    睡前排队渲几支：顺序渲完（并行实测更慢）、
  *                                                          每支结束响一声、全部结束响三声、某支失败不中断后续；
@@ -80,6 +84,8 @@
  *                                                        成片抽帧 vs 同 t 重渲，按**帧号**逐像素比
  *                                                        （--from 是成片在任务时间轴上的起点）
  *   node scripts/anim.mjs qa <task> [--file x.mp4 --strict --freeze 3]
+ *        [--expect-size 1920x1080 --expect-fps 30 --expect-duration 26 --audio required|none]  期望值校验（1-77，没传=NOT CHECKED）
+ *        [--loop]  验循环接缝（首末帧差，1-78）
  *                                                        成片级技术扫描（纯 ffmpeg，不起浏览器）：
  *                                                        解码 / 黑场 / 静帧 / 音量，报区间。
  *                                                        默认只报读数，--strict 才把 warn 当失败
@@ -184,6 +190,9 @@ import { run as cmdCover } from "./cmd/cover.mjs";
 import { run as cmdChapters } from "./cmd/chapters.mjs";
 import { run as cmdSheet } from "./cmd/sheet.mjs";
 import { run as cmdBoard } from "./cmd/board.mjs";
+import { run as cmdRef } from "./cmd/ref.mjs";
+import { run as cmdVariety } from "./cmd/variety.mjs";
+import { run as cmdWaivers } from "./cmd/waivers.mjs";
 import { run as cmdCuts } from "./cmd/cuts.mjs";
 import { run as cmdCarry } from "./cmd/carry.mjs";
 import { run as cmdRhythm } from "./cmd/rhythm.mjs";
@@ -249,6 +258,9 @@ const commands = {
   chapters: cmdChapters,
   sheet: cmdSheet,
   board: cmdBoard,
+  ref: cmdRef,
+  variety: cmdVariety,
+  waivers: cmdWaivers,
   cuts: cmdCuts,
   carry: cmdCarry,
   rhythm: cmdRhythm,

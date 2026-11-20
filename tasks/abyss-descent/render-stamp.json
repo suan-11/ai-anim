@@ -1,0 +1,14 @@
+{
+  "schema": "anim.render-stamp/1",
+  "task": "abyss-descent",
+  "at": "2026-11-16T15:34:10.651Z",
+  "engine": "a2650b7626473fbf",
+  "scene": "706aaed73c1a29d8",
+  "video": "out/abyss-descent/abyss-descent.mp4",
+  "frames": 780,
+  "fps": 30,
+  "draft": false,
+  "scale": 1,
+  "samples": "auto",
+  "files": 308991996
+}

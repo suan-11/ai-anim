@@ -9,6 +9,43 @@
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
 
+### 2026-11-17（对标待办批量收口：1-75 / 1-79 / 1-80 / 1-81 / 1-82）
+
+**一句话**：§1.G 剩的两条 + §1.H 三条**全做完**，CI **86/86**，都在本地 master（未推 PR）。至此 garden-skills / hallmark 两份对标拆出的待办**全部落地或量过缓做**。
+
+- **1-75 风格辨识信号**：top 8 套「长什么样才叫像它 + 最俗版本」写进 STYLE.md §3.2；`anim styles` 加指针；brief 风格栏须声明翻掉哪几条俗套。
+- **1-79 声音**：①brief 增第 8 块 sound（对标/律动/和声/配器/能量曲线 + 声音 anti-list），七块→八块。②**重复率实测**：三支 make-*-audio 音色/签名各异、共享 IO 早在 media.mjs ⇒ **score.mjs 缓做**（等 ≥2 支真要同一音色再抽，别拧巴）。
+- **1-80 豁免纪律**：`anim waivers <task> --add --judge --guard --reason`，三字段留痕（缺字段/理由太短/逐字复用都拒），同判据豁 ≥3 次升 house style。`scripts/lib/waivers.mjs` + 9 项回归。
+- **1-81 结构反收敛**：`anim variety <task> [--save]`，五维结构指纹 vs out/_history/ 最近几支，≥4 维同构报收敛。**修了单段片假阳性**（单段指纹退化 ⇒ 明说不适用）。15 项回归。
+- **1-82 判据分层**：`tools/lib/judge-tiers.mjs`（floor/reflex/finish），lint-anti-ppt 标 C1-C7 码、report 加「Floor X FAIL · Reflex Y · Finish Z」分层行 + json 带 tiers。**只改报告不动检测/退出码**。9 项回归。
+
+**验证**：regress-all --ci 86/86 · test-cli-layout 46 命令 · lint-agents-refs / lint-doc-facts ✓。新增 5 个纯函数回归套件（judge-tiers/waivers/structure-fingerprint + 之前的 qa-expect/loop-seam）。
+
+**接手下一步**：对标待办已清。可做的：①把本地这批**理成 PR**（master 领先 origin 一大截，含 #13 + 1-77/78 + 样片 + 本批）；②1-82 的分层往 `check` 侧接（现在只接了 anti-ppt）；③1-80 豁免真正接进 check 的 allowOverlap/world:false 判定点；④pv-kattachi A/B/C 仍待用户拍板。
+
+### 2026-11-16 深夜（用户睡前自主推进：1-77 / 1-78 + 样片正式版）
+
+**一句话**：用户睡前说「多干点」。这一轮做完 **BACKLOG 1-77 + 1-78**，两支样片出**正式版**，CI **83/83**，磁盘 **5.04GB / 10GB**。改动都在本地 master（**未推 PR**，避免与仍开着的 #13 重叠，等用户醒后定）。
+
+- **1-77 qa 期望值 + NOT CHECKED 极性**：`qa --expect-size/--expect-fps/--expect-duration/--audio required|none`。`assessExpectations`（media.mjs 纯函数）；默认全 NOT CHECKED 不产生 fail（行为不变），显式不符翻极性当门。`tools/test-qa-expect.mjs` 21 项。
+- **1-78 循环片一等公民**：`video --loop`（出片后量接缝）+ `qa --loop`（首末帧差 ≤2 无缝，--strict 当门）。`scripts/lib/loop-seam.mjs` + `tools/test-loop-seam.mjs` 8 项 + MOTION §3.9。夹具 `_loop-lab` 实证无缝（差 0.49）。**坑：grain/ca 逐帧噪声会让接缝假红（开 7.93 / 关 0.49），循环片要关噪声或做成周期。**
+- **样片正式版**：`abyss-descent`（1080p+运动模糊，294.7MB）/ `light-seconds`（2.7MB）。qa + `--expect-*` 全过。abyss 的 4 条黑场警是**深海设计性黑暗**（非缺陷）；深度计数器在快速下潜段有轻微运动模糊拖影（可读）。
+- **验证**：regress-all --ci 83/83 · gen-shot-cards --check ✓ · lint-agents-refs ✓ · 两支正式版 qa + 期望值校验通过。
+
+**接手下一步**：§1.G 剩 **1-75（风格辨识信号）→ 1-79（声音 brief + score.mjs）**；§1.H **1-80 豁免纪律 / 1-81 结构反收敛 / 1-82 判据分层**。本地 master 领先 origin 一批提交（#13 内容 + 1-77/1-78 + 样片），**要交付先理清 PR 拆分**。`pv-kattachi` A/B/C 仍待用户拍板（分块已清，草稿保留）。
+
+### 2026-11-16 交接（1-76 参考片拆解器落地）
+
+**一句话**：BACKLOG §1.G 的第一条 **1-76 `anim ref` 参考片拆解器做完**，CI **81/81**，工作区干净（HEAD `f8eb034`，在 master，尚未推 PR）。
+
+- **新命令 `anim ref <外片.mp4>`**：吃别人的成片，量出 ①场景切点表 ②BPM 候选 ③每段运动量 ④时间+空间运动热图，另出 ffmpeg tile 整片接触表。读数落 `out/_ref/<片名>/ref.json` + `sheet.png`。
+- **不造新算法**：帧差口径复用 diff-series；纯函数判据在 `scripts/lib/ref-analysis.mjs`（detectCuts 孤立尖峰 / bpmCandidates 网格拟合+偏差 tie-break / segmentMotion / motionHeat / aggregateCellHeat），命令在 `scripts/cmd/ref.mjs`。
+- **离线回归** `tools/test-ref.mjs` 19 项进 CI（合成序列，不用 GPU/ffmpeg）。已接进 SCENE-BRIEF §11.6「对标」环节。
+- **⚠ 边界**：只认**硬切**（帧差孤立尖峰）；溶解/渐变转场检不出切点属正常。实测 trans-showcase（多溶解转场）只检到 3 个硬切，读数仍有用。
+- **验证**：regress-all --ci 81/81 · test-ci-coverage ✓ · gen-shot-cards --check ✓ · gen-changes --check ✓ · lint-doc-facts ✓。实跑 `ref out/trans-showcase/trans-showcase.mp4` 出图核对过。
+
+**接手下一步**：§1.G 建议顺序剩 **1-77（qa 期望值 + NOT CHECKED 极性）→ 1-78（循环片 --loop）→ 1-75（风格辨识信号）→ 1-79（声音 brief + score.mjs）**。`pv-kattachi` A/B/C 仍待用户拍板。本条改动在本地 master，**要交付需推 PR**（走 qyac，参照上一轮 feat/plan-completion 流程）。
+
 ### 2026-11-15 交接（文档压缩归档 + 新增 §1.G）
 
 **一句话**：这一轮**没有改任何代码**，只做文档的「总结 / 归档 / 加待办」三件事；代码与 `tasks/` 一字未动，CI 基线仍是 80/80。
