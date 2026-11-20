@@ -4,7 +4,7 @@ import path from "node:path";
 import { flag, opt } from "../lib/cli/args.mjs";
 import { log, warn, die } from "../lib/cli/log.mjs";
 import { ROOT, pickTask } from "../lib/cli/paths.mjs";
-import { validateWaiver, reusedReasons, houseStyle, WAIVER_JUDGES } from "../lib/waivers.mjs";
+import { validateWaiver, reusedReasons, houseStyle, auditWaiverFile, WAIVER_JUDGES } from "../lib/waivers.mjs";
 /* 命令：waivers —— 豁免纪律（BACKLOG 1-80）。豁免要留痕：judge + guard + reason；同判据反复豁 ⇒ house style。 */
 
 async function cmdWaivers() {
@@ -35,11 +35,14 @@ async function cmdWaivers() {
     return;
   }
   log(`${task} 的豁免（${waivers.length} 条）：`);
-  for (const w of waivers) {
-    const v = validateWaiver(w);
-    log(`  ${v.ok ? "✓" : "✗"} ${w.judge}${w.segments ? `（${w.segments.join(", ")}）` : ""} · guard: ${w.guard} · reason: ${w.reason}`);
-    if (!v.ok) warn("    不成立：" + v.errors.join("；"));
-  }
+  // 与 check 同一把尺子：形状 + 判据登记 + 逐字复用都算「不成立」（别在这里显示 ✓、在 check 里报错）
+  const audit = auditWaiverFile(waivers);
+  const badByIndex = new Map(audit.invalid.map((x) => [x.index, x.errors]));
+  waivers.forEach((w, i) => {
+    const errors = badByIndex.get(i) ?? [];
+    log(`  ${errors.length ? "✗" : "✓"} ${w.judge}${w.segments ? `（${w.segments.join(", ")}）` : ""} · guard: ${w.guard} · reason: ${w.reason}`);
+    if (errors.length) warn("    不成立：" + errors.join("；"));
+  });
   const dup = reusedReasons(waivers);
   if (dup.length) warn(`  ⚠ 有 ${dup.length} 条 reason 逐字复用（样板豁免）：${dup.join(" / ")}`);
   const hs = houseStyle(waivers);
