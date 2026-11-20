@@ -157,8 +157,14 @@ size 18 的读数行距 26px 会合成一块，size 96 的标题与下方 34px �
 | `off-safe` 越安全边距 | 成块内容字（size≥32）越出 `grid.pad`（保留区豁免） | warn |
 | `caption-hit` 撞字幕 | 块与**此刻正在渲染的字幕**矩形相交（引擎 `_drawCaptions` 记 `lastCaptionRect`；没字幕不判） | warn |
 
-**受控豁免**：任务/风格 `layout: { allowOverlap: ['标注', …] }` —— 块的 sample 文本含其中任一字符串，
+**受控豁免（1-80 起要留痕）**：任务/风格 `layout: { allowOverlap: ['标注', …] }` —— 块的 sample 文本含其中任一字符串，
 该块就不参与 overlap 判。豁免要显式写清关掉了什么（与 RULES.md 的纪律一致）。
+
+⚠ **2026-11-20 起，声明了 `allowOverlap`（或采样期真的压掉了字压字）就必须在 `tasks/<任务>/waivers.json`
+留一条 `layout.overlap`**（judge + guard 证据 + 关于这支片子的 reason）。没有记录时 `check` 报「无痕豁免」
+（reflex：默认只报，`--strict` 进 errs）；记录成立后计入收尾「判据分层」那一行的 `(N waived)`。
+`layoutVerdict().allowOverlap` 会把**声明**与**实际使用**分开报出来（只记账，不改变判据）。
+格式与命令见 [WAIVERS.md](WAIVERS.md) §1–§2。
 
 **假阳性校验后收紧的两处**（C1 验收要求，实测 demo/beat/pv-king）：
 - `off-frame` 只判**锚点**越界，不拿 `x1>W` 判 —— 右对齐/居中字的锚点不是左上角、宽度是 sans 近似，

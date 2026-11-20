@@ -3,11 +3,24 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-15**。**先读下面「2026-11-14 交接」一节**（当前状态 + 唯一待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
+> **最后更新：2026-11-20**。**先读下面「2026-11-20」一节**（当前状态 + 待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
 > 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`history/PLAN-2026-11-08.md`](history/PLAN-2026-11-08.md) A4 重写。
 > **2026-11-15**：`docs/PLAN-2026-11-08.md` 与 `docs/STATUS.md` §18–§19 **已归档/去重**，本页里的旧路径按 [history/](history/) 找。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
+### 2026-11-20（1-82② / 1-80②：判据分层接进 check，豁免接进两个判定点）
+
+**一句话**：hallmark 对标里最后两条「只做了一半」的收口 —— `check` 现在有**判据分层行**；`layout.allowOverlap` / `world:false` 的**无痕豁免**会被点名，留痕后计入 `(N waived)`。CI **86/86**。
+
+- **1-82② 判据分层接进 check**：`tools/lib/judge-tiers.mjs` 新增 `CHECK_TIERS`（41 条：floor 12 / reflex 19 / finish 10，**按当前的门**归类，不按「多严重」）+ `summarizeCheckFindings` / `formatTriggered`。`check` 收尾打「判据分层：Floor X FAIL · Reflex Y (N waived) · Finish Z」+ 触发清单 + 脚注；**只改报告，不动检测逻辑与退出码**；未登记代码默认 reflex。回归 29 项。
+- **1-80② 豁免接进两个判定点**：`scripts/lib/waivers.mjs` 新增 `auditWaiverFile`（judge 必须登记 / guard+reason / 逐字复用不算证据 / segments 段范围）与 `auditExemptions`（纯函数）。`check` 在 `layout.allowOverlap`（声明或采样期真的压掉）与 `world:false`（**交叠段**，即背景守门真的少判了一次）两处点名「无痕豁免」（reflex，`--strict` 当门）；留痕后计 waived；stale 记录与 house style 只报（finish）。`anim waivers --add` 支持 `--segments`。回归 35 项。
+- **页面 / 纯函数**：`layoutVerdict()` 新增 `allowOverlap: { declared, exempted }`（**只记账，判据不变**）；`worldAudit()` 新增 `declaredSelf`（全量 `world:false`，含不交叠段）；`src/timeline.js` 新增 `declaredSelfBase()`；`info()` 暴露生效的 `layoutAllowOverlap`。
+- **文档**：新增 [WAIVERS.md](WAIVERS.md)（格式 / check 怎么消费 / 分层表 / 欠账）；[LAYOUT.md](LAYOUT.md) §2.5、[DIAGNOSIS.md](DIAGNOSIS.md)、[BACKLOG.md](BACKLOG.md) 1-80/1-82、AGENTS.md §10 同步。
+- **端到端夹具**：`tasks/_config-lab/waivers.json`（`background.coverage`，`segments: ["whip"]`）。`check _config-lab --quick` 显示 `Reflex 2 (1 waived)`；把文件移走后 `--strict` 会报 `[豁免] world: false 没有留痕：whip`。
+
+**验证**：`regress-all --ci` **86/86** · 真机 `check demo --quick` / `check _config-lab --quick` 通过 · strict 有/无留痕对照 · `test-cli-layout` 46 命令 · judge-tiers 29 / waivers 35 / layout 57 / timeline-audit 29 项。
+
+**接手下一步**：① `hashes.baseline` / `anti-ppt` 的豁免仍未接线（[WAIVERS.md](WAIVERS.md) §5）；② 其它 reflex 判据的豁免也未接线（要豁免先按判据本身改）；③ 本地这批仍可理成 PR；④ `pv-kattachi` A/B/C 仍待拍板。
 
 ### 2026-11-17（对标待办批量收口：1-75 / 1-79 / 1-80 / 1-81 / 1-82）
 

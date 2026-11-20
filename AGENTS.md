@@ -631,6 +631,7 @@ node scripts/anim.mjs check <任务>
 | `docs/CAPTIONS.md` | 字幕层与信息分工（画面只放标注） |
 | `docs/RULES.md` | **判例式准则**（R/Q/S/C/P，每条 = 规则 + 用户原话 + 自检）—— 机器判不了的看这里 |
 | `docs/LAYOUT.md` | 版面纪律与「版面守门」（一屏一个主体） |
+| `docs/WAIVERS.md` | **豁免纪律**（judge+guard+reason / `check` 怎么消费 / 判据分层 floor·reflex·finish） |
 | `docs/MOTION.md` | 运动规则表（什么时候用哪个、数值上限、证据分级） |
 | `docs/NARRATION.md` | 旁白 / 口播这一层（A/B/C 三档） |
 | `docs/CHANGES-vs-upstream.md` | **相对上游 237e985 的全部改动**（37 提交 / 381 文件，按引擎·工作台·模板·风格·判据·流程分块） |
@@ -670,6 +671,7 @@ node scripts/anim.mjs check <任务>
 11.7 提交前钩子：`tools/install-git-hooks.mjs` 装一次，`git commit` 会对改到的任务跑 `anim report`；绕过 `--no-verify`。
 11.8 机器判据过了之后，人再过一遍 `docs/RULES.md`（R/Q/S/C/P 十二条判例准则）。
 12. **自检最多 3 轮**，3 轮不过就交人；发布前派一个只挑毛病的审查者，交回按时间码排序的问题清单 + 证据。
+13. **豁免要留痕**：写了 `layout.allowOverlap` 或 交叠段的 `world: false`，就要有 `tasks/<任务>/waivers.json` 记录（judge + guard + reason）。`check` 报「无痕豁免」时**补记录**，不是补一句解释；收尾「判据分层」行里 **Floor 必须是 0**（reflex 请用 `--strict` 再跑一次）。读法：`docs/WAIVERS.md`。
 
 ### 出问题时按这个顺序查
 

@@ -70,13 +70,25 @@ node scripts/anim.mjs qa <任务>       # 纯 ffmpeg 读数：解码 / 黑场 / 
 原文与理由见 [`REFERENCE-video-use.md`](REFERENCE-video-use.md) §3.3。交付前派一个**只挑毛病不夸**的审查者，
 交回**按时间码排序的问题清单 + 证据**（哪一秒、哪张图、什么问题）；切点优先看 `anim cuts`。
 
+### §10.13 豁免要留痕（[WAIVERS.md](WAIVERS.md)）
+
+`check` 收尾的「判据分层」行：`Floor` 必须是 **0**（进 errs 的硬问题）；`Reflex` 用 `--strict` 再跑一遍；
+`(N waived)` 是**已有 `waivers.json` 记录、且与判定点对得上**的那几条。
+
+- 写了 `layout.allowOverlap`，或**交叠段**的 `world: false` ⇒ `check` 会报「无痕豁免」。
+  按提示记录：`node scripts/anim.mjs waivers <任务> --add --judge … --guard … --reason … [--segments 段1,段2]`。
+- 记录不成立（缺字段 / 未知 judge / 理由逐字复用）⇒ floor 或 reflex（看 `check` 那一行）；
+  stale（判定点没了）与 house style（同判据豁 ≥3 次）只报（finish），但要正视。
+- 其它 reflex 判据的豁免**还没接线** —— 在 `waivers.json` 里写一条不会让它们变 waived（[WAIVERS.md](WAIVERS.md) §5）。
+
 ## 2. 出问题时按这个顺序查（完整命令块）
 
 > 症状 → 原因只有一张表：`AGENTS.md` §8。下面按**从便宜到贵**排。
 
 ```sh
-# ① 体检（三点采样 + 多子帧 + 背景守门/版面/卡点/事件密度）
+# ① 体检（三点采样 + 多子帧 + 背景守门/版面/卡点/事件密度；收尾有「判据分层」）
 node scripts/anim.mjs check <任务> [--quick | --strict]
+node scripts/anim.mjs waivers <任务> [--add --judge … --guard … --reason … [--segments 段]]   # 豁免要留痕
 
 # ② 画面不对 → 出图看，别猜
 node scripts/anim.mjs still <任务> -t …   # 单帧

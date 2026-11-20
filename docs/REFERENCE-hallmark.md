@@ -92,9 +92,9 @@ ai-anim 是**动画引擎** —— 它那 85 条具体门（`overflow-x: clip`�
 
 | 编号 | 事 | 依据 |
 |---|---|---|
-| 1-80 | 豁免纪律：判据 id + guard + reason + 连续豁免计数（≥3 升 house style） | 本文 §3① |
+| ~~1-80~~ | 豁免纪律：判据 id + guard + reason + 连续豁免计数（≥3 升 house style）。**2026-11-20 已接进 check 的两个判定点**（`layout.overlap` / `background.coverage`），见 [WAIVERS.md](WAIVERS.md) | 本文 §3① |
 | 1-81 | 结构反收敛：结构指纹 vs 最近 3 支，>N 维同构报"收敛" | 本文 §3② |
-| 1-82 | 判据分层 tier + 分层计数报告（"0 FAIL 只对 Floor"） | 本文 §3③ |
+| ~~1-82~~ | 判据分层 tier + 分层计数报告（"0 FAIL 只对 Floor"）。**2026-11-20 已接进 check**（`CHECK_TIERS` + 收尾「判据分层」行），见 [WAIVERS.md](WAIVERS.md) §3 | 本文 §3③ |
 
 ---
 
