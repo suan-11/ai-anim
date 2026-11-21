@@ -5,7 +5,10 @@
  *
  * 【出片】
  *   node scripts/anim.mjs tasks                          列出任务
- *   node scripts/anim.mjs new <名字>                      新建任务骨架
+ *   node scripts/anim.mjs new <名字>                      新建任务骨架（含 brief.mjs 分镜模板）
+ *   node scripts/anim.mjs brief <task> [--json]           校验结构化分镜 tasks/<task>/brief.mjs（禁止空泛形容词/主角段必须手写）
+ *   node scripts/anim.mjs review <task> [--only a,b] [--round N] [--samples auto]
+ *                                                        生成独立评审包 out/<task>/review/round-N/（三帧+board+cuts+lint-craft+空白评分表）
  *   node scripts/anim.mjs shots [名字] [--json]           列出镜头模板（A 档镜头库 src/shots/）与参数；
  *                                                         --json = 机器可读的参数表（字段契约 docs/ENGINE.md §14.9）
  *   node scripts/anim.mjs styles                          列出风格包（task.config.mjs 里写 style: '名字'，
@@ -180,6 +183,8 @@ import { setRest } from './lib/cli/args.mjs';
 import { warn, die } from './lib/cli/log.mjs';
 import { closeSession } from './lib/cli/session.mjs';
 import { run as cmdNew } from "./cmd/new.mjs";
+import { run as cmdBrief } from "./cmd/brief.mjs";
+import { run as cmdReview } from "./cmd/review.mjs";
 import { run as cmdTasks } from "./cmd/tasks.mjs";
 import { run as cmdShots } from "./cmd/shots.mjs";
 import { run as cmdStyles } from "./cmd/styles.mjs";
@@ -248,6 +253,8 @@ const IS_MAIN = (() => {
 
 const commands = {
   new: cmdNew,
+  brief: cmdBrief,
+  review: cmdReview,
   tasks: cmdTasks,
   shots: cmdShots,
   styles: cmdStyles,

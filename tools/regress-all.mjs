@@ -80,6 +80,8 @@ const ITEMS = [
   { name: 'unit:structure-fingerprint', cmd: ['tools/test-structure-fingerprint.mjs'], note: '1-81 结构反收敛纯函数：段数/时长/CoV/转场分布/离散度 五维同构判定（合成段表离线测）' },
   { name: 'unit:judge-tiers', cmd: ['tools/test-judge-tiers.mjs'], note: '1-82 判据分层纯函数：floor/reflex/finish 词表 / 反PPT C1-C7 归类 / 按tier计数 / 汇总格式（离线测）' },
   { name: 'unit:waivers', cmd: ['tools/test-waivers.mjs'], note: '1-80 豁免纪律纯函数：judge+guard+reason 三字段校验 / reason 复用检测 / 同判据≥3次升 house style（离线测）' },
+  { name: 'unit:brief-lint', cmd: ['tools/test-brief-lint.mjs'], note: '结构化分镜 lintBrief 纯函数：空占位/形容词黑名单/主角段手写/模板占比/接力物/标注长度（离线测）' },
+  { name: 'unit:craft-signals', cmd: ['tools/test-craft.mjs'], note: '偷懒检测纯函数：CRAFT-FONT/COLOR/RAWTEXT/MONO/TEMPLATE/STATIC-CAM/NOWORLD + pixel EMPTY/FLAT 阈值边界 + light-seconds 夹具（离线测）' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──
@@ -130,9 +132,9 @@ const ITEMS = [
   // ⚠ **不把 `lint-narration-dup` 放进清单**：已交付的 sodium / optifine 必然命中（12 / 3 句），
   //   放进来会让回归清单永久变红，反而没人看了。它是「交付前自检」（AGENTS.md §10.9）
   //   与 `check` 的警告项（见 scripts/anim.mjs 里那段的注释）。
-  { name: 'unit:style', cmd: ['tools/test-style.mjs'], note: '风格包 + 字幕层：合并规则 / 默认值一致 / "不写 style 时零变化"的底线（54 项）' },
+  { name: 'unit:style', cmd: ['tools/test-style.mjs'], note: '风格包 + 字幕层：合并规则 / 默认值一致 / 防初始默认污染校验' },
   { name: 'unit:tokens', cmd: ['tools/test-tokens.mjs'], note: '设计 token 的语义字号（1-46）：数字原样通过 / 六档按风格取值 / 拼错必须抛（不许静默回落 64）/ 每套风格 6 档齐全（38 项）' },
-  { name: 'unit:portrait', cmd: ['tools/test-portrait.mjs'], note: '竖屏 1080×1920（1-52）：横屏原样返回同一个对象（老任务零变化）/ 栅格按短边缩放而不是按高 / 字号 ×1.35 / 字幕带 61%–70% 且在 B 站 UI 之上 / gridPortrait 可覆盖（39 项）' },
+  { name: 'unit:portrait', cmd: ['tools/test-portrait.mjs'], note: '竖屏 1080×1920（1-52）：横屏原样返回同一个对象 / 栅格按短边缩放而不是按高 / 字号 ×1.35 / 字幕带 61%–70% 且在 B 站 UI 之上 / gridPortrait 可覆盖（39 项）' },
   { name: 'unit:block-sig', cmd: ['tools/test-block-sig.mjs'], note: '分块增量重渲（1-45）：段 id→源文件（三种写法）/ 块的覆盖范围只算真正跨过的段 / 改一个镜头只有它那块失效 / 引擎或参数变=全失效 / 查不到源文件的段永远重渲（21 项）' },
   { name: 'unit:cjk', cmd: ['tools/test-cjk.mjs'], note: '字幕断行（禁则 / 平衡 / 不丢字）：行首不许出现 ，。）」/ 行尾不许留 「（/ 不拆 24fps 与 v0.9.0 / 两行不许 15+1 / 超长句给更多行而不是截断 / emoji 与全角标点拼接不丢字（28 项）' },
   { name: 'unit:motifs', cmd: ['tools/test-motifs.mjs'], note: '母题库（1-49）：方波级数收敛 + Gibbs 过冲 / 本轮末端 == 级数值 / DCT 往返 <1e-9 / 归一化不改形状 / 采样不出 NaN 且 x 单调 / 游标越界夹住（38 项）' },

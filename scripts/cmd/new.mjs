@@ -16,19 +16,16 @@ function cmdNew() {
   mkdirSync(path.join(dir, 'audio'), { recursive: true });
 
   writeFileSync(path.join(dir, 'task.config.mjs'), `// 任务：${name}
-// 一个任务 = 一支片子（或一段小动画）。改这里就够了，引擎不用动。
-//
-// 想要「零代码出片」（推荐先试）：把下面的 timeline 换成**配置档** —— 时间线里直接写镜头模板，
-// 连 scenes/ 都不需要：
-//   timeline: [ { type: 'title', title: '标题', sub: '副标题', dur: 4 },
-//               { type: 'chart', values: [0.3, 0.7, 0.95], title: '成绩', dur: 5 } ]
-// 11 个模板与它们的参数：node scripts/anim.mjs shots [名字]    ·    说明：docs/CONFIG-ONLY.md
+// 一个任务 = 一支片子。正式讲解片请按 AGENTS.md §0.6（四步两停）制作：
+//   1. 先填好同目录下的 brief.mjs，跑 node scripts/anim.mjs brief ${name}
+//   2. 只手写 hook / mechanism / close 3 个关键段到成片质量，跑 anim review 过线
+//   3. 给用户看 3 张风格帧后再补全片；辅助段/过渡段可用配置档模板（docs/CONFIG-ONLY.md）
 import { seq, cut } from '../../src/timeline.js';
 import title from './scenes/title.js';
 import shapes from './scenes/shapes.js';
-// 可选：全片共用的背景（时间线里写 { world: 'auto' } 的段由引擎每帧先铺它）。
+// 推荐：全片共用的背景（时间线里写 { world: 'auto' } 的段由引擎每帧先铺它）。
 // import { worldPass } from '../../src/kit/index.js';
-// export const world = (ctx) => worldPass(ctx, { grid: 60 });
+// export const world = (ctx) => worldPass(ctx, { motif: 'auto' });
 
 export default {
   title: '${name}',
@@ -45,6 +42,64 @@ export default {
     cut(title, { dur: 4 }),
     cut(shapes, { dur: 6, params: { variant: 'grid' } }),
   ], { start: 0 }),
+};
+`);
+
+  writeFileSync(path.join(dir, 'brief.mjs'), `// 结构化分镜（动手写场景前先填完并校验：node scripts/anim.mjs brief ${name}）
+// 手艺规范见 docs/CRAFT.md，评分表见 docs/CRAFT-RUBRIC.md。
+export default {
+  logline: '<填>',
+  audience: '<填>',
+  duration: 60,
+  style: {
+    name: '<填>',
+    signals: ['<填>'],
+    flipped: ['<填>'],
+  },
+  world: {
+    background: '<填>',
+    camera: '<填>',
+    motif: '<填>',
+  },
+  segments: [
+    {
+      id: 'hook',
+      role: 'hook', // hook | mechanism | data | compare | close | bridge
+      hero: '<填>',
+      metaphor: '<填>',
+      motion: {
+        primary: '<填>',
+        secondary: '<填>',
+        ambient: '<填>',
+      },
+      peak: { at: '<填>', what: '<填>' },
+      stateDiff: '<填>',
+      relayTo: '<填>',
+      onscreen: ['<填>'],
+      build: 'custom', // hook / mechanism / close 必须 'custom'；其余可用 { shot: 'chart', why: '…' }
+    },
+    {
+      id: 'close',
+      role: 'close',
+      hero: '<填>',
+      metaphor: '<填>',
+      motion: {
+        primary: '<填>',
+        secondary: '<填>',
+        ambient: '<填>',
+      },
+      peak: { at: '<填>', what: '<填>' },
+      stateDiff: '<填>',
+      relayTo: '',
+      onscreen: ['<填>'],
+      build: 'custom',
+    },
+  ],
+  antiList: [
+    '<填>',
+    '<填>',
+    '<填>',
+  ],
 };
 `);
 

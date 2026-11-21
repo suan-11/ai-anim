@@ -92,6 +92,19 @@ export const CHECK_LABELS = Object.fromEntries(CHECK_JUDGE_TABLE.map(([code, , l
 /** 分层的读法（报告里那一行脚注用它，测试钉住措辞）。 */
 export const TIER_LEGEND = 'floor = 现在就会红（正确性，不可豁免）· reflex = 默认只报、--strict 才当门（可豁免，须在 waivers.json 留痕）· finish = 只报不拦';
 
+/** 手艺与偷懒检测判据的分层（全部归 finish：只报读数、不进 check，--strict 才当门）。 */
+export const CRAFT_TIERS = {
+  'CRAFT-FONT': 'finish',
+  'CRAFT-COLOR': 'finish',
+  'CRAFT-RAWTEXT': 'finish',
+  'CRAFT-MONO': 'finish',
+  'CRAFT-TEMPLATE': 'finish',
+  'CRAFT-STATIC-CAM': 'finish',
+  'CRAFT-NOWORLD': 'finish',
+  'CRAFT-EMPTY': 'finish',
+  'CRAFT-FLAT': 'finish',
+};
+
 /**
  * 把 check 这一次**触发过的**判据按 tier 汇总（纯函数，离线单测）。
  *
