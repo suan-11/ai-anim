@@ -92,6 +92,16 @@
 | ~~1-81~~ | **已做（2026-11-17）**：`anim variety <task> [--save --last 3 --strict]`，结构指纹（段数/总时长/段长CoV/转场分布/段长离散）五维 ≥4 同构报收敛；`scripts/lib/structure-fingerprint.mjs` 纯函数 + `tools/test-structure-fingerprint.mjs` 15 项。**单段连续片指纹退化 ⇒ 明说不适用（修了假阳性）**。历史存 out/_history/。**原始需求**：结构反收敛：结构指纹（段长 CoV / 切点类型分布 / 每段运动量向量）vs `out/_history/` 最近 3 支，>N 维同构报「结构收敛」 | 接上刚做的 `anim ref`（切点/运动量）+ 1-75（风格辨识信号）；先出纯函数 + 夹具 | REFERENCE-hallmark.md §3② |
 | ~~1-82~~ | **已做（2026-11-17）**：`tools/lib/judge-tiers.mjs`（floor/reflex/finish 词表 + ANTI_PPT_TIERS + bucketByTier + tierSummary）；lint-anti-ppt 每条问题标 C1-C7 码、report 加分层行「Floor X FAIL · Reflex Y · Finish Z」、json 带 tiers/codes。**只改报告不动检测逻辑/退出码**；test-judge-tiers 9 项 + test-anti-ppt 20 项仍绿。**②已接 check（2026-11-20）**：`CHECK_TIERS`（floor/reflex/finish，**按当前的门**归类）+ `summarizeCheckFindings` / `formatTriggered`；`check` 收尾打「判据分层：Floor … FAIL · Reflex … (N waived) · Finish …」+ 触发清单 + 脚注，**只改报告、不动检测逻辑与退出码**；未登记代码默认 reflex。回归 29 项（`tools/test-judge-tiers.mjs`）。**原始需求**：判据分层 tier：每条判据标 `floor|reflex|finish`，report 分层计数（`Floor 0 FAIL · Reflex 2 (1 waived) · Finish 3`），与 `--strict` 语义对齐 | 先从 `lint-anti-ppt` / `check` 现有判据开始标，不动判据逻辑只改报告 | REFERENCE-hallmark.md §3③ |
 
+### 1.I 首版即成片：天花板手艺、偷懒检测与独立审查（1-83～1-85）
+
+> 解决「门只管地板不看天花板、入口引向纯模板偷懒、自评当终审」问题：
+
+| 编号 | 事 | 状态 / 落地位置 | 出处 |
+|---|---|---|---|
+| ~~1-83~~ | **已做（2026-11-21）**：讲解片四步两停规范与手艺标杆 —— 新增 [CRAFT.md](CRAFT.md)（几何/数值手艺规范）、[CRAFT-RUBRIC.md](CRAFT-RUBRIC.md)（8 维评分表 + 防放水 + 派单模板）、[BAR.md](BAR.md)（反面样本 `anti-light-seconds-t10.png` / `anti-optifine-t120.png`）；同步更新 [AGENTS.md](../AGENTS.md) §0.6/§2/§9/§10、[SKILL.md](../skills/ai-anim/SKILL.md)、[SCENE-BRIEF-TEMPLATE.md](SCENE-BRIEF-TEMPLATE.md) §11、`scripts/cmd/new.mjs` | 已完成（正面标杆待 `oklab` 风格帧确认后补入 BAR.md） | 首版即成片计划第一阶段 |
+| ~~1-84~~ | **已做（2026-11-21）**：结构化分镜校验 `anim brief <任务>`（`scripts/lib/brief-lint.mjs` + `scripts/cmd/brief.mjs`）与偷懒检测 `tools/lint-craft.mjs`（`tools/lib/craft-signals.mjs`，9 个 `CRAFT-*` 信号，默认只报不进 `check`，`CRAFT-TEXTONLY` 暂未接线）；离线单测 `test-brief-lint` + `test-craft` 进 CI | 已完成 | 首版即成片计划第二阶段 |
+| ~~1-85~~ | **已做（2026-11-21）**：独立审查评审包 `anim review <任务>`（`scripts/cmd/review.mjs`）：三帧 `--samples auto` + board + cuts + `lint-craft` 读数 + 空白评分表 + 派单模板落 `out/<任务>/review/round-N/index.md` | 已完成 | 首版即成片计划第二阶段 |
+
 ---
 
 ## 2. 内容 / 片子

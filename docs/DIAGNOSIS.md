@@ -394,6 +394,19 @@
 | `⚠ 音轨几乎静音（峰值 -xx.x dB）—— 混音或旁白没接上？` / `· 音量贴满刻度（峰值 -0.0x dB）—— 平台/有损转码会削顶`<br>`classifyMediaScan()`（`volumedetect` 的 `mean_volume` / `max_volume`） | 成片音轨峰值 ≤ -60 dB（等于没有声音）或 ≥ -0.1 dB（顶到 0）。⚠ 它量的是**采样峰值**，不是真峰 —— 真峰（dBTP）与 LUFS 用 `anim mix` / `check` 的响度那一栏 | 静音：查 `task.config.mjs` 的 `audio` 与 `anim mix`；顶满：混音降一档（`docs/BACKLOG.md`「音频响度数字守门」那一行） |
 | `结论：通过（0 错 / N 警 / M 条读数）（…；--no-decode：解码这一条没验）` + `  （警告默认不改退出码；要当门用加 --strict）`<br>`cmdQa()` | 收尾结论。**默认退出码只由 error 决定**（与 `check` 同一条纪律）；`--strict` 时 warn 也变失败。`--no-decode` 会明说"解码没验"（空 ≠ 干净） | 要当交付门：`node scripts/anim.mjs qa <任务> --strict`（`AGENTS.md` §10.4） |
 
+### 1.18 结构分镜与手艺检测（`anim brief` / `lint-craft` / `anim review`）
+
+> 这一组命令管的是「天花板与反偷懒」：`anim brief` 挡住空泛形容词与主角段套模板；`lint-craft` 默认只报读数（`--strict` 当门，不进 `check`）；`anim review` 产出独立审查评审包。
+
+| 输出词 | 含义（什么情况下会看到它） | 修法 |
+|---|---|---|
+| `✗ 分镜校验未通过`（含 `BRIEF-EMPTY` / `BRIEF-ADJECTIVE` / `BRIEF-CUSTOM-REQUIRED` / `BRIEF-TEMPLATE-RATIO` / `BRIEF-TEMPLATE-DUP` / `BRIEF-RELAY` / `BRIEF-ONSCREEN-LEN` / `BRIEF-ANTILIST`）<br>`scripts/cmd/brief.mjs` · `scripts/lib/brief-lint.mjs` | `brief.mjs` 存在未填占位符 `<填>`、禁用形容词（高级/简洁/科技感等）、`hook`/`mechanism`/`close` 套模板、模板占比 >40% 或同模板 ≥3 次、缺接力物或屏幕标注 >18 字 | 按报错代码补全几何名词与三层运动描述；主角段改为 `build: 'custom'`，删除形容词与长句 |
+| `CRAFT-FONT` / `CRAFT-RAWTEXT` / `CRAFT-COLOR`<br>`tools/lib/craft-signals.mjs`（`scanSource`） | 场景代码直接写死 `sans-serif`/`monospace` 或 `.font = '...px'`、调裸 `fillText`/`strokeText`、或硬编码 `rgba`/`#hex` 多于 `P.` 引用 | 改用 `type.write` / `writeLine` + `family: 'sans'\|'mono'\|'serif'`，色值统一取 `ctx.P` 与 `css(P.x, a)` |
+| `CRAFT-MONO` / `CRAFT-TEMPLATE` / `CRAFT-STATIC-CAM` / `CRAFT-NOWORLD`<br>`tools/lib/craft-signals.mjs`（`taskSignals`） | >15s 单段撑完、非 placeholder 模板占比 >40% 或同模板 ≥3 次、源码缺任何摄影机调用（`cameraPost`/`makeShot`/`camera3`/`shakeSmooth`等）、或多段未声明 `world` | 拆出叙事分段；主角段手写；导出 `export const world` 配 `{ world: 'auto' }` 与连续摄影机 |
+| `CRAFT-EMPTY` / `CRAFT-FLAT`<br>`tools/lib/craft-signals.mjs`（`pixelSignals`） | 16×9 网格空格占比 >55%，或帧亮度 `p95 - p5 < 0.25` | 放大视觉主体至占画幅 30–60%，或按 `CRAFT.md` §3 拉开 1.0 / ≤0.5 / ≤0.25 三档明暗对比 |
+| `像素扫描：跳过（未传 --stills 且暂无 out/<任务>/review/ 帧（仅做源码检查））`<br>`tools/lint-craft.mjs` | ⚠ 只扫了 JS 源码，**没有看像素**（空屏/扁平未验） | 先跑 `node scripts/anim.mjs review <任务>` 或带 `--stills <目录>` 重跑 `lint-craft` |
+| `✓ 评审包已生成：out/<任务>/review/round-N/index.md`<br>`scripts/cmd/review.mjs` | 评审包与三帧 PNG、board、cuts、`lint-craft` 读数、空白评分表及审查者派单模板已就绪 | 派新上下文的只读审查者按 `index.md` 里的派单模板与 `docs/CRAFT-RUBRIC.md` 打分（过线前不交用户） |
+
 ---
 
 ## 2. 退出码语义：哪个命令非零代表什么

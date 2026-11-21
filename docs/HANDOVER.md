@@ -3,10 +3,19 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-20**。**先读下面「2026-11-20」一节**（当前状态 + 待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
+> **最后更新：2026-11-21**。**先读下面「2026-11-21」一节**（当前状态 + 待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
 > 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`history/PLAN-2026-11-08.md`](history/PLAN-2026-11-08.md) A4 重写。
 > **2026-11-15**：`docs/PLAN-2026-11-08.md` 与 `docs/STATUS.md` §18–§19 **已归档/去重**，本页里的旧路径按 [history/](history/) 找。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
+
+### 2026-11-21（1-83～1-85：首版即成片 —— 手艺规范 / 结构化分镜 / 偷懒检测 / 评审包）
+
+**一句话**：解决「门只守地板不看天花板、默认引向纯模板偷懒、自评当终审」—— 落地四步两停流程、`anim brief`、`lint-craft`、`anim review` 与 `CRAFT-RUBRIC` 独立审查机制，不动已有 `check` 逻辑与老任务退出码。
+
+- **文档与工作流（1-83）**：新增 [CRAFT.md](CRAFT.md)（概念→画面 / 构图比例 / 层级 / 运动分层 / 必用能力 / 段型配方）、[CRAFT-RUBRIC.md](CRAFT-RUBRIC.md)（8 维 1–5 分评分表 + 防放水 + 派单模板）、[BAR.md](BAR.md)（反面样本 `anti-light-seconds-t10.png` / `anti-optifine-t120.png`）；同步更新 `AGENTS.md`（§0.6/§2/§9/§10）、`skills/ai-anim/SKILL.md`、`docs/SCENE-BRIEF-TEMPLATE.md` §11、`scripts/cmd/new.mjs`（新增 `brief.mjs` 模板）。
+- **分镜与偷懒检测工具（1-84）**：新增 `scripts/lib/brief-lint.mjs` + `scripts/cmd/brief.mjs`（`anim brief`，禁空占位/形容词/主角段套模板/模板超 40%/断接力/长句标注）；新增 `tools/lib/craft-signals.mjs` + `tools/lint-craft.mjs`（9 个 `CRAFT-*` 信号，默认仅报读数，`--strict` 当门，不进 `check`；`CRAFT-TEXTONLY` 暂未接线）。`tools/lib/judge-tiers.mjs` 新增 `CRAFT_TIERS`（不改 `CHECK_TIERS`）。
+- **独立评审包（1-85）**：新增 `scripts/cmd/review.mjs`（`anim review`）：出每段 0.15/0.50/0.85 三帧（`--samples auto`）+ `board.png` + `cuts` + `lint-craft` 读数 + 空白评分表 + 派单模板到 `out/<任务>/review/round-N/index.md`。
+- **测试与同步**：新增 `tools/test-brief-lint.mjs`（29 项）与 `tools/test-craft.mjs`（29 项 + `light-seconds` 夹具），已接入 `tools/regress-all.mjs`；同步更新 [DIAGNOSIS.md](DIAGNOSIS.md) §1.18 与 [BACKLOG.md](BACKLOG.md) §1.I。
 
 ### 2026-11-20（1-82② / 1-80②：判据分层接进 check，豁免接进两个判定点）
 

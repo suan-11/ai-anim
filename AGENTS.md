@@ -55,6 +55,17 @@
 
 ---
 
+## 0.6 做一支片子：四步两停
+
+**`check` 绿 ≠ 做完；独立审查者按评分表过线才算。** 手艺标准见 [`docs/CRAFT.md`](docs/CRAFT.md)，正反标杆见 [`docs/BAR.md`](docs/BAR.md)。
+
+1. **定分镜**：写 `tasks/<任务>/brief.mjs`，跑 `node scripts/anim.mjs brief <任务>`（全绿再动手）。
+2. **风格帧 🛑**：只手写 **3 个关键段**（`hook` / `mechanism` / `close`）到成片质量；跑 `anim review <任务> --only …`，派**独立审查者**按 `docs/CRAFT-RUBRIC.md` 评分过线，**停下交用户确认这 3 帧**。
+3. **补全片 🛑**：用户点头后做其余段，跑 `anim review` + 独立审查（最多 3 轮）→ 出 `--draft` 交用户。
+4. **定稿**：用户确认后再全渲染。
+
+---
+
 ## 1. 三条命令先跑起来
 
 ```sh
@@ -95,12 +106,12 @@ npm run dev                                     # 浏览器里实时预览（空
 
 ## 2. 建一个新片子
 
-有**两条路**，先试第一条（大多数片子够用）。
+讲解片走 **§0.6**（主角段手写）；配置档模板只用于辅助段 / 过渡段 / 快速试片。
 
 > ### ★ 动手之前先决定两件事（`docs/STYLE.md` / `docs/CAPTIONS.md`）
 >
 > **① 用哪套风格？** 一行 `style: 'paper'` 换掉整片观感（配色 / 字体栈 / 背景母题 / 后处理基线 /
-> 栅格 / 字幕样式一起换），可选清单 `node scripts/anim.mjs styles`；不写 = `print`（老任务一像素不变）。
+> 栅格 / 字幕样式一起换），可选清单 `node scripts/anim.mjs styles`；不写 = `print`（默认风格；风格包、镜头模板与引擎默认值均按视觉效果优先迭代，不要求老任务逐像素不变）。
 > **风格由内容决定**（不是"必须换"）；只有连着发布两支同题材、上一支刚用过同一套时才考虑换脸，且先问用户。
 > 试色：`node scripts/anim.mjs still _style-sampler -t 1.8,6,9.6 --style paper`。
 >
@@ -109,29 +120,10 @@ npm run dev                                     # 浏览器里实时预览（空
 > 同屏两套完整句子就是观众说的"两条字幕同时出现，看着好迷糊"（sodium 43 句旁白里 12 句被逐字抄成说明条）。
 > 交付前 `node tools/lint-narration-dup.mjs <任务>` 自查。
 
-### 2.1 配置档（推荐先试）：只写 `task.config.mjs`
+### 2.1 配置档（快速试片 / 辅助段）：只写 `task.config.mjs`
 
-时间线里**直接写镜头模板**：一个任务可以只有 `task.config.mjs`、**没有 `scenes/`**、**没有任何 `import`**。
-
-```js
-// tasks/<任务>/task.config.mjs —— 唯一需要编辑的文件
-export default {
-  title: '我的片子', width: 1920, height: 1080, fps: 60, scale: 1,
-  style: 'paper',                                // ← 风格包（anim styles 看全部；不写 = print）
-  // export const variants = { dark: { style: 'noir', palette: { signal: '#0ff' } } };
-  //   → node scripts/anim.mjs video <任务> --variant dark（深合并覆盖；数组整体替换；产物落 out/<任务>/dark/）
-  captions: true,                                // ← 引擎字幕层（有旁白时开；见 docs/CAPTIONS.md）
-  timeline: [                                    // 数组、seq([...]) 都行
-    { type: 'title', title: '我的片子', sub: '副标题', dur: { beat: 8 } },
-    { type: 'chart', values: [0.3, 0.7, 0.95], title: '成绩', dur: 5, id: 'bars' },
-    { type: 'outro', dur: 3 },
-  ],
-};
-```
-
-这条路**不用跑 `anim new`**（那是第二条路的脚手架）：建目录、写这一个文件，然后
-`check <任务>` → `still <任务> -t …` → `video <任务>`。节点上能写什么 / 默认值 / 写错怎么报 /
-什么时候必须回去写场景 → **§3.2**；教程 `docs/CONFIG-ONLY.md`，可照抄的示例 `tasks/example-config-only/`。
+时间线里**直接写镜头模板**（`{ type: 'title', dur: 4 }`），连 `scenes/` 与 `import` 都不需要 —— 但主角段仍应手写（§0.6）。
+节点字段 / 报错与完整形状见 **§3.2**；教程 `docs/CONFIG-ONLY.md`，可照抄示例 `tasks/example-config-only/`。
 
 ### 2.2 手写场景：`anim new` 的脚手架
 
@@ -626,7 +618,10 @@ node scripts/anim.mjs check <任务>
 | `docs/COOKBOOK.md` | 常见效果怎么做 —— 按「画面要什么」找做法 |
 | `docs/MOTIFS.md` | **母题库**`src/kit/motifs/`：拆方波 / 8×8 DCT / 波形+游标 —— 同一件事只写一次 |
 | `docs/shots/` | **镜头卡索引**（按叙事功能分组，29 张；生成物：`anim shot-cards`）—— 选镜头先查这里 |
-| `docs/CONFIG-ONLY.md` | 零代码出片（B 档，§3.2 的完整版） |
+| `docs/CONFIG-ONLY.md` | 零代码出片（B 档，§3.2 的完整版，辅助段/试片用） |
+| `docs/CRAFT.md` | **讲解片画面手艺**（概念→画面 / 构图比例 / 层级 / 运动分层 / 必用能力 / 段型配方） |
+| `docs/CRAFT-RUBRIC.md` | **独立审查者评分表**（8 维 1–5 分尺子 + 防放水规则 + 审查者派单模板） |
+| `docs/BAR.md` | **正反标杆图集**（反面样本逐处剖析 + 正面标杆代码对照） |
 | `docs/STYLE.md` | 风格包与反审美疲劳（相邻两片换脸是**建议**：风格由内容决定） |
 | `docs/CAPTIONS.md` | 字幕层与信息分工（画面只放标注） |
 | `docs/RULES.md` | **判例式准则**（R/Q/S/C/P，每条 = 规则 + 用户原话 + 自检）—— 机器判不了的看这里 |
@@ -672,6 +667,7 @@ node scripts/anim.mjs check <任务>
 11.8 机器判据过了之后，人再过一遍 `docs/RULES.md`（R/Q/S/C/P 十二条判例准则）。
 12. **自检最多 3 轮**，3 轮不过就交人；发布前派一个只挑毛病的审查者，交回按时间码排序的问题清单 + 证据。
 13. **豁免要留痕**：写了 `layout.allowOverlap` 或 交叠段的 `world: false`，就要有 `tasks/<任务>/waivers.json` 记录（judge + guard + reason）。`check` 报「无痕豁免」时**补记录**，不是补一句解释；收尾「判据分层」行里 **Floor 必须是 0**（reflex 请用 `--strict` 再跑一次）。读法：`docs/WAIVERS.md`。
+14. **风格与手艺过线**：讲解片需跑 `anim review <任务>` 产出评审包，由**独立审查者**按 `docs/CRAFT-RUBRIC.md` 评分过线；`node tools/lint-craft.mjs <任务>` 在主角段上无发现（`anim brief` 全绿）。
 
 ### 出问题时按这个顺序查
 
