@@ -17,11 +17,10 @@ export default makeShot('mechanism',{
     lines.fillRect(barX-60,barBase-barH,120,barH,withAlpha(P.signal,0.9));
     lines.flush(ctx.out);
     text.clear();
-    type.writeLine('对折 '+n+' 次', barX, 130, {anchor:'center',size:36,color:css(P.bone,0.9)});
-    // 真实厚度（km 级换算）
+    type.writeLine('对折 '+n+' 次', W*0.22, 150, {anchor:'center',size:34,color:css(P.bone,0.9)});
     const km=thickMM/1e6;
     const label=km>1?km.toFixed(0)+' km':thickMM.toFixed(1)+' mm';
-    type.writeLine(label, barX, barBase-barH-40, {anchor:'center',size:44,color:css(P.signal,0.95)});
+    type.writeLine(label, W*0.78, 150, {anchor:'center',size:44,color:css(P.signal,0.95)});
     if(lt>4) type.writeLine('×2 每次', W*0.5, H-70, {anchor:'center',size:38,color:css(P.bone,smoothstep(4,5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
     return{grain:0.012,vignette:0.3};

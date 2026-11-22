@@ -10,7 +10,7 @@ export default makeShot('data',{
     const moonH=MOON/FOLD42*maxH, foldH=maxH;
     const grow=smoothstep(0.3,3.5,lt);
     const zt=sat((lt-3.5)/0.6); const zoom=1+0.6*smoothstep(0,1,zt);
-    ctx.setXform({scale:zoom,anchor:[W*0.5,baseY-moonH]});
+    ctx.setXform({scale:zoom,anchor:[W*0.5,baseY]});
     lines.begin();
     lines.seg(W*0.2,baseY,W*0.8,baseY,1.5,withAlpha(P.graphite,0.6));
     // 地月距离柱（左）
@@ -24,7 +24,7 @@ export default makeShot('data',{
     text.clear();
     type.writeLine('地月 38万km', W*0.35, baseY+40, {anchor:'center',size:28,color:css(P.ash,0.9)});
     type.writeLine('42次 44万km', W*0.65, baseY+40, {anchor:'center',size:28,color:css(P.ash,0.9)});
-    if(grow>0.9) type.writeLine('够到月球', W*0.5, 130, {anchor:'center',size:44,color:css(P.signal,smoothstep(3,4,lt))});
+    if(grow>0.9) type.writeLine('够到月球', W*0.5, H*0.2, {anchor:'center',size:44,color:css(P.signal,smoothstep(3,4,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
     return{grain:0.012,vignette:0.3};
   },
