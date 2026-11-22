@@ -1,0 +1,90 @@
+[
+  {
+    "t_start": 0,
+    "t_end": 4,
+    "intensity": 4,
+    "info_density": 1,
+    "resistance": 0.4,
+    "attention_target": "single_anchor",
+    "motion_grammar": "zoom_punch_in",
+    "sound_density": 0.4,
+    "beat_role": "pressure"
+  },
+  {
+    "t_start": 4,
+    "t_end": 10,
+    "intensity": 3,
+    "info_density": 2,
+    "resistance": 0.55,
+    "attention_target": "single_anchor",
+    "motion_grammar": "zoom_out_in",
+    "sound_density": 0.45,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 10,
+    "t_end": 14,
+    "intensity": 2,
+    "info_density": 3,
+    "resistance": 0.7,
+    "attention_target": "single_anchor",
+    "motion_grammar": "geo_distort",
+    "sound_density": 0.4,
+    "beat_role": "pressure"
+  },
+  {
+    "t_start": 14,
+    "t_end": 18,
+    "intensity": 3,
+    "info_density": 3,
+    "resistance": 0.8,
+    "attention_target": "single_anchor",
+    "motion_grammar": "distort_hold",
+    "sound_density": 0.5,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 18,
+    "t_end": 24,
+    "intensity": 5,
+    "info_density": 3,
+    "resistance": 0.2,
+    "attention_target": "single_anchor",
+    "motion_grammar": "topo_morph_zoom",
+    "sound_density": 0.6,
+    "beat_role": "release"
+  },
+  {
+    "t_start": 24,
+    "t_end": 28,
+    "intensity": 3,
+    "info_density": 2,
+    "resistance": 0.35,
+    "attention_target": "single_anchor",
+    "motion_grammar": "topo_settle",
+    "sound_density": 0.45,
+    "beat_role": "residue"
+  },
+  {
+    "t_start": 28,
+    "t_end": 34,
+    "intensity": 5,
+    "info_density": 2,
+    "resistance": 0.15,
+    "attention_target": "single_anchor",
+    "motion_grammar": "path_zoom_count",
+    "sound_density": 0.65,
+    "beat_role": "release"
+  },
+  {
+    "t_start": 34,
+    "t_end": 40,
+    "intensity": 1,
+    "info_density": 2,
+    "resistance": 0.3,
+    "attention_target": "single_anchor",
+    "motion_grammar": "zoom_out_circuit",
+    "sound_density": 0.35,
+    "beat_role": "residue"
+  }
+]
