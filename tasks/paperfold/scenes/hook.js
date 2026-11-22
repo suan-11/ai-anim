@@ -4,7 +4,7 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('hook',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 对折次数 0→3
     const n=Math.min(3,Math.floor(smoothstep(0.2,1.5,lt)*3.99));
     const thickMM=0.1*Math.pow(2,n); // 毫米

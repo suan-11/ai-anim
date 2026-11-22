@@ -4,7 +4,7 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('mechanism',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const n=Math.floor(smoothstep(0.3,5.0,lt)*30); // 0→30次
     const thickMM=0.1*Math.pow(2,n);
     // 柱高用 log 压缩显示（否则冲出画面），但标注真实值

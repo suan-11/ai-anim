@@ -4,7 +4,7 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('data',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const MOON=384400, FOLD42=439805; // km
     const baseY=H*0.8, maxH=H*0.6;
     const moonH=MOON/FOLD42*maxH, foldH=maxH;
