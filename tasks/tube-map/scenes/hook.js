@@ -12,7 +12,7 @@ const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('hook', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt=f.lt/(ctx.params?.stretch??1);
     // zoom punch：1.5s 起快速推近市中心（spring 回弹），目标放大 3×
     const zt = sat((lt - 1.5) / 0.6);
     const zoom = 1 + 2 * smoothstep(0, 1, zt);   // 1→3

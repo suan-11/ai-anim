@@ -7,7 +7,7 @@ const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('bridge', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt=f.lt/(ctx.params?.stretch??1);
     // 0-1s 从放大态 zoom out 回全景；1.5s 起 punch 到东郊 e1/e2
     let zoom, anchor;
     const e1 = pos(byId('e1'), 0, W, H), e2 = pos(byId('e2'), 0, W, H);

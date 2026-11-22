@@ -7,7 +7,7 @@ const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('close', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt=f.lt/(ctx.params?.stretch??1);
     // 0-1s zoom out（从 1.8→1）
     const zoom = 1.8 - 0.8*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({ scale: zoom, anchor: [W/2,H/2] });

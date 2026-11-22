@@ -7,7 +7,7 @@ const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('compare', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt=f.lt/(ctx.params?.stretch??1);
     // k 0→1 变形（0-4s），4s 后 zoom punch 枢纽
     const k = smoothstep(0.3, 4.0, lt);
     const hub = pos(byId('hub'), k, W, H);

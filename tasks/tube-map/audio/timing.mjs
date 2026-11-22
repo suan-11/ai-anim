@@ -1,0 +1,1465 @@
+// 由 `node scripts/anim.mjs say <任务>` 生成，不要手改；改旁白请改 narration.mjs 再重跑。
+export default {
+  "voice": "zh-CN-YunxiNeural",
+  "rate": "-2%",
+  "bpm": 100,
+  "beat": 0.6,
+  "overlap": 0.6,
+  "tail": 1.2,
+  "maxStretch": 1.8,
+  "total": 55.2,
+  "generatedBy": "anim say",
+  "scenes": [
+    {
+      "id": "hook",
+      "start": 0,
+      "slot": 7.8,
+      "stretch": 1.551,
+      "internal": 4,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "这张地铁图，看着挺正常。",
+          "file": "audio/vo/hook-1.mp3",
+          "dur": 2.672,
+          "offset": 0.465,
+          "start": 0.465,
+          "words": [
+            {
+              "w": "这",
+              "start": 0.465,
+              "end": 0.71,
+              "approx": true
+            },
+            {
+              "w": "张",
+              "start": 0.71,
+              "end": 0.955,
+              "approx": true
+            },
+            {
+              "w": "地",
+              "start": 0.955,
+              "end": 1.2,
+              "approx": true
+            },
+            {
+              "w": "铁",
+              "start": 1.2,
+              "end": 1.446,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 1.446,
+              "end": 1.691,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 1.691,
+              "end": 1.801,
+              "approx": true
+            },
+            {
+              "w": "看",
+              "start": 1.801,
+              "end": 2.046,
+              "approx": true
+            },
+            {
+              "w": "着",
+              "start": 2.046,
+              "end": 2.291,
+              "approx": true
+            },
+            {
+              "w": "挺",
+              "start": 2.291,
+              "end": 2.536,
+              "approx": true
+            },
+            {
+              "w": "正",
+              "start": 2.536,
+              "end": 2.782,
+              "approx": true
+            },
+            {
+              "w": "常",
+              "start": 2.782,
+              "end": 3.027,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 3.027,
+              "end": 3.137,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 2,
+          "text": "可市中心这两站，怎么挤成这样？",
+          "file": "audio/vo/hook-2.mp3",
+          "dur": 3.004,
+          "offset": 3.102,
+          "start": 3.102,
+          "words": [
+            {
+              "w": "可",
+              "start": 3.102,
+              "end": 3.318,
+              "approx": true
+            },
+            {
+              "w": "市",
+              "start": 3.318,
+              "end": 3.534,
+              "approx": true
+            },
+            {
+              "w": "中",
+              "start": 3.534,
+              "end": 3.75,
+              "approx": true
+            },
+            {
+              "w": "心",
+              "start": 3.75,
+              "end": 3.966,
+              "approx": true
+            },
+            {
+              "w": "这",
+              "start": 3.966,
+              "end": 4.183,
+              "approx": true
+            },
+            {
+              "w": "两",
+              "start": 4.183,
+              "end": 4.399,
+              "approx": true
+            },
+            {
+              "w": "站",
+              "start": 4.399,
+              "end": 4.615,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 4.615,
+              "end": 4.712,
+              "approx": true
+            },
+            {
+              "w": "怎",
+              "start": 4.712,
+              "end": 4.928,
+              "approx": true
+            },
+            {
+              "w": "么",
+              "start": 4.928,
+              "end": 5.144,
+              "approx": true
+            },
+            {
+              "w": "挤",
+              "start": 5.144,
+              "end": 5.36,
+              "approx": true
+            },
+            {
+              "w": "成",
+              "start": 5.36,
+              "end": 5.577,
+              "approx": true
+            },
+            {
+              "w": "这",
+              "start": 5.577,
+              "end": 5.793,
+              "approx": true
+            },
+            {
+              "w": "样",
+              "start": 5.793,
+              "end": 6.009,
+              "approx": true
+            },
+            {
+              "w": "？",
+              "start": 6.009,
+              "end": 6.106,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bridge",
+      "start": 7.2,
+      "slot": 9,
+      "stretch": 1.287,
+      "internal": 6,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "再看郊区，两站之间却空荡荡。",
+          "file": "audio/vo/bridge-1.mp3",
+          "dur": 3.24,
+          "offset": 0.386,
+          "start": 7.586,
+          "words": [
+            {
+              "w": "再",
+              "start": 7.586,
+              "end": 7.837,
+              "approx": true
+            },
+            {
+              "w": "看",
+              "start": 7.837,
+              "end": 8.088,
+              "approx": true
+            },
+            {
+              "w": "郊",
+              "start": 8.088,
+              "end": 8.339,
+              "approx": true
+            },
+            {
+              "w": "区",
+              "start": 8.339,
+              "end": 8.591,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 8.591,
+              "end": 8.704,
+              "approx": true
+            },
+            {
+              "w": "两",
+              "start": 8.704,
+              "end": 8.955,
+              "approx": true
+            },
+            {
+              "w": "站",
+              "start": 8.955,
+              "end": 9.206,
+              "approx": true
+            },
+            {
+              "w": "之",
+              "start": 9.206,
+              "end": 9.457,
+              "approx": true
+            },
+            {
+              "w": "间",
+              "start": 9.457,
+              "end": 9.708,
+              "approx": true
+            },
+            {
+              "w": "却",
+              "start": 9.708,
+              "end": 9.959,
+              "approx": true
+            },
+            {
+              "w": "空",
+              "start": 9.959,
+              "end": 10.211,
+              "approx": true
+            },
+            {
+              "w": "荡",
+              "start": 10.211,
+              "end": 10.462,
+              "approx": true
+            },
+            {
+              "w": "荡",
+              "start": 10.462,
+              "end": 10.713,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 10.713,
+              "end": 10.826,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 3,
+          "text": "同一张图，一边挤一边空，不奇怪吗？",
+          "file": "audio/vo/bridge-2.mp3",
+          "dur": 3.523,
+          "offset": 3.861,
+          "start": 11.061,
+          "words": [
+            {
+              "w": "同",
+              "start": 11.061,
+              "end": 11.291,
+              "approx": true
+            },
+            {
+              "w": "一",
+              "start": 11.291,
+              "end": 11.52,
+              "approx": true
+            },
+            {
+              "w": "张",
+              "start": 11.52,
+              "end": 11.75,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 11.75,
+              "end": 11.979,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 11.979,
+              "end": 12.082,
+              "approx": true
+            },
+            {
+              "w": "一",
+              "start": 12.082,
+              "end": 12.312,
+              "approx": true
+            },
+            {
+              "w": "边",
+              "start": 12.312,
+              "end": 12.541,
+              "approx": true
+            },
+            {
+              "w": "挤",
+              "start": 12.541,
+              "end": 12.771,
+              "approx": true
+            },
+            {
+              "w": "一",
+              "start": 12.771,
+              "end": 13,
+              "approx": true
+            },
+            {
+              "w": "边",
+              "start": 13,
+              "end": 13.23,
+              "approx": true
+            },
+            {
+              "w": "空",
+              "start": 13.23,
+              "end": 13.459,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 13.459,
+              "end": 13.563,
+              "approx": true
+            },
+            {
+              "w": "不",
+              "start": 13.563,
+              "end": 13.792,
+              "approx": true
+            },
+            {
+              "w": "奇",
+              "start": 13.792,
+              "end": 14.022,
+              "approx": true
+            },
+            {
+              "w": "怪",
+              "start": 14.022,
+              "end": 14.251,
+              "approx": true
+            },
+            {
+              "w": "吗",
+              "start": 14.251,
+              "end": 14.481,
+              "approx": true
+            },
+            {
+              "w": "？",
+              "start": 14.481,
+              "end": 14.584,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism",
+      "start": 15.6,
+      "slot": 10.2,
+      "stretch": 1.059,
+      "internal": 8,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "如果按真实距离画，地铁图就是这样歪歪扭扭。",
+          "file": "audio/vo/mechanism-1.mp3",
+          "dur": 4.185,
+          "offset": 0.318,
+          "start": 15.918,
+          "words": [
+            {
+              "w": "如",
+              "start": 15.918,
+              "end": 16.128,
+              "approx": true
+            },
+            {
+              "w": "果",
+              "start": 16.128,
+              "end": 16.339,
+              "approx": true
+            },
+            {
+              "w": "按",
+              "start": 16.339,
+              "end": 16.549,
+              "approx": true
+            },
+            {
+              "w": "真",
+              "start": 16.549,
+              "end": 16.759,
+              "approx": true
+            },
+            {
+              "w": "实",
+              "start": 16.759,
+              "end": 16.97,
+              "approx": true
+            },
+            {
+              "w": "距",
+              "start": 16.97,
+              "end": 17.18,
+              "approx": true
+            },
+            {
+              "w": "离",
+              "start": 17.18,
+              "end": 17.39,
+              "approx": true
+            },
+            {
+              "w": "画",
+              "start": 17.39,
+              "end": 17.6,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 17.6,
+              "end": 17.695,
+              "approx": true
+            },
+            {
+              "w": "地",
+              "start": 17.695,
+              "end": 17.905,
+              "approx": true
+            },
+            {
+              "w": "铁",
+              "start": 17.905,
+              "end": 18.116,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 18.116,
+              "end": 18.326,
+              "approx": true
+            },
+            {
+              "w": "就",
+              "start": 18.326,
+              "end": 18.536,
+              "approx": true
+            },
+            {
+              "w": "是",
+              "start": 18.536,
+              "end": 18.747,
+              "approx": true
+            },
+            {
+              "w": "这",
+              "start": 18.747,
+              "end": 18.957,
+              "approx": true
+            },
+            {
+              "w": "样",
+              "start": 18.957,
+              "end": 19.167,
+              "approx": true
+            },
+            {
+              "w": "歪",
+              "start": 19.167,
+              "end": 19.377,
+              "approx": true
+            },
+            {
+              "w": "歪",
+              "start": 19.377,
+              "end": 19.588,
+              "approx": true
+            },
+            {
+              "w": "扭",
+              "start": 19.588,
+              "end": 19.798,
+              "approx": true
+            },
+            {
+              "w": "扭",
+              "start": 19.798,
+              "end": 20.008,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 20.008,
+              "end": 20.103,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 4,
+          "text": "市中心挤成一团，郊区拉得老长。",
+          "file": "audio/vo/mechanism-2.mp3",
+          "dur": 3.272,
+          "offset": 4.236,
+          "start": 19.836,
+          "words": [
+            {
+              "w": "市",
+              "start": 19.836,
+              "end": 20.071,
+              "approx": true
+            },
+            {
+              "w": "中",
+              "start": 20.071,
+              "end": 20.307,
+              "approx": true
+            },
+            {
+              "w": "心",
+              "start": 20.307,
+              "end": 20.542,
+              "approx": true
+            },
+            {
+              "w": "挤",
+              "start": 20.542,
+              "end": 20.778,
+              "approx": true
+            },
+            {
+              "w": "成",
+              "start": 20.778,
+              "end": 21.013,
+              "approx": true
+            },
+            {
+              "w": "一",
+              "start": 21.013,
+              "end": 21.248,
+              "approx": true
+            },
+            {
+              "w": "团",
+              "start": 21.248,
+              "end": 21.484,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 21.484,
+              "end": 21.59,
+              "approx": true
+            },
+            {
+              "w": "郊",
+              "start": 21.59,
+              "end": 21.825,
+              "approx": true
+            },
+            {
+              "w": "区",
+              "start": 21.825,
+              "end": 22.06,
+              "approx": true
+            },
+            {
+              "w": "拉",
+              "start": 22.06,
+              "end": 22.296,
+              "approx": true
+            },
+            {
+              "w": "得",
+              "start": 22.296,
+              "end": 22.531,
+              "approx": true
+            },
+            {
+              "w": "老",
+              "start": 22.531,
+              "end": 22.767,
+              "approx": true
+            },
+            {
+              "w": "长",
+              "start": 22.767,
+              "end": 23.002,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 23.002,
+              "end": 23.108,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "compare",
+      "start": 25.2,
+      "slot": 13.2,
+      "stretch": 1.174,
+      "internal": 10,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "于是有人想了个办法：把站点吸到网格上。",
+          "file": "audio/vo/compare-1.mp3",
+          "dur": 3.696,
+          "offset": 0.352,
+          "start": 25.552,
+          "words": [
+            {
+              "w": "于",
+              "start": 25.552,
+              "end": 25.758,
+              "approx": true
+            },
+            {
+              "w": "是",
+              "start": 25.758,
+              "end": 25.965,
+              "approx": true
+            },
+            {
+              "w": "有",
+              "start": 25.965,
+              "end": 26.171,
+              "approx": true
+            },
+            {
+              "w": "人",
+              "start": 26.171,
+              "end": 26.378,
+              "approx": true
+            },
+            {
+              "w": "想",
+              "start": 26.378,
+              "end": 26.584,
+              "approx": true
+            },
+            {
+              "w": "了",
+              "start": 26.584,
+              "end": 26.791,
+              "approx": true
+            },
+            {
+              "w": "个",
+              "start": 26.791,
+              "end": 26.997,
+              "approx": true
+            },
+            {
+              "w": "办",
+              "start": 26.997,
+              "end": 27.204,
+              "approx": true
+            },
+            {
+              "w": "法",
+              "start": 27.204,
+              "end": 27.41,
+              "approx": true
+            },
+            {
+              "w": "：",
+              "start": 27.41,
+              "end": 27.503,
+              "approx": true
+            },
+            {
+              "w": "把",
+              "start": 27.503,
+              "end": 27.71,
+              "approx": true
+            },
+            {
+              "w": "站",
+              "start": 27.71,
+              "end": 27.916,
+              "approx": true
+            },
+            {
+              "w": "点",
+              "start": 27.916,
+              "end": 28.123,
+              "approx": true
+            },
+            {
+              "w": "吸",
+              "start": 28.123,
+              "end": 28.329,
+              "approx": true
+            },
+            {
+              "w": "到",
+              "start": 28.329,
+              "end": 28.536,
+              "approx": true
+            },
+            {
+              "w": "网",
+              "start": 28.536,
+              "end": 28.742,
+              "approx": true
+            },
+            {
+              "w": "格",
+              "start": 28.742,
+              "end": 28.949,
+              "approx": true
+            },
+            {
+              "w": "上",
+              "start": 28.949,
+              "end": 29.155,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 29.155,
+              "end": 29.248,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 4,
+          "text": "只留横、竖、四十五度，站距拉均匀。",
+          "file": "audio/vo/compare-2.mp3",
+          "dur": 4.295,
+          "offset": 4.698,
+          "start": 29.898,
+          "words": [
+            {
+              "w": "只",
+              "start": 29.898,
+              "end": 30.188,
+              "approx": true
+            },
+            {
+              "w": "留",
+              "start": 30.188,
+              "end": 30.478,
+              "approx": true
+            },
+            {
+              "w": "横",
+              "start": 30.478,
+              "end": 30.769,
+              "approx": true
+            },
+            {
+              "w": "、",
+              "start": 30.769,
+              "end": 30.899,
+              "approx": true
+            },
+            {
+              "w": "竖",
+              "start": 30.899,
+              "end": 31.189,
+              "approx": true
+            },
+            {
+              "w": "、",
+              "start": 31.189,
+              "end": 31.32,
+              "approx": true
+            },
+            {
+              "w": "四",
+              "start": 31.32,
+              "end": 31.61,
+              "approx": true
+            },
+            {
+              "w": "十",
+              "start": 31.61,
+              "end": 31.9,
+              "approx": true
+            },
+            {
+              "w": "五",
+              "start": 31.9,
+              "end": 32.191,
+              "approx": true
+            },
+            {
+              "w": "度",
+              "start": 32.191,
+              "end": 32.481,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 32.481,
+              "end": 32.611,
+              "approx": true
+            },
+            {
+              "w": "站",
+              "start": 32.611,
+              "end": 32.902,
+              "approx": true
+            },
+            {
+              "w": "距",
+              "start": 32.902,
+              "end": 33.192,
+              "approx": true
+            },
+            {
+              "w": "拉",
+              "start": 33.192,
+              "end": 33.482,
+              "approx": true
+            },
+            {
+              "w": "均",
+              "start": 33.482,
+              "end": 33.772,
+              "approx": true
+            },
+            {
+              "w": "匀",
+              "start": 33.772,
+              "end": 34.062,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 34.062,
+              "end": 34.193,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "cue": 7.5,
+          "text": "连接关系不变，换乘照样找得到。",
+          "file": "audio/vo/compare-3.mp3",
+          "dur": 3.045,
+          "offset": 8.809,
+          "start": 34.009,
+          "words": [
+            {
+              "w": "连",
+              "start": 34.009,
+              "end": 34.228,
+              "approx": true
+            },
+            {
+              "w": "接",
+              "start": 34.228,
+              "end": 34.447,
+              "approx": true
+            },
+            {
+              "w": "关",
+              "start": 34.447,
+              "end": 34.666,
+              "approx": true
+            },
+            {
+              "w": "系",
+              "start": 34.666,
+              "end": 34.885,
+              "approx": true
+            },
+            {
+              "w": "不",
+              "start": 34.885,
+              "end": 35.104,
+              "approx": true
+            },
+            {
+              "w": "变",
+              "start": 35.104,
+              "end": 35.323,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 35.323,
+              "end": 35.422,
+              "approx": true
+            },
+            {
+              "w": "换",
+              "start": 35.422,
+              "end": 35.641,
+              "approx": true
+            },
+            {
+              "w": "乘",
+              "start": 35.641,
+              "end": 35.86,
+              "approx": true
+            },
+            {
+              "w": "照",
+              "start": 35.86,
+              "end": 36.079,
+              "approx": true
+            },
+            {
+              "w": "样",
+              "start": 36.079,
+              "end": 36.298,
+              "approx": true
+            },
+            {
+              "w": "找",
+              "start": 36.298,
+              "end": 36.517,
+              "approx": true
+            },
+            {
+              "w": "得",
+              "start": 36.517,
+              "end": 36.736,
+              "approx": true
+            },
+            {
+              "w": "到",
+              "start": 36.736,
+              "end": 36.955,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 36.955,
+              "end": 37.054,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "start": 37.8,
+      "slot": 7.8,
+      "stretch": 1.043,
+      "internal": 6,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "乘客只关心坐几站、在哪换乘。",
+          "file": "audio/vo/data-1.mp3",
+          "dur": 3.06,
+          "offset": 0.313,
+          "start": 38.113,
+          "words": [
+            {
+              "w": "乘",
+              "start": 38.113,
+              "end": 38.35,
+              "approx": true
+            },
+            {
+              "w": "客",
+              "start": 38.35,
+              "end": 38.587,
+              "approx": true
+            },
+            {
+              "w": "只",
+              "start": 38.587,
+              "end": 38.825,
+              "approx": true
+            },
+            {
+              "w": "关",
+              "start": 38.825,
+              "end": 39.062,
+              "approx": true
+            },
+            {
+              "w": "心",
+              "start": 39.062,
+              "end": 39.299,
+              "approx": true
+            },
+            {
+              "w": "坐",
+              "start": 39.299,
+              "end": 39.536,
+              "approx": true
+            },
+            {
+              "w": "几",
+              "start": 39.536,
+              "end": 39.773,
+              "approx": true
+            },
+            {
+              "w": "站",
+              "start": 39.773,
+              "end": 40.011,
+              "approx": true
+            },
+            {
+              "w": "、",
+              "start": 40.011,
+              "end": 40.117,
+              "approx": true
+            },
+            {
+              "w": "在",
+              "start": 40.117,
+              "end": 40.355,
+              "approx": true
+            },
+            {
+              "w": "哪",
+              "start": 40.355,
+              "end": 40.592,
+              "approx": true
+            },
+            {
+              "w": "换",
+              "start": 40.592,
+              "end": 40.829,
+              "approx": true
+            },
+            {
+              "w": "乘",
+              "start": 40.829,
+              "end": 41.066,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 41.066,
+              "end": 41.173,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 3,
+          "text": "谁在乎两站实际多远呢？",
+          "file": "audio/vo/data-2.mp3",
+          "dur": 2.056,
+          "offset": 3.128,
+          "start": 40.928,
+          "words": [
+            {
+              "w": "谁",
+              "start": 40.928,
+              "end": 41.125,
+              "approx": true
+            },
+            {
+              "w": "在",
+              "start": 41.125,
+              "end": 41.321,
+              "approx": true
+            },
+            {
+              "w": "乎",
+              "start": 41.321,
+              "end": 41.518,
+              "approx": true
+            },
+            {
+              "w": "两",
+              "start": 41.518,
+              "end": 41.715,
+              "approx": true
+            },
+            {
+              "w": "站",
+              "start": 41.715,
+              "end": 41.912,
+              "approx": true
+            },
+            {
+              "w": "实",
+              "start": 41.912,
+              "end": 42.108,
+              "approx": true
+            },
+            {
+              "w": "际",
+              "start": 42.108,
+              "end": 42.305,
+              "approx": true
+            },
+            {
+              "w": "多",
+              "start": 42.305,
+              "end": 42.502,
+              "approx": true
+            },
+            {
+              "w": "远",
+              "start": 42.502,
+              "end": 42.699,
+              "approx": true
+            },
+            {
+              "w": "呢",
+              "start": 42.699,
+              "end": 42.895,
+              "approx": true
+            },
+            {
+              "w": "？",
+              "start": 42.895,
+              "end": 42.984,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "start": 45,
+      "slot": 10.2,
+      "stretch": 1.403,
+      "internal": 6,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "一九三三年，贝克把电路图的思路搬到了地图上。",
+          "file": "audio/vo/close-1.mp3",
+          "dur": 4.03,
+          "offset": 0.421,
+          "start": 45.421,
+          "words": [
+            {
+              "w": "一",
+              "start": 45.421,
+              "end": 45.614,
+              "approx": true
+            },
+            {
+              "w": "九",
+              "start": 45.614,
+              "end": 45.807,
+              "approx": true
+            },
+            {
+              "w": "三",
+              "start": 45.807,
+              "end": 45.999,
+              "approx": true
+            },
+            {
+              "w": "三",
+              "start": 45.999,
+              "end": 46.192,
+              "approx": true
+            },
+            {
+              "w": "年",
+              "start": 46.192,
+              "end": 46.385,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 46.385,
+              "end": 46.472,
+              "approx": true
+            },
+            {
+              "w": "贝",
+              "start": 46.472,
+              "end": 46.665,
+              "approx": true
+            },
+            {
+              "w": "克",
+              "start": 46.665,
+              "end": 46.858,
+              "approx": true
+            },
+            {
+              "w": "把",
+              "start": 46.858,
+              "end": 47.05,
+              "approx": true
+            },
+            {
+              "w": "电",
+              "start": 47.05,
+              "end": 47.243,
+              "approx": true
+            },
+            {
+              "w": "路",
+              "start": 47.243,
+              "end": 47.436,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 47.436,
+              "end": 47.629,
+              "approx": true
+            },
+            {
+              "w": "的",
+              "start": 47.629,
+              "end": 47.822,
+              "approx": true
+            },
+            {
+              "w": "思",
+              "start": 47.822,
+              "end": 48.014,
+              "approx": true
+            },
+            {
+              "w": "路",
+              "start": 48.014,
+              "end": 48.207,
+              "approx": true
+            },
+            {
+              "w": "搬",
+              "start": 48.207,
+              "end": 48.4,
+              "approx": true
+            },
+            {
+              "w": "到",
+              "start": 48.4,
+              "end": 48.593,
+              "approx": true
+            },
+            {
+              "w": "了",
+              "start": 48.593,
+              "end": 48.786,
+              "approx": true
+            },
+            {
+              "w": "地",
+              "start": 48.786,
+              "end": 48.979,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 48.979,
+              "end": 49.171,
+              "approx": true
+            },
+            {
+              "w": "上",
+              "start": 49.171,
+              "end": 49.364,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 49.364,
+              "end": 49.451,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 3.5,
+          "text": "从此，地铁图故意画错，反而更好用。",
+          "file": "audio/vo/close-2.mp3",
+          "dur": 3.72,
+          "offset": 4.912,
+          "start": 49.912,
+          "words": [
+            {
+              "w": "从",
+              "start": 49.912,
+              "end": 50.154,
+              "approx": true
+            },
+            {
+              "w": "此",
+              "start": 50.154,
+              "end": 50.397,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 50.397,
+              "end": 50.506,
+              "approx": true
+            },
+            {
+              "w": "地",
+              "start": 50.506,
+              "end": 50.748,
+              "approx": true
+            },
+            {
+              "w": "铁",
+              "start": 50.748,
+              "end": 50.99,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 50.99,
+              "end": 51.233,
+              "approx": true
+            },
+            {
+              "w": "故",
+              "start": 51.233,
+              "end": 51.475,
+              "approx": true
+            },
+            {
+              "w": "意",
+              "start": 51.475,
+              "end": 51.717,
+              "approx": true
+            },
+            {
+              "w": "画",
+              "start": 51.717,
+              "end": 51.96,
+              "approx": true
+            },
+            {
+              "w": "错",
+              "start": 51.96,
+              "end": 52.202,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 52.202,
+              "end": 52.311,
+              "approx": true
+            },
+            {
+              "w": "反",
+              "start": 52.311,
+              "end": 52.554,
+              "approx": true
+            },
+            {
+              "w": "而",
+              "start": 52.554,
+              "end": 52.796,
+              "approx": true
+            },
+            {
+              "w": "更",
+              "start": 52.796,
+              "end": 53.038,
+              "approx": true
+            },
+            {
+              "w": "好",
+              "start": 53.038,
+              "end": 53.281,
+              "approx": true
+            },
+            {
+              "w": "用",
+              "start": 53.281,
+              "end": 53.523,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 53.523,
+              "end": 53.632,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};

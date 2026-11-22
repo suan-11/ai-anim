@@ -9,7 +9,7 @@ const PATH = ['w1','c1','hub','n1','n2'];
 export default makeShot('data', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt=f.lt/(ctx.params?.stretch??1);
     const k = 1; // 拓扑
     // 逐站点亮进度
     const prog = smoothstep(0.3, 3.5, lt) * (PATH.length-1);

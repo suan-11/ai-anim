@@ -7,7 +7,7 @@ const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('mechanism', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt=f.lt/(ctx.params?.stretch??1);
     // k 从 1(规整拓扑) → 0(地理真实)，暴露问题
     const k = 1 - smoothstep(0.5, 4.0, lt);
     lines.begin();
