@@ -5,7 +5,7 @@ import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 const CX=960,CY=520,HOLE=300,R=155;
 export default makeShot('bridge',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const ang=lt*1.2; // 圆旋转
     const zoom=1.3-0.3*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({scale:zoom,anchor:[CX,CY]});

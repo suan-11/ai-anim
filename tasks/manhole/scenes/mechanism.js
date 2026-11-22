@@ -5,7 +5,7 @@ import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 const CX=960,CY=520,R=200;
 export default makeShot('mechanism',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const ang=lt*0.8; // 卡尺旋转角
     const zt=sat((lt-5.0)/0.6); const zoom=1+1.4*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[CX,CY]});

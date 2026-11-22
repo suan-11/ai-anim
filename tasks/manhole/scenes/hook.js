@@ -5,7 +5,7 @@ import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 const CX=960, CY=520, HOLE=300, LID=290; // 井口边长300，盖边长290（平放卡住）
 export default makeShot('hook',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 0-1.5s 平放；1.5s 起旋转45°（对角线竖直）+ 掉入
     const rot=smoothstep(1.5,2.3,lt)*Math.PI/4;
     const drop=smoothstep(2.0,2.8,lt)*180; // 掉入位移

@@ -1,0 +1,984 @@
+{
+  "voice": "zh-CN-YunxiNeural",
+  "rate": "-2%",
+  "bpm": 100,
+  "beat": 0.6,
+  "overlap": 0.6,
+  "tail": 1.2,
+  "maxStretch": 1.8,
+  "total": 40.2,
+  "generatedBy": "anim say",
+  "scenes": [
+    {
+      "id": "hook",
+      "start": 0,
+      "slot": 6.6,
+      "stretch": 1.8,
+      "internal": 3,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "方形井盖转一下，对角线竖起来，就掉进去了。",
+          "file": "audio/vo/hook-1.mp3",
+          "dur": 4.047,
+          "offset": 0.54,
+          "start": 0.54,
+          "words": [
+            {
+              "w": "方",
+              "start": 0.54,
+              "end": 0.749,
+              "approx": true
+            },
+            {
+              "w": "形",
+              "start": 0.749,
+              "end": 0.958,
+              "approx": true
+            },
+            {
+              "w": "井",
+              "start": 0.958,
+              "end": 1.167,
+              "approx": true
+            },
+            {
+              "w": "盖",
+              "start": 1.167,
+              "end": 1.377,
+              "approx": true
+            },
+            {
+              "w": "转",
+              "start": 1.377,
+              "end": 1.586,
+              "approx": true
+            },
+            {
+              "w": "一",
+              "start": 1.586,
+              "end": 1.795,
+              "approx": true
+            },
+            {
+              "w": "下",
+              "start": 1.795,
+              "end": 2.004,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 2.004,
+              "end": 2.098,
+              "approx": true
+            },
+            {
+              "w": "对",
+              "start": 2.098,
+              "end": 2.307,
+              "approx": true
+            },
+            {
+              "w": "角",
+              "start": 2.307,
+              "end": 2.516,
+              "approx": true
+            },
+            {
+              "w": "线",
+              "start": 2.516,
+              "end": 2.726,
+              "approx": true
+            },
+            {
+              "w": "竖",
+              "start": 2.726,
+              "end": 2.935,
+              "approx": true
+            },
+            {
+              "w": "起",
+              "start": 2.935,
+              "end": 3.144,
+              "approx": true
+            },
+            {
+              "w": "来",
+              "start": 3.144,
+              "end": 3.353,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 3.353,
+              "end": 3.447,
+              "approx": true
+            },
+            {
+              "w": "就",
+              "start": 3.447,
+              "end": 3.656,
+              "approx": true
+            },
+            {
+              "w": "掉",
+              "start": 3.656,
+              "end": 3.865,
+              "approx": true
+            },
+            {
+              "w": "进",
+              "start": 3.865,
+              "end": 4.075,
+              "approx": true
+            },
+            {
+              "w": "去",
+              "start": 4.075,
+              "end": 4.284,
+              "approx": true
+            },
+            {
+              "w": "了",
+              "start": 4.284,
+              "end": 4.493,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 4.493,
+              "end": 4.587,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bridge",
+      "start": 6,
+      "slot": 7.8,
+      "stretch": 1.289,
+      "internal": 5,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "圆的井盖呢？怎么转，都卡得住。",
+          "file": "audio/vo/bridge-1.mp3",
+          "dur": 3.515,
+          "offset": 0.387,
+          "start": 6.387,
+          "words": [
+            {
+              "w": "圆",
+              "start": 6.387,
+              "end": 6.65,
+              "approx": true
+            },
+            {
+              "w": "的",
+              "start": 6.65,
+              "end": 6.914,
+              "approx": true
+            },
+            {
+              "w": "井",
+              "start": 6.914,
+              "end": 7.177,
+              "approx": true
+            },
+            {
+              "w": "盖",
+              "start": 7.177,
+              "end": 7.44,
+              "approx": true
+            },
+            {
+              "w": "呢",
+              "start": 7.44,
+              "end": 7.703,
+              "approx": true
+            },
+            {
+              "w": "？",
+              "start": 7.703,
+              "end": 7.822,
+              "approx": true
+            },
+            {
+              "w": "怎",
+              "start": 7.822,
+              "end": 8.085,
+              "approx": true
+            },
+            {
+              "w": "么",
+              "start": 8.085,
+              "end": 8.349,
+              "approx": true
+            },
+            {
+              "w": "转",
+              "start": 8.349,
+              "end": 8.612,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 8.612,
+              "end": 8.73,
+              "approx": true
+            },
+            {
+              "w": "都",
+              "start": 8.73,
+              "end": 8.994,
+              "approx": true
+            },
+            {
+              "w": "卡",
+              "start": 8.994,
+              "end": 9.257,
+              "approx": true
+            },
+            {
+              "w": "得",
+              "start": 9.257,
+              "end": 9.52,
+              "approx": true
+            },
+            {
+              "w": "住",
+              "start": 9.52,
+              "end": 9.784,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 9.784,
+              "end": 9.902,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 2.5,
+          "text": "因为圆任意方向，宽度都一样。",
+          "file": "audio/vo/bridge-2.mp3",
+          "dur": 2.746,
+          "offset": 3.223,
+          "start": 9.223,
+          "words": [
+            {
+              "w": "因",
+              "start": 9.223,
+              "end": 9.436,
+              "approx": true
+            },
+            {
+              "w": "为",
+              "start": 9.436,
+              "end": 9.649,
+              "approx": true
+            },
+            {
+              "w": "圆",
+              "start": 9.649,
+              "end": 9.862,
+              "approx": true
+            },
+            {
+              "w": "任",
+              "start": 9.862,
+              "end": 10.074,
+              "approx": true
+            },
+            {
+              "w": "意",
+              "start": 10.074,
+              "end": 10.287,
+              "approx": true
+            },
+            {
+              "w": "方",
+              "start": 10.287,
+              "end": 10.5,
+              "approx": true
+            },
+            {
+              "w": "向",
+              "start": 10.5,
+              "end": 10.713,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 10.713,
+              "end": 10.809,
+              "approx": true
+            },
+            {
+              "w": "宽",
+              "start": 10.809,
+              "end": 11.022,
+              "approx": true
+            },
+            {
+              "w": "度",
+              "start": 11.022,
+              "end": 11.235,
+              "approx": true
+            },
+            {
+              "w": "都",
+              "start": 11.235,
+              "end": 11.447,
+              "approx": true
+            },
+            {
+              "w": "一",
+              "start": 11.447,
+              "end": 11.66,
+              "approx": true
+            },
+            {
+              "w": "样",
+              "start": 11.66,
+              "end": 11.873,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 11.873,
+              "end": 11.969,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism",
+      "start": 13.2,
+      "slot": 10.2,
+      "stretch": 1.105,
+      "internal": 8,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "这叫定宽图形。",
+          "file": "audio/vo/mechanism-1.mp3",
+          "dur": 1.701,
+          "offset": 0.332,
+          "start": 13.532,
+          "words": [
+            {
+              "w": "这",
+              "start": 13.532,
+              "end": 13.796,
+              "approx": true
+            },
+            {
+              "w": "叫",
+              "start": 13.796,
+              "end": 14.059,
+              "approx": true
+            },
+            {
+              "w": "定",
+              "start": 14.059,
+              "end": 14.323,
+              "approx": true
+            },
+            {
+              "w": "宽",
+              "start": 14.323,
+              "end": 14.587,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 14.587,
+              "end": 14.851,
+              "approx": true
+            },
+            {
+              "w": "形",
+              "start": 14.851,
+              "end": 15.114,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 15.114,
+              "end": 15.233,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 2.5,
+          "text": "用卡尺量，每个方向的宽度都等于直径。",
+          "file": "audio/vo/mechanism-2.mp3",
+          "dur": 3.609,
+          "offset": 2.763,
+          "start": 15.963,
+          "words": [
+            {
+              "w": "用",
+              "start": 15.963,
+              "end": 16.177,
+              "approx": true
+            },
+            {
+              "w": "卡",
+              "start": 16.177,
+              "end": 16.39,
+              "approx": true
+            },
+            {
+              "w": "尺",
+              "start": 16.39,
+              "end": 16.604,
+              "approx": true
+            },
+            {
+              "w": "量",
+              "start": 16.604,
+              "end": 16.817,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 16.817,
+              "end": 16.913,
+              "approx": true
+            },
+            {
+              "w": "每",
+              "start": 16.913,
+              "end": 17.127,
+              "approx": true
+            },
+            {
+              "w": "个",
+              "start": 17.127,
+              "end": 17.34,
+              "approx": true
+            },
+            {
+              "w": "方",
+              "start": 17.34,
+              "end": 17.554,
+              "approx": true
+            },
+            {
+              "w": "向",
+              "start": 17.554,
+              "end": 17.768,
+              "approx": true
+            },
+            {
+              "w": "的",
+              "start": 17.768,
+              "end": 17.981,
+              "approx": true
+            },
+            {
+              "w": "宽",
+              "start": 17.981,
+              "end": 18.195,
+              "approx": true
+            },
+            {
+              "w": "度",
+              "start": 18.195,
+              "end": 18.408,
+              "approx": true
+            },
+            {
+              "w": "都",
+              "start": 18.408,
+              "end": 18.622,
+              "approx": true
+            },
+            {
+              "w": "等",
+              "start": 18.622,
+              "end": 18.835,
+              "approx": true
+            },
+            {
+              "w": "于",
+              "start": 18.835,
+              "end": 19.049,
+              "approx": true
+            },
+            {
+              "w": "直",
+              "start": 19.049,
+              "end": 19.262,
+              "approx": true
+            },
+            {
+              "w": "径",
+              "start": 19.262,
+              "end": 19.476,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 19.476,
+              "end": 19.572,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "cue": 5.5,
+          "text": "所以它永远掉不下去。",
+          "file": "audio/vo/mechanism-3.mp3",
+          "dur": 2.141,
+          "offset": 6.078,
+          "start": 19.278,
+          "words": [
+            {
+              "w": "所",
+              "start": 19.278,
+              "end": 19.505,
+              "approx": true
+            },
+            {
+              "w": "以",
+              "start": 19.505,
+              "end": 19.731,
+              "approx": true
+            },
+            {
+              "w": "它",
+              "start": 19.731,
+              "end": 19.958,
+              "approx": true
+            },
+            {
+              "w": "永",
+              "start": 19.958,
+              "end": 20.184,
+              "approx": true
+            },
+            {
+              "w": "远",
+              "start": 20.184,
+              "end": 20.411,
+              "approx": true
+            },
+            {
+              "w": "掉",
+              "start": 20.411,
+              "end": 20.637,
+              "approx": true
+            },
+            {
+              "w": "不",
+              "start": 20.637,
+              "end": 20.864,
+              "approx": true
+            },
+            {
+              "w": "下",
+              "start": 20.864,
+              "end": 21.09,
+              "approx": true
+            },
+            {
+              "w": "去",
+              "start": 21.09,
+              "end": 21.317,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 21.317,
+              "end": 21.419,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "start": 22.8,
+      "slot": 9,
+      "stretch": 1.286,
+      "internal": 6,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "但不止圆哦。",
+          "file": "audio/vo/data-1.mp3",
+          "dur": 1.124,
+          "offset": 0.386,
+          "start": 23.186,
+          "words": [
+            {
+              "w": "但",
+              "start": 23.186,
+              "end": 23.392,
+              "approx": true
+            },
+            {
+              "w": "不",
+              "start": 23.392,
+              "end": 23.598,
+              "approx": true
+            },
+            {
+              "w": "止",
+              "start": 23.598,
+              "end": 23.805,
+              "approx": true
+            },
+            {
+              "w": "圆",
+              "start": 23.805,
+              "end": 24.011,
+              "approx": true
+            },
+            {
+              "w": "哦",
+              "start": 24.011,
+              "end": 24.217,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 24.217,
+              "end": 24.31,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 2.5,
+          "text": "勒洛三角，任意方向也等宽，也能当井盖。",
+          "file": "audio/vo/data-2.mp3",
+          "dur": 4.017,
+          "offset": 3.215,
+          "start": 26.015,
+          "words": [
+            {
+              "w": "勒",
+              "start": 26.015,
+              "end": 26.247,
+              "approx": true
+            },
+            {
+              "w": "洛",
+              "start": 26.247,
+              "end": 26.478,
+              "approx": true
+            },
+            {
+              "w": "三",
+              "start": 26.478,
+              "end": 26.71,
+              "approx": true
+            },
+            {
+              "w": "角",
+              "start": 26.71,
+              "end": 26.941,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 26.941,
+              "end": 27.045,
+              "approx": true
+            },
+            {
+              "w": "任",
+              "start": 27.045,
+              "end": 27.277,
+              "approx": true
+            },
+            {
+              "w": "意",
+              "start": 27.277,
+              "end": 27.508,
+              "approx": true
+            },
+            {
+              "w": "方",
+              "start": 27.508,
+              "end": 27.74,
+              "approx": true
+            },
+            {
+              "w": "向",
+              "start": 27.74,
+              "end": 27.971,
+              "approx": true
+            },
+            {
+              "w": "也",
+              "start": 27.971,
+              "end": 28.203,
+              "approx": true
+            },
+            {
+              "w": "等",
+              "start": 28.203,
+              "end": 28.434,
+              "approx": true
+            },
+            {
+              "w": "宽",
+              "start": 28.434,
+              "end": 28.666,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 28.666,
+              "end": 28.77,
+              "approx": true
+            },
+            {
+              "w": "也",
+              "start": 28.77,
+              "end": 29.002,
+              "approx": true
+            },
+            {
+              "w": "能",
+              "start": 29.002,
+              "end": 29.233,
+              "approx": true
+            },
+            {
+              "w": "当",
+              "start": 29.233,
+              "end": 29.465,
+              "approx": true
+            },
+            {
+              "w": "井",
+              "start": 29.465,
+              "end": 29.696,
+              "approx": true
+            },
+            {
+              "w": "盖",
+              "start": 29.696,
+              "end": 29.928,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 29.928,
+              "end": 30.032,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "start": 31.2,
+      "slot": 9,
+      "stretch": 1.091,
+      "internal": 7,
+      "lines": [
+        {
+          "index": 0,
+          "cue": 0.3,
+          "text": "那为什么井盖大多是圆的？",
+          "file": "audio/vo/close-1.mp3",
+          "dur": 2.163,
+          "offset": 0.327,
+          "start": 31.527,
+          "words": [
+            {
+              "w": "那",
+              "start": 31.527,
+              "end": 31.716,
+              "approx": true
+            },
+            {
+              "w": "为",
+              "start": 31.716,
+              "end": 31.905,
+              "approx": true
+            },
+            {
+              "w": "什",
+              "start": 31.905,
+              "end": 32.094,
+              "approx": true
+            },
+            {
+              "w": "么",
+              "start": 32.094,
+              "end": 32.283,
+              "approx": true
+            },
+            {
+              "w": "井",
+              "start": 32.283,
+              "end": 32.472,
+              "approx": true
+            },
+            {
+              "w": "盖",
+              "start": 32.472,
+              "end": 32.66,
+              "approx": true
+            },
+            {
+              "w": "大",
+              "start": 32.66,
+              "end": 32.849,
+              "approx": true
+            },
+            {
+              "w": "多",
+              "start": 32.849,
+              "end": 33.038,
+              "approx": true
+            },
+            {
+              "w": "是",
+              "start": 33.038,
+              "end": 33.227,
+              "approx": true
+            },
+            {
+              "w": "圆",
+              "start": 33.227,
+              "end": 33.416,
+              "approx": true
+            },
+            {
+              "w": "的",
+              "start": 33.416,
+              "end": 33.605,
+              "approx": true
+            },
+            {
+              "w": "？",
+              "start": 33.605,
+              "end": 33.69,
+              "approx": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "cue": 3.5,
+          "text": "因为定宽图形里，圆最好加工。",
+          "file": "audio/vo/close-2.mp3",
+          "dur": 2.939,
+          "offset": 3.82,
+          "start": 35.02,
+          "words": [
+            {
+              "w": "因",
+              "start": 35.02,
+              "end": 35.248,
+              "approx": true
+            },
+            {
+              "w": "为",
+              "start": 35.248,
+              "end": 35.476,
+              "approx": true
+            },
+            {
+              "w": "定",
+              "start": 35.476,
+              "end": 35.703,
+              "approx": true
+            },
+            {
+              "w": "宽",
+              "start": 35.703,
+              "end": 35.931,
+              "approx": true
+            },
+            {
+              "w": "图",
+              "start": 35.931,
+              "end": 36.159,
+              "approx": true
+            },
+            {
+              "w": "形",
+              "start": 36.159,
+              "end": 36.387,
+              "approx": true
+            },
+            {
+              "w": "里",
+              "start": 36.387,
+              "end": 36.615,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 36.615,
+              "end": 36.717,
+              "approx": true
+            },
+            {
+              "w": "圆",
+              "start": 36.717,
+              "end": 36.945,
+              "approx": true
+            },
+            {
+              "w": "最",
+              "start": 36.945,
+              "end": 37.173,
+              "approx": true
+            },
+            {
+              "w": "好",
+              "start": 37.173,
+              "end": 37.401,
+              "approx": true
+            },
+            {
+              "w": "加",
+              "start": 37.401,
+              "end": 37.629,
+              "approx": true
+            },
+            {
+              "w": "工",
+              "start": 37.629,
+              "end": 37.856,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 37.856,
+              "end": 37.959,
+              "approx": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -18,7 +18,7 @@ function reuleaux(cx,cy,r,rot,n=60){
 }
 export default makeShot('data',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const rot=lt*0.6;
     const zt=sat((lt-3.0)/0.6); const zoom=1+1.4*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[CX,CY]});
