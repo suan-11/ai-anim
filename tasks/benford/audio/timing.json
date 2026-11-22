@@ -1,19 +1,19 @@
 {
   "voice": "zh-CN-YunxiNeural",
   "rate": "-2%",
-  "bpm": 100,
-  "beat": 0.6,
-  "overlap": 0.6,
+  "bpm": 208.46,
+  "beat": 0.2878250023985417,
+  "overlap": 0.288,
   "tail": 1.2,
   "maxStretch": 1.8,
-  "total": 43.8,
+  "total": 48.355,
   "generatedBy": "anim say",
   "scenes": [
     {
       "id": "hook",
       "start": 0,
-      "slot": 8.4,
-      "stretch": 1.732,
+      "slot": 9.786,
+      "stretch": 1.8,
       "internal": 4,
       "lines": [
         {
@@ -22,246 +22,246 @@
           "text": "你以为，一到九当开头的机会是一样的？",
           "file": "audio/vo/hook-1.mp3",
           "dur": 3.245,
-          "offset": 0.519,
-          "start": 0.519,
+          "offset": 0.54,
+          "start": 0.54,
           "words": [
             {
               "w": "你",
-              "start": 0.519,
-              "end": 0.711,
+              "start": 0.54,
+              "end": 0.732,
               "approx": true
             },
             {
               "w": "以",
-              "start": 0.711,
-              "end": 0.903,
+              "start": 0.732,
+              "end": 0.924,
               "approx": true
             },
             {
               "w": "为",
-              "start": 0.903,
-              "end": 1.095,
+              "start": 0.924,
+              "end": 1.116,
               "approx": true
             },
             {
               "w": "，",
-              "start": 1.095,
-              "end": 1.181,
+              "start": 1.116,
+              "end": 1.202,
               "approx": true
             },
             {
               "w": "一",
-              "start": 1.181,
-              "end": 1.373,
+              "start": 1.202,
+              "end": 1.394,
               "approx": true
             },
             {
               "w": "到",
-              "start": 1.373,
-              "end": 1.565,
+              "start": 1.394,
+              "end": 1.586,
               "approx": true
             },
             {
               "w": "九",
-              "start": 1.565,
-              "end": 1.757,
+              "start": 1.586,
+              "end": 1.778,
               "approx": true
             },
             {
               "w": "当",
-              "start": 1.757,
-              "end": 1.949,
+              "start": 1.778,
+              "end": 1.97,
               "approx": true
             },
             {
               "w": "开",
-              "start": 1.949,
-              "end": 2.142,
+              "start": 1.97,
+              "end": 2.163,
               "approx": true
             },
             {
               "w": "头",
-              "start": 2.142,
-              "end": 2.334,
+              "start": 2.163,
+              "end": 2.355,
               "approx": true
             },
             {
               "w": "的",
-              "start": 2.334,
-              "end": 2.526,
+              "start": 2.355,
+              "end": 2.547,
               "approx": true
             },
             {
               "w": "机",
-              "start": 2.526,
-              "end": 2.718,
+              "start": 2.547,
+              "end": 2.739,
               "approx": true
             },
             {
               "w": "会",
-              "start": 2.718,
-              "end": 2.91,
+              "start": 2.739,
+              "end": 2.931,
               "approx": true
             },
             {
               "w": "是",
-              "start": 2.91,
-              "end": 3.102,
+              "start": 2.931,
+              "end": 3.123,
               "approx": true
             },
             {
               "w": "一",
-              "start": 3.102,
-              "end": 3.294,
+              "start": 3.123,
+              "end": 3.315,
               "approx": true
             },
             {
               "w": "样",
-              "start": 3.294,
-              "end": 3.486,
+              "start": 3.315,
+              "end": 3.507,
               "approx": true
             },
             {
               "w": "的",
-              "start": 3.486,
-              "end": 3.678,
+              "start": 3.507,
+              "end": 3.699,
               "approx": true
             },
             {
               "w": "？",
-              "start": 3.678,
-              "end": 3.764,
+              "start": 3.699,
+              "end": 3.785,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 2,
+          "cue": 2.6,
           "text": "真实数据里，第一位是 1 的，占了三成。",
           "file": "audio/vo/hook-2.mp3",
           "dur": 3.726,
-          "offset": 3.463,
-          "start": 3.463,
+          "offset": 4.68,
+          "start": 4.68,
           "words": [
             {
               "w": "真",
-              "start": 3.463,
-              "end": 3.685,
+              "start": 4.68,
+              "end": 4.902,
               "approx": true
             },
             {
               "w": "实",
-              "start": 3.685,
-              "end": 3.908,
+              "start": 4.902,
+              "end": 5.125,
               "approx": true
             },
             {
               "w": "数",
-              "start": 3.908,
-              "end": 4.13,
+              "start": 5.125,
+              "end": 5.347,
               "approx": true
             },
             {
               "w": "据",
-              "start": 4.13,
-              "end": 4.353,
+              "start": 5.347,
+              "end": 5.57,
               "approx": true
             },
             {
               "w": "里",
-              "start": 4.353,
-              "end": 4.575,
+              "start": 5.57,
+              "end": 5.792,
               "approx": true
             },
             {
               "w": "，",
-              "start": 4.575,
-              "end": 4.675,
+              "start": 5.792,
+              "end": 5.892,
               "approx": true
             },
             {
               "w": "第",
-              "start": 4.675,
-              "end": 4.898,
+              "start": 5.892,
+              "end": 6.115,
               "approx": true
             },
             {
               "w": "一",
-              "start": 4.898,
-              "end": 5.12,
+              "start": 6.115,
+              "end": 6.337,
               "approx": true
             },
             {
               "w": "位",
-              "start": 5.12,
-              "end": 5.343,
+              "start": 6.337,
+              "end": 6.56,
               "approx": true
             },
             {
               "w": "是",
-              "start": 5.343,
-              "end": 5.565,
+              "start": 6.56,
+              "end": 6.782,
               "approx": true
             },
             {
               "w": " ",
-              "start": 5.565,
-              "end": 5.61,
+              "start": 6.782,
+              "end": 6.827,
               "approx": true
             },
             {
               "w": "1",
-              "start": 5.61,
-              "end": 5.832,
+              "start": 6.827,
+              "end": 7.049,
               "approx": true
             },
             {
               "w": " ",
-              "start": 5.832,
-              "end": 5.877,
+              "start": 7.049,
+              "end": 7.094,
               "approx": true
             },
             {
               "w": "的",
-              "start": 5.877,
-              "end": 6.099,
+              "start": 7.094,
+              "end": 7.316,
               "approx": true
             },
             {
               "w": "，",
-              "start": 6.099,
-              "end": 6.199,
+              "start": 7.316,
+              "end": 7.416,
               "approx": true
             },
             {
               "w": "占",
-              "start": 6.199,
-              "end": 6.422,
+              "start": 7.416,
+              "end": 7.639,
               "approx": true
             },
             {
               "w": "了",
-              "start": 6.422,
-              "end": 6.644,
+              "start": 7.639,
+              "end": 7.861,
               "approx": true
             },
             {
               "w": "三",
-              "start": 6.644,
-              "end": 6.866,
+              "start": 7.861,
+              "end": 8.083,
               "approx": true
             },
             {
               "w": "成",
-              "start": 6.866,
-              "end": 7.089,
+              "start": 8.083,
+              "end": 8.306,
               "approx": true
             },
             {
               "w": "。",
-              "start": 7.089,
-              "end": 7.189,
+              "start": 8.306,
+              "end": 8.406,
               "approx": true
             }
           ]
@@ -270,9 +270,9 @@
     },
     {
       "id": "bridge",
-      "start": 7.8,
-      "slot": 7.8,
-      "stretch": 1.302,
+      "start": 9.498,
+      "slot": 8.059,
+      "stretch": 1.362,
       "internal": 5,
       "lines": [
         {
@@ -281,180 +281,180 @@
           "text": "换人口，换河流，换股价，",
           "file": "audio/vo/bridge-1.mp3",
           "dur": 2.943,
-          "offset": 0.39,
-          "start": 8.19,
+          "offset": 0.408,
+          "start": 9.906,
           "words": [
             {
               "w": "换",
-              "start": 8.19,
-              "end": 8.474,
+              "start": 9.906,
+              "end": 10.19,
               "approx": true
             },
             {
               "w": "人",
-              "start": 8.474,
-              "end": 8.759,
+              "start": 10.19,
+              "end": 10.475,
               "approx": true
             },
             {
               "w": "口",
-              "start": 8.759,
-              "end": 9.043,
+              "start": 10.475,
+              "end": 10.759,
               "approx": true
             },
             {
               "w": "，",
-              "start": 9.043,
-              "end": 9.171,
+              "start": 10.759,
+              "end": 10.887,
               "approx": true
             },
             {
               "w": "换",
-              "start": 9.171,
-              "end": 9.455,
+              "start": 10.887,
+              "end": 11.171,
               "approx": true
             },
             {
               "w": "河",
-              "start": 9.455,
-              "end": 9.74,
+              "start": 11.171,
+              "end": 11.456,
               "approx": true
             },
             {
               "w": "流",
-              "start": 9.74,
-              "end": 10.024,
+              "start": 11.456,
+              "end": 11.74,
               "approx": true
             },
             {
               "w": "，",
-              "start": 10.024,
-              "end": 10.152,
+              "start": 11.74,
+              "end": 11.868,
               "approx": true
             },
             {
               "w": "换",
-              "start": 10.152,
-              "end": 10.436,
+              "start": 11.868,
+              "end": 12.152,
               "approx": true
             },
             {
               "w": "股",
-              "start": 10.436,
-              "end": 10.721,
+              "start": 12.152,
+              "end": 12.437,
               "approx": true
             },
             {
               "w": "价",
-              "start": 10.721,
-              "end": 11.005,
+              "start": 12.437,
+              "end": 12.721,
               "approx": true
             },
             {
               "w": "，",
-              "start": 11.005,
-              "end": 11.133,
+              "start": 12.721,
+              "end": 12.849,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 2.5,
+          "cue": 2.8,
           "text": "不管哪组真实数据，1 都最多。",
           "file": "audio/vo/bridge-2.mp3",
           "dur": 2.808,
-          "offset": 3.254,
-          "start": 11.054,
+          "offset": 3.812,
+          "start": 13.31,
           "words": [
             {
               "w": "不",
-              "start": 11.054,
-              "end": 11.268,
+              "start": 13.31,
+              "end": 13.524,
               "approx": true
             },
             {
               "w": "管",
-              "start": 11.268,
-              "end": 11.483,
+              "start": 13.524,
+              "end": 13.739,
               "approx": true
             },
             {
               "w": "哪",
-              "start": 11.483,
-              "end": 11.697,
+              "start": 13.739,
+              "end": 13.953,
               "approx": true
             },
             {
               "w": "组",
-              "start": 11.697,
-              "end": 11.911,
+              "start": 13.953,
+              "end": 14.167,
               "approx": true
             },
             {
               "w": "真",
-              "start": 11.911,
-              "end": 12.126,
+              "start": 14.167,
+              "end": 14.382,
               "approx": true
             },
             {
               "w": "实",
-              "start": 12.126,
-              "end": 12.34,
+              "start": 14.382,
+              "end": 14.596,
               "approx": true
             },
             {
               "w": "数",
-              "start": 12.34,
-              "end": 12.554,
+              "start": 14.596,
+              "end": 14.81,
               "approx": true
             },
             {
               "w": "据",
-              "start": 12.554,
-              "end": 12.769,
+              "start": 14.81,
+              "end": 15.025,
               "approx": true
             },
             {
               "w": "，",
-              "start": 12.769,
-              "end": 12.865,
+              "start": 15.025,
+              "end": 15.121,
               "approx": true
             },
             {
               "w": "1",
-              "start": 12.865,
-              "end": 13.08,
+              "start": 15.121,
+              "end": 15.336,
               "approx": true
             },
             {
               "w": " ",
-              "start": 13.08,
-              "end": 13.122,
+              "start": 15.336,
+              "end": 15.378,
               "approx": true
             },
             {
               "w": "都",
-              "start": 13.122,
-              "end": 13.337,
+              "start": 15.378,
+              "end": 15.593,
               "approx": true
             },
             {
               "w": "最",
-              "start": 13.337,
-              "end": 13.551,
+              "start": 15.593,
+              "end": 15.807,
               "approx": true
             },
             {
               "w": "多",
-              "start": 13.551,
-              "end": 13.766,
+              "start": 15.807,
+              "end": 16.022,
               "approx": true
             },
             {
               "w": "。",
-              "start": 13.766,
-              "end": 13.862,
+              "start": 16.022,
+              "end": 16.118,
               "approx": true
             }
           ]
@@ -463,9 +463,9 @@
     },
     {
       "id": "mechanism",
-      "start": 15,
-      "slot": 10.8,
-      "stretch": 1.151,
+      "start": 17.27,
+      "slot": 11.513,
+      "stretch": 1.251,
       "internal": 8,
       "lines": [
         {
@@ -474,359 +474,359 @@
           "text": "秘密在对数刻度上。",
           "file": "audio/vo/mechanism-1.mp3",
           "dur": 1.755,
-          "offset": 0.345,
-          "start": 15.345,
+          "offset": 0.375,
+          "start": 17.645,
           "words": [
             {
               "w": "秘",
-              "start": 15.345,
-              "end": 15.553,
+              "start": 17.645,
+              "end": 17.853,
               "approx": true
             },
             {
               "w": "密",
-              "start": 15.553,
-              "end": 15.76,
+              "start": 17.853,
+              "end": 18.06,
               "approx": true
             },
             {
               "w": "在",
-              "start": 15.76,
-              "end": 15.968,
+              "start": 18.06,
+              "end": 18.268,
               "approx": true
             },
             {
               "w": "对",
-              "start": 15.968,
-              "end": 16.176,
+              "start": 18.268,
+              "end": 18.476,
               "approx": true
             },
             {
               "w": "数",
-              "start": 16.176,
-              "end": 16.383,
+              "start": 18.476,
+              "end": 18.683,
               "approx": true
             },
             {
               "w": "刻",
-              "start": 16.383,
-              "end": 16.591,
+              "start": 18.683,
+              "end": 18.891,
               "approx": true
             },
             {
               "w": "度",
-              "start": 16.591,
-              "end": 16.799,
+              "start": 18.891,
+              "end": 19.099,
               "approx": true
             },
             {
               "w": "上",
-              "start": 16.799,
-              "end": 17.007,
+              "start": 19.099,
+              "end": 19.307,
               "approx": true
             },
             {
               "w": "。",
-              "start": 17.007,
-              "end": 17.1,
+              "start": 19.307,
+              "end": 19.4,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 2.5,
+          "cue": 2.8,
           "text": "从 1 到 2 的区间，比 8 到 9 宽得多。",
           "file": "audio/vo/mechanism-2.mp3",
           "dur": 2.708,
-          "offset": 2.877,
-          "start": 17.877,
+          "offset": 3.502,
+          "start": 20.772,
           "words": [
             {
               "w": "从",
-              "start": 17.877,
-              "end": 18.041,
+              "start": 20.772,
+              "end": 20.936,
               "approx": true
             },
             {
               "w": " ",
-              "start": 18.041,
-              "end": 18.074,
+              "start": 20.936,
+              "end": 20.969,
               "approx": true
             },
             {
               "w": "1",
-              "start": 18.074,
-              "end": 18.238,
+              "start": 20.969,
+              "end": 21.133,
               "approx": true
             },
             {
               "w": " ",
-              "start": 18.238,
-              "end": 18.271,
+              "start": 21.133,
+              "end": 21.166,
               "approx": true
             },
             {
               "w": "到",
-              "start": 18.271,
-              "end": 18.435,
+              "start": 21.166,
+              "end": 21.33,
               "approx": true
             },
             {
               "w": " ",
-              "start": 18.435,
-              "end": 18.468,
+              "start": 21.33,
+              "end": 21.363,
               "approx": true
             },
             {
               "w": "2",
-              "start": 18.468,
-              "end": 18.632,
+              "start": 21.363,
+              "end": 21.527,
               "approx": true
             },
             {
               "w": " ",
-              "start": 18.632,
-              "end": 18.665,
+              "start": 21.527,
+              "end": 21.56,
               "approx": true
             },
             {
               "w": "的",
-              "start": 18.665,
-              "end": 18.829,
+              "start": 21.56,
+              "end": 21.724,
               "approx": true
             },
             {
               "w": "区",
-              "start": 18.829,
-              "end": 18.993,
+              "start": 21.724,
+              "end": 21.888,
               "approx": true
             },
             {
               "w": "间",
-              "start": 18.993,
-              "end": 19.157,
+              "start": 21.888,
+              "end": 22.052,
               "approx": true
             },
             {
               "w": "，",
-              "start": 19.157,
-              "end": 19.231,
+              "start": 22.052,
+              "end": 22.126,
               "approx": true
             },
             {
               "w": "比",
-              "start": 19.231,
-              "end": 19.395,
+              "start": 22.126,
+              "end": 22.29,
               "approx": true
             },
             {
               "w": " ",
-              "start": 19.395,
-              "end": 19.428,
+              "start": 22.29,
+              "end": 22.323,
               "approx": true
             },
             {
               "w": "8",
-              "start": 19.428,
-              "end": 19.592,
+              "start": 22.323,
+              "end": 22.487,
               "approx": true
             },
             {
               "w": " ",
-              "start": 19.592,
-              "end": 19.625,
+              "start": 22.487,
+              "end": 22.52,
               "approx": true
             },
             {
               "w": "到",
-              "start": 19.625,
-              "end": 19.789,
+              "start": 22.52,
+              "end": 22.684,
               "approx": true
             },
             {
               "w": " ",
-              "start": 19.789,
-              "end": 19.822,
+              "start": 22.684,
+              "end": 22.717,
               "approx": true
             },
             {
               "w": "9",
-              "start": 19.822,
-              "end": 19.986,
+              "start": 22.717,
+              "end": 22.881,
               "approx": true
             },
             {
               "w": " ",
-              "start": 19.986,
-              "end": 20.019,
+              "start": 22.881,
+              "end": 22.914,
               "approx": true
             },
             {
               "w": "宽",
-              "start": 20.019,
-              "end": 20.183,
+              "start": 22.914,
+              "end": 23.078,
               "approx": true
             },
             {
               "w": "得",
-              "start": 20.183,
-              "end": 20.347,
+              "start": 23.078,
+              "end": 23.242,
               "approx": true
             },
             {
               "w": "多",
-              "start": 20.347,
-              "end": 20.511,
+              "start": 23.242,
+              "end": 23.406,
               "approx": true
             },
             {
               "w": "。",
-              "start": 20.511,
-              "end": 20.585,
+              "start": 23.406,
+              "end": 23.48,
               "approx": true
             }
           ]
         },
         {
           "index": 2,
-          "cue": 5,
+          "cue": 5.8,
           "text": "概率等于 log 十为底，一加 d 分之一。",
           "file": "audio/vo/mechanism-3.mp3",
           "dur": 3.005,
-          "offset": 5.753,
-          "start": 20.753,
+          "offset": 7.254,
+          "start": 24.524,
           "words": [
             {
               "w": "概",
-              "start": 20.753,
-              "end": 20.923,
+              "start": 24.524,
+              "end": 24.694,
               "approx": true
             },
             {
               "w": "率",
-              "start": 20.923,
-              "end": 21.093,
+              "start": 24.694,
+              "end": 24.864,
               "approx": true
             },
             {
               "w": "等",
-              "start": 21.093,
-              "end": 21.262,
+              "start": 24.864,
+              "end": 25.033,
               "approx": true
             },
             {
               "w": "于",
-              "start": 21.262,
-              "end": 21.432,
+              "start": 25.033,
+              "end": 25.203,
               "approx": true
             },
             {
               "w": " ",
-              "start": 21.432,
-              "end": 21.466,
+              "start": 25.203,
+              "end": 25.237,
               "approx": true
             },
             {
               "w": "l",
-              "start": 21.466,
-              "end": 21.636,
+              "start": 25.237,
+              "end": 25.407,
               "approx": true
             },
             {
               "w": "o",
-              "start": 21.636,
-              "end": 21.806,
+              "start": 25.407,
+              "end": 25.577,
               "approx": true
             },
             {
               "w": "g",
-              "start": 21.806,
-              "end": 21.975,
+              "start": 25.577,
+              "end": 25.746,
               "approx": true
             },
             {
               "w": " ",
-              "start": 21.975,
-              "end": 22.009,
+              "start": 25.746,
+              "end": 25.78,
               "approx": true
             },
             {
               "w": "十",
-              "start": 22.009,
-              "end": 22.179,
+              "start": 25.78,
+              "end": 25.95,
               "approx": true
             },
             {
               "w": "为",
-              "start": 22.179,
-              "end": 22.349,
+              "start": 25.95,
+              "end": 26.12,
               "approx": true
             },
             {
               "w": "底",
-              "start": 22.349,
-              "end": 22.519,
+              "start": 26.12,
+              "end": 26.29,
               "approx": true
             },
             {
               "w": "，",
-              "start": 22.519,
-              "end": 22.595,
+              "start": 26.29,
+              "end": 26.366,
               "approx": true
             },
             {
               "w": "一",
-              "start": 22.595,
-              "end": 22.765,
+              "start": 26.366,
+              "end": 26.536,
               "approx": true
             },
             {
               "w": "加",
-              "start": 22.765,
-              "end": 22.935,
+              "start": 26.536,
+              "end": 26.706,
               "approx": true
             },
             {
               "w": " ",
-              "start": 22.935,
-              "end": 22.969,
+              "start": 26.706,
+              "end": 26.74,
               "approx": true
             },
             {
               "w": "d",
-              "start": 22.969,
-              "end": 23.138,
+              "start": 26.74,
+              "end": 26.909,
               "approx": true
             },
             {
               "w": " ",
-              "start": 23.138,
-              "end": 23.172,
+              "start": 26.909,
+              "end": 26.943,
               "approx": true
             },
             {
               "w": "分",
-              "start": 23.172,
-              "end": 23.342,
+              "start": 26.943,
+              "end": 27.113,
               "approx": true
             },
             {
               "w": "之",
-              "start": 23.342,
-              "end": 23.512,
+              "start": 27.113,
+              "end": 27.283,
               "approx": true
             },
             {
               "w": "一",
-              "start": 23.512,
-              "end": 23.682,
+              "start": 27.283,
+              "end": 27.453,
               "approx": true
             },
             {
               "w": "。",
-              "start": 23.682,
-              "end": 23.758,
+              "start": 27.453,
+              "end": 27.529,
               "approx": true
             }
           ]
@@ -835,9 +835,9 @@
     },
     {
       "id": "data",
-      "start": 25.2,
-      "slot": 9.6,
-      "stretch": 1.173,
+      "start": 28.495,
+      "slot": 10.074,
+      "stretch": 1.244,
       "internal": 7,
       "lines": [
         {
@@ -846,222 +846,222 @@
           "text": "人编的假数字，首位往往均匀。",
           "file": "audio/vo/data-1.mp3",
           "dur": 2.843,
-          "offset": 0.352,
-          "start": 25.552,
+          "offset": 0.373,
+          "start": 28.868,
           "words": [
             {
               "w": "人",
-              "start": 25.552,
-              "end": 25.772,
+              "start": 28.868,
+              "end": 29.088,
               "approx": true
             },
             {
               "w": "编",
-              "start": 25.772,
-              "end": 25.993,
+              "start": 29.088,
+              "end": 29.309,
               "approx": true
             },
             {
               "w": "的",
-              "start": 25.993,
-              "end": 26.213,
+              "start": 29.309,
+              "end": 29.529,
               "approx": true
             },
             {
               "w": "假",
-              "start": 26.213,
-              "end": 26.434,
+              "start": 29.529,
+              "end": 29.75,
               "approx": true
             },
             {
               "w": "数",
-              "start": 26.434,
-              "end": 26.654,
+              "start": 29.75,
+              "end": 29.97,
               "approx": true
             },
             {
               "w": "字",
-              "start": 26.654,
-              "end": 26.874,
+              "start": 29.97,
+              "end": 30.19,
               "approx": true
             },
             {
               "w": "，",
-              "start": 26.874,
-              "end": 26.974,
+              "start": 30.19,
+              "end": 30.29,
               "approx": true
             },
             {
               "w": "首",
-              "start": 26.974,
-              "end": 27.194,
+              "start": 30.29,
+              "end": 30.51,
               "approx": true
             },
             {
               "w": "位",
-              "start": 27.194,
-              "end": 27.414,
+              "start": 30.51,
+              "end": 30.73,
               "approx": true
             },
             {
               "w": "往",
-              "start": 27.414,
-              "end": 27.635,
+              "start": 30.73,
+              "end": 30.951,
               "approx": true
             },
             {
               "w": "往",
-              "start": 27.635,
-              "end": 27.855,
+              "start": 30.951,
+              "end": 31.171,
               "approx": true
             },
             {
               "w": "均",
-              "start": 27.855,
-              "end": 28.075,
+              "start": 31.171,
+              "end": 31.391,
               "approx": true
             },
             {
               "w": "匀",
-              "start": 28.075,
-              "end": 28.296,
+              "start": 31.391,
+              "end": 31.612,
               "approx": true
             },
             {
               "w": "。",
-              "start": 28.296,
-              "end": 28.395,
+              "start": 31.612,
+              "end": 31.711,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 3,
+          "cue": 3.5,
           "text": "真实数据偏爱 1，查账就靠这个识破造假。",
           "file": "audio/vo/data-2.mp3",
           "dur": 4.008,
-          "offset": 3.518,
-          "start": 28.718,
+          "offset": 4.354,
+          "start": 32.849,
           "words": [
             {
               "w": "真",
-              "start": 28.718,
-              "end": 28.939,
+              "start": 32.849,
+              "end": 33.07,
               "approx": true
             },
             {
               "w": "实",
-              "start": 28.939,
-              "end": 29.161,
+              "start": 33.07,
+              "end": 33.292,
               "approx": true
             },
             {
               "w": "数",
-              "start": 29.161,
-              "end": 29.382,
+              "start": 33.292,
+              "end": 33.513,
               "approx": true
             },
             {
               "w": "据",
-              "start": 29.382,
-              "end": 29.604,
+              "start": 33.513,
+              "end": 33.735,
               "approx": true
             },
             {
               "w": "偏",
-              "start": 29.604,
-              "end": 29.825,
+              "start": 33.735,
+              "end": 33.956,
               "approx": true
             },
             {
               "w": "爱",
-              "start": 29.825,
-              "end": 30.047,
+              "start": 33.956,
+              "end": 34.178,
               "approx": true
             },
             {
               "w": " ",
-              "start": 30.047,
-              "end": 30.091,
+              "start": 34.178,
+              "end": 34.222,
               "approx": true
             },
             {
               "w": "1",
-              "start": 30.091,
-              "end": 30.312,
+              "start": 34.222,
+              "end": 34.443,
               "approx": true
             },
             {
               "w": "，",
-              "start": 30.312,
-              "end": 30.412,
+              "start": 34.443,
+              "end": 34.543,
               "approx": true
             },
             {
               "w": "查",
-              "start": 30.412,
-              "end": 30.633,
+              "start": 34.543,
+              "end": 34.764,
               "approx": true
             },
             {
               "w": "账",
-              "start": 30.633,
-              "end": 30.855,
+              "start": 34.764,
+              "end": 34.986,
               "approx": true
             },
             {
               "w": "就",
-              "start": 30.855,
-              "end": 31.076,
+              "start": 34.986,
+              "end": 35.207,
               "approx": true
             },
             {
               "w": "靠",
-              "start": 31.076,
-              "end": 31.298,
+              "start": 35.207,
+              "end": 35.429,
               "approx": true
             },
             {
               "w": "这",
-              "start": 31.298,
-              "end": 31.519,
+              "start": 35.429,
+              "end": 35.65,
               "approx": true
             },
             {
               "w": "个",
-              "start": 31.519,
-              "end": 31.741,
+              "start": 35.65,
+              "end": 35.872,
               "approx": true
             },
             {
               "w": "识",
-              "start": 31.741,
-              "end": 31.962,
+              "start": 35.872,
+              "end": 36.093,
               "approx": true
             },
             {
               "w": "破",
-              "start": 31.962,
-              "end": 32.183,
+              "start": 36.093,
+              "end": 36.314,
               "approx": true
             },
             {
               "w": "造",
-              "start": 32.183,
-              "end": 32.405,
+              "start": 36.314,
+              "end": 36.536,
               "approx": true
             },
             {
               "w": "假",
-              "start": 32.405,
-              "end": 32.626,
+              "start": 36.536,
+              "end": 36.757,
               "approx": true
             },
             {
               "w": "。",
-              "start": 32.626,
-              "end": 32.726,
+              "start": 36.757,
+              "end": 36.857,
               "approx": true
             }
           ]
@@ -1070,9 +1070,9 @@
     },
     {
       "id": "close",
-      "start": 34.2,
-      "slot": 9.6,
-      "stretch": 1.007,
+      "start": 38.281,
+      "slot": 10.074,
+      "stretch": 1.107,
       "internal": 8,
       "lines": [
         {
@@ -1081,222 +1081,222 @@
           "text": "一八八一年，纽科姆发现对数表前几页更脏。",
           "file": "audio/vo/close-1.mp3",
           "dur": 4.053,
-          "offset": 0.302,
-          "start": 34.502,
+          "offset": 0.332,
+          "start": 38.613,
           "words": [
             {
               "w": "一",
-              "start": 34.502,
-              "end": 34.716,
+              "start": 38.613,
+              "end": 38.827,
               "approx": true
             },
             {
               "w": "八",
-              "start": 34.716,
-              "end": 34.931,
+              "start": 38.827,
+              "end": 39.042,
               "approx": true
             },
             {
               "w": "八",
-              "start": 34.931,
-              "end": 35.145,
+              "start": 39.042,
+              "end": 39.256,
               "approx": true
             },
             {
               "w": "一",
-              "start": 35.145,
-              "end": 35.36,
+              "start": 39.256,
+              "end": 39.471,
               "approx": true
             },
             {
               "w": "年",
-              "start": 35.36,
-              "end": 35.574,
+              "start": 39.471,
+              "end": 39.685,
               "approx": true
             },
             {
               "w": "，",
-              "start": 35.574,
-              "end": 35.671,
+              "start": 39.685,
+              "end": 39.782,
               "approx": true
             },
             {
               "w": "纽",
-              "start": 35.671,
-              "end": 35.885,
+              "start": 39.782,
+              "end": 39.996,
               "approx": true
             },
             {
               "w": "科",
-              "start": 35.885,
-              "end": 36.1,
+              "start": 39.996,
+              "end": 40.211,
               "approx": true
             },
             {
               "w": "姆",
-              "start": 36.1,
-              "end": 36.314,
+              "start": 40.211,
+              "end": 40.425,
               "approx": true
             },
             {
               "w": "发",
-              "start": 36.314,
-              "end": 36.529,
+              "start": 40.425,
+              "end": 40.64,
               "approx": true
             },
             {
               "w": "现",
-              "start": 36.529,
-              "end": 36.743,
+              "start": 40.64,
+              "end": 40.854,
               "approx": true
             },
             {
               "w": "对",
-              "start": 36.743,
-              "end": 36.957,
+              "start": 40.854,
+              "end": 41.068,
               "approx": true
             },
             {
               "w": "数",
-              "start": 36.957,
-              "end": 37.172,
+              "start": 41.068,
+              "end": 41.283,
               "approx": true
             },
             {
               "w": "表",
-              "start": 37.172,
-              "end": 37.386,
+              "start": 41.283,
+              "end": 41.497,
               "approx": true
             },
             {
               "w": "前",
-              "start": 37.386,
-              "end": 37.601,
+              "start": 41.497,
+              "end": 41.712,
               "approx": true
             },
             {
               "w": "几",
-              "start": 37.601,
-              "end": 37.815,
+              "start": 41.712,
+              "end": 41.926,
               "approx": true
             },
             {
               "w": "页",
-              "start": 37.815,
-              "end": 38.03,
+              "start": 41.926,
+              "end": 42.141,
               "approx": true
             },
             {
               "w": "更",
-              "start": 38.03,
-              "end": 38.244,
+              "start": 42.141,
+              "end": 42.355,
               "approx": true
             },
             {
               "w": "脏",
-              "start": 38.244,
-              "end": 38.459,
+              "start": 42.355,
+              "end": 42.57,
               "approx": true
             },
             {
               "w": "。",
-              "start": 38.459,
-              "end": 38.555,
+              "start": 42.57,
+              "end": 42.666,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 4,
+          "cue": 4.8,
           "text": "如今，这条定律成了审计工具。",
           "file": "audio/vo/close-2.mp3",
           "dur": 2.855,
-          "offset": 4.028,
-          "start": 38.228,
+          "offset": 5.313,
+          "start": 43.594,
           "words": [
             {
               "w": "如",
-              "start": 38.228,
-              "end": 38.449,
+              "start": 43.594,
+              "end": 43.815,
               "approx": true
             },
             {
               "w": "今",
-              "start": 38.449,
-              "end": 38.671,
+              "start": 43.815,
+              "end": 44.037,
               "approx": true
             },
             {
               "w": "，",
-              "start": 38.671,
-              "end": 38.77,
+              "start": 44.037,
+              "end": 44.136,
               "approx": true
             },
             {
               "w": "这",
-              "start": 38.77,
-              "end": 38.992,
+              "start": 44.136,
+              "end": 44.358,
               "approx": true
             },
             {
               "w": "条",
-              "start": 38.992,
-              "end": 39.213,
+              "start": 44.358,
+              "end": 44.579,
               "approx": true
             },
             {
               "w": "定",
-              "start": 39.213,
-              "end": 39.434,
+              "start": 44.579,
+              "end": 44.8,
               "approx": true
             },
             {
               "w": "律",
-              "start": 39.434,
-              "end": 39.656,
+              "start": 44.8,
+              "end": 45.022,
               "approx": true
             },
             {
               "w": "成",
-              "start": 39.656,
-              "end": 39.877,
+              "start": 45.022,
+              "end": 45.243,
               "approx": true
             },
             {
               "w": "了",
-              "start": 39.877,
-              "end": 40.098,
+              "start": 45.243,
+              "end": 45.464,
               "approx": true
             },
             {
               "w": "审",
-              "start": 40.098,
-              "end": 40.319,
+              "start": 45.464,
+              "end": 45.685,
               "approx": true
             },
             {
               "w": "计",
-              "start": 40.319,
-              "end": 40.541,
+              "start": 45.685,
+              "end": 45.907,
               "approx": true
             },
             {
               "w": "工",
-              "start": 40.541,
-              "end": 40.762,
+              "start": 45.907,
+              "end": 46.128,
               "approx": true
             },
             {
               "w": "具",
-              "start": 40.762,
-              "end": 40.983,
+              "start": 46.128,
+              "end": 46.349,
               "approx": true
             },
             {
               "w": "。",
-              "start": 40.983,
-              "end": 41.083,
+              "start": 46.349,
+              "end": 46.449,
               "approx": true
             }
           ]
