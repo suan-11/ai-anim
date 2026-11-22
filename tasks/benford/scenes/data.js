@@ -5,7 +5,7 @@ import { BENFORD, UNIFORM } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('data',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zt=sat((lt-4.0)/0.6); const zoom=1+0.5*smoothstep(0,1,zt);
     const lx=W*0.28, rx=W*0.72;
     ctx.setXform({scale:zoom,anchor:[W*0.5,H*0.5]});

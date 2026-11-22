@@ -6,7 +6,7 @@ import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('hook', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt;
+    const lt = f.lt/(ctx.params?.stretch??1);
     // 0-1.5s 均匀；1.5s 起砸成本福特
     const k = smoothstep(1.5, 2.3, lt);
     const bars = barLayout(W, H);

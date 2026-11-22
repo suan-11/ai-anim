@@ -1,0 +1,1221 @@
+{
+  "source": "./audio/benford-vo.mp3",
+  "lines": [
+    {
+      "id": "hook-1",
+      "text": "你以为，一到九当开头的机会是一样的？",
+      "start": 0.519,
+      "dur": 3.245,
+      "words": [
+        {
+          "w": "你",
+          "start": 0.519,
+          "end": 0.711,
+          "approx": true
+        },
+        {
+          "w": "以",
+          "start": 0.711,
+          "end": 0.903,
+          "approx": true
+        },
+        {
+          "w": "为",
+          "start": 0.903,
+          "end": 1.095,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 1.095,
+          "end": 1.181,
+          "approx": true
+        },
+        {
+          "w": "一",
+          "start": 1.181,
+          "end": 1.373,
+          "approx": true
+        },
+        {
+          "w": "到",
+          "start": 1.373,
+          "end": 1.565,
+          "approx": true
+        },
+        {
+          "w": "九",
+          "start": 1.565,
+          "end": 1.757,
+          "approx": true
+        },
+        {
+          "w": "当",
+          "start": 1.757,
+          "end": 1.949,
+          "approx": true
+        },
+        {
+          "w": "开",
+          "start": 1.949,
+          "end": 2.142,
+          "approx": true
+        },
+        {
+          "w": "头",
+          "start": 2.142,
+          "end": 2.334,
+          "approx": true
+        },
+        {
+          "w": "的",
+          "start": 2.334,
+          "end": 2.526,
+          "approx": true
+        },
+        {
+          "w": "机",
+          "start": 2.526,
+          "end": 2.718,
+          "approx": true
+        },
+        {
+          "w": "会",
+          "start": 2.718,
+          "end": 2.91,
+          "approx": true
+        },
+        {
+          "w": "是",
+          "start": 2.91,
+          "end": 3.102,
+          "approx": true
+        },
+        {
+          "w": "一",
+          "start": 3.102,
+          "end": 3.294,
+          "approx": true
+        },
+        {
+          "w": "样",
+          "start": 3.294,
+          "end": 3.486,
+          "approx": true
+        },
+        {
+          "w": "的",
+          "start": 3.486,
+          "end": 3.678,
+          "approx": true
+        },
+        {
+          "w": "？",
+          "start": 3.678,
+          "end": 3.764,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "hook-2",
+      "text": "真实数据里，第一位是 1 的，占了三成。",
+      "start": 3.463,
+      "dur": 3.726,
+      "words": [
+        {
+          "w": "真",
+          "start": 3.463,
+          "end": 3.685,
+          "approx": true
+        },
+        {
+          "w": "实",
+          "start": 3.685,
+          "end": 3.908,
+          "approx": true
+        },
+        {
+          "w": "数",
+          "start": 3.908,
+          "end": 4.13,
+          "approx": true
+        },
+        {
+          "w": "据",
+          "start": 4.13,
+          "end": 4.353,
+          "approx": true
+        },
+        {
+          "w": "里",
+          "start": 4.353,
+          "end": 4.575,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 4.575,
+          "end": 4.675,
+          "approx": true
+        },
+        {
+          "w": "第",
+          "start": 4.675,
+          "end": 4.898,
+          "approx": true
+        },
+        {
+          "w": "一",
+          "start": 4.898,
+          "end": 5.12,
+          "approx": true
+        },
+        {
+          "w": "位",
+          "start": 5.12,
+          "end": 5.343,
+          "approx": true
+        },
+        {
+          "w": "是",
+          "start": 5.343,
+          "end": 5.565,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 5.565,
+          "end": 5.61,
+          "approx": true
+        },
+        {
+          "w": "1",
+          "start": 5.61,
+          "end": 5.832,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 5.832,
+          "end": 5.877,
+          "approx": true
+        },
+        {
+          "w": "的",
+          "start": 5.877,
+          "end": 6.099,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 6.099,
+          "end": 6.199,
+          "approx": true
+        },
+        {
+          "w": "占",
+          "start": 6.199,
+          "end": 6.422,
+          "approx": true
+        },
+        {
+          "w": "了",
+          "start": 6.422,
+          "end": 6.644,
+          "approx": true
+        },
+        {
+          "w": "三",
+          "start": 6.644,
+          "end": 6.866,
+          "approx": true
+        },
+        {
+          "w": "成",
+          "start": 6.866,
+          "end": 7.089,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 7.089,
+          "end": 7.189,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "bridge-1",
+      "text": "换人口，换河流，换股价，",
+      "start": 8.19,
+      "dur": 2.943,
+      "words": [
+        {
+          "w": "换",
+          "start": 8.19,
+          "end": 8.474,
+          "approx": true
+        },
+        {
+          "w": "人",
+          "start": 8.474,
+          "end": 8.759,
+          "approx": true
+        },
+        {
+          "w": "口",
+          "start": 8.759,
+          "end": 9.043,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 9.043,
+          "end": 9.171,
+          "approx": true
+        },
+        {
+          "w": "换",
+          "start": 9.171,
+          "end": 9.455,
+          "approx": true
+        },
+        {
+          "w": "河",
+          "start": 9.455,
+          "end": 9.74,
+          "approx": true
+        },
+        {
+          "w": "流",
+          "start": 9.74,
+          "end": 10.024,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 10.024,
+          "end": 10.152,
+          "approx": true
+        },
+        {
+          "w": "换",
+          "start": 10.152,
+          "end": 10.436,
+          "approx": true
+        },
+        {
+          "w": "股",
+          "start": 10.436,
+          "end": 10.721,
+          "approx": true
+        },
+        {
+          "w": "价",
+          "start": 10.721,
+          "end": 11.005,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 11.005,
+          "end": 11.133,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "bridge-2",
+      "text": "不管哪组真实数据，1 都最多。",
+      "start": 11.054,
+      "dur": 2.808,
+      "words": [
+        {
+          "w": "不",
+          "start": 11.054,
+          "end": 11.268,
+          "approx": true
+        },
+        {
+          "w": "管",
+          "start": 11.268,
+          "end": 11.483,
+          "approx": true
+        },
+        {
+          "w": "哪",
+          "start": 11.483,
+          "end": 11.697,
+          "approx": true
+        },
+        {
+          "w": "组",
+          "start": 11.697,
+          "end": 11.911,
+          "approx": true
+        },
+        {
+          "w": "真",
+          "start": 11.911,
+          "end": 12.126,
+          "approx": true
+        },
+        {
+          "w": "实",
+          "start": 12.126,
+          "end": 12.34,
+          "approx": true
+        },
+        {
+          "w": "数",
+          "start": 12.34,
+          "end": 12.554,
+          "approx": true
+        },
+        {
+          "w": "据",
+          "start": 12.554,
+          "end": 12.769,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 12.769,
+          "end": 12.865,
+          "approx": true
+        },
+        {
+          "w": "1",
+          "start": 12.865,
+          "end": 13.08,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 13.08,
+          "end": 13.122,
+          "approx": true
+        },
+        {
+          "w": "都",
+          "start": 13.122,
+          "end": 13.337,
+          "approx": true
+        },
+        {
+          "w": "最",
+          "start": 13.337,
+          "end": 13.551,
+          "approx": true
+        },
+        {
+          "w": "多",
+          "start": 13.551,
+          "end": 13.766,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 13.766,
+          "end": 13.862,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "mechanism-1",
+      "text": "秘密在对数刻度上。",
+      "start": 15.345,
+      "dur": 1.755,
+      "words": [
+        {
+          "w": "秘",
+          "start": 15.345,
+          "end": 15.553,
+          "approx": true
+        },
+        {
+          "w": "密",
+          "start": 15.553,
+          "end": 15.76,
+          "approx": true
+        },
+        {
+          "w": "在",
+          "start": 15.76,
+          "end": 15.968,
+          "approx": true
+        },
+        {
+          "w": "对",
+          "start": 15.968,
+          "end": 16.176,
+          "approx": true
+        },
+        {
+          "w": "数",
+          "start": 16.176,
+          "end": 16.383,
+          "approx": true
+        },
+        {
+          "w": "刻",
+          "start": 16.383,
+          "end": 16.591,
+          "approx": true
+        },
+        {
+          "w": "度",
+          "start": 16.591,
+          "end": 16.799,
+          "approx": true
+        },
+        {
+          "w": "上",
+          "start": 16.799,
+          "end": 17.007,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 17.007,
+          "end": 17.1,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "mechanism-2",
+      "text": "从 1 到 2 的区间，比 8 到 9 宽得多。",
+      "start": 17.877,
+      "dur": 2.708,
+      "words": [
+        {
+          "w": "从",
+          "start": 17.877,
+          "end": 18.041,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 18.041,
+          "end": 18.074,
+          "approx": true
+        },
+        {
+          "w": "1",
+          "start": 18.074,
+          "end": 18.238,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 18.238,
+          "end": 18.271,
+          "approx": true
+        },
+        {
+          "w": "到",
+          "start": 18.271,
+          "end": 18.435,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 18.435,
+          "end": 18.468,
+          "approx": true
+        },
+        {
+          "w": "2",
+          "start": 18.468,
+          "end": 18.632,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 18.632,
+          "end": 18.665,
+          "approx": true
+        },
+        {
+          "w": "的",
+          "start": 18.665,
+          "end": 18.829,
+          "approx": true
+        },
+        {
+          "w": "区",
+          "start": 18.829,
+          "end": 18.993,
+          "approx": true
+        },
+        {
+          "w": "间",
+          "start": 18.993,
+          "end": 19.157,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 19.157,
+          "end": 19.231,
+          "approx": true
+        },
+        {
+          "w": "比",
+          "start": 19.231,
+          "end": 19.395,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 19.395,
+          "end": 19.428,
+          "approx": true
+        },
+        {
+          "w": "8",
+          "start": 19.428,
+          "end": 19.592,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 19.592,
+          "end": 19.625,
+          "approx": true
+        },
+        {
+          "w": "到",
+          "start": 19.625,
+          "end": 19.789,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 19.789,
+          "end": 19.822,
+          "approx": true
+        },
+        {
+          "w": "9",
+          "start": 19.822,
+          "end": 19.986,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 19.986,
+          "end": 20.019,
+          "approx": true
+        },
+        {
+          "w": "宽",
+          "start": 20.019,
+          "end": 20.183,
+          "approx": true
+        },
+        {
+          "w": "得",
+          "start": 20.183,
+          "end": 20.347,
+          "approx": true
+        },
+        {
+          "w": "多",
+          "start": 20.347,
+          "end": 20.511,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 20.511,
+          "end": 20.585,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "mechanism-3",
+      "text": "概率等于 log 十为底，一加 d 分之一。",
+      "start": 20.753,
+      "dur": 3.005,
+      "words": [
+        {
+          "w": "概",
+          "start": 20.753,
+          "end": 20.923,
+          "approx": true
+        },
+        {
+          "w": "率",
+          "start": 20.923,
+          "end": 21.093,
+          "approx": true
+        },
+        {
+          "w": "等",
+          "start": 21.093,
+          "end": 21.262,
+          "approx": true
+        },
+        {
+          "w": "于",
+          "start": 21.262,
+          "end": 21.432,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 21.432,
+          "end": 21.466,
+          "approx": true
+        },
+        {
+          "w": "l",
+          "start": 21.466,
+          "end": 21.636,
+          "approx": true
+        },
+        {
+          "w": "o",
+          "start": 21.636,
+          "end": 21.806,
+          "approx": true
+        },
+        {
+          "w": "g",
+          "start": 21.806,
+          "end": 21.975,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 21.975,
+          "end": 22.009,
+          "approx": true
+        },
+        {
+          "w": "十",
+          "start": 22.009,
+          "end": 22.179,
+          "approx": true
+        },
+        {
+          "w": "为",
+          "start": 22.179,
+          "end": 22.349,
+          "approx": true
+        },
+        {
+          "w": "底",
+          "start": 22.349,
+          "end": 22.519,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 22.519,
+          "end": 22.595,
+          "approx": true
+        },
+        {
+          "w": "一",
+          "start": 22.595,
+          "end": 22.765,
+          "approx": true
+        },
+        {
+          "w": "加",
+          "start": 22.765,
+          "end": 22.935,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 22.935,
+          "end": 22.969,
+          "approx": true
+        },
+        {
+          "w": "d",
+          "start": 22.969,
+          "end": 23.138,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 23.138,
+          "end": 23.172,
+          "approx": true
+        },
+        {
+          "w": "分",
+          "start": 23.172,
+          "end": 23.342,
+          "approx": true
+        },
+        {
+          "w": "之",
+          "start": 23.342,
+          "end": 23.512,
+          "approx": true
+        },
+        {
+          "w": "一",
+          "start": 23.512,
+          "end": 23.682,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 23.682,
+          "end": 23.758,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "data-1",
+      "text": "人编的假数字，首位往往均匀。",
+      "start": 25.552,
+      "dur": 2.843,
+      "words": [
+        {
+          "w": "人",
+          "start": 25.552,
+          "end": 25.772,
+          "approx": true
+        },
+        {
+          "w": "编",
+          "start": 25.772,
+          "end": 25.993,
+          "approx": true
+        },
+        {
+          "w": "的",
+          "start": 25.993,
+          "end": 26.213,
+          "approx": true
+        },
+        {
+          "w": "假",
+          "start": 26.213,
+          "end": 26.434,
+          "approx": true
+        },
+        {
+          "w": "数",
+          "start": 26.434,
+          "end": 26.654,
+          "approx": true
+        },
+        {
+          "w": "字",
+          "start": 26.654,
+          "end": 26.874,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 26.874,
+          "end": 26.974,
+          "approx": true
+        },
+        {
+          "w": "首",
+          "start": 26.974,
+          "end": 27.194,
+          "approx": true
+        },
+        {
+          "w": "位",
+          "start": 27.194,
+          "end": 27.414,
+          "approx": true
+        },
+        {
+          "w": "往",
+          "start": 27.414,
+          "end": 27.635,
+          "approx": true
+        },
+        {
+          "w": "往",
+          "start": 27.635,
+          "end": 27.855,
+          "approx": true
+        },
+        {
+          "w": "均",
+          "start": 27.855,
+          "end": 28.075,
+          "approx": true
+        },
+        {
+          "w": "匀",
+          "start": 28.075,
+          "end": 28.296,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 28.296,
+          "end": 28.395,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "data-2",
+      "text": "真实数据偏爱 1，查账就靠这个识破造假。",
+      "start": 28.718,
+      "dur": 4.008,
+      "words": [
+        {
+          "w": "真",
+          "start": 28.718,
+          "end": 28.939,
+          "approx": true
+        },
+        {
+          "w": "实",
+          "start": 28.939,
+          "end": 29.161,
+          "approx": true
+        },
+        {
+          "w": "数",
+          "start": 29.161,
+          "end": 29.382,
+          "approx": true
+        },
+        {
+          "w": "据",
+          "start": 29.382,
+          "end": 29.604,
+          "approx": true
+        },
+        {
+          "w": "偏",
+          "start": 29.604,
+          "end": 29.825,
+          "approx": true
+        },
+        {
+          "w": "爱",
+          "start": 29.825,
+          "end": 30.047,
+          "approx": true
+        },
+        {
+          "w": " ",
+          "start": 30.047,
+          "end": 30.091,
+          "approx": true
+        },
+        {
+          "w": "1",
+          "start": 30.091,
+          "end": 30.312,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 30.312,
+          "end": 30.412,
+          "approx": true
+        },
+        {
+          "w": "查",
+          "start": 30.412,
+          "end": 30.633,
+          "approx": true
+        },
+        {
+          "w": "账",
+          "start": 30.633,
+          "end": 30.855,
+          "approx": true
+        },
+        {
+          "w": "就",
+          "start": 30.855,
+          "end": 31.076,
+          "approx": true
+        },
+        {
+          "w": "靠",
+          "start": 31.076,
+          "end": 31.298,
+          "approx": true
+        },
+        {
+          "w": "这",
+          "start": 31.298,
+          "end": 31.519,
+          "approx": true
+        },
+        {
+          "w": "个",
+          "start": 31.519,
+          "end": 31.741,
+          "approx": true
+        },
+        {
+          "w": "识",
+          "start": 31.741,
+          "end": 31.962,
+          "approx": true
+        },
+        {
+          "w": "破",
+          "start": 31.962,
+          "end": 32.183,
+          "approx": true
+        },
+        {
+          "w": "造",
+          "start": 32.183,
+          "end": 32.405,
+          "approx": true
+        },
+        {
+          "w": "假",
+          "start": 32.405,
+          "end": 32.626,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 32.626,
+          "end": 32.726,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "close-1",
+      "text": "一八八一年，纽科姆发现对数表前几页更脏。",
+      "start": 34.502,
+      "dur": 4.053,
+      "words": [
+        {
+          "w": "一",
+          "start": 34.502,
+          "end": 34.716,
+          "approx": true
+        },
+        {
+          "w": "八",
+          "start": 34.716,
+          "end": 34.931,
+          "approx": true
+        },
+        {
+          "w": "八",
+          "start": 34.931,
+          "end": 35.145,
+          "approx": true
+        },
+        {
+          "w": "一",
+          "start": 35.145,
+          "end": 35.36,
+          "approx": true
+        },
+        {
+          "w": "年",
+          "start": 35.36,
+          "end": 35.574,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 35.574,
+          "end": 35.671,
+          "approx": true
+        },
+        {
+          "w": "纽",
+          "start": 35.671,
+          "end": 35.885,
+          "approx": true
+        },
+        {
+          "w": "科",
+          "start": 35.885,
+          "end": 36.1,
+          "approx": true
+        },
+        {
+          "w": "姆",
+          "start": 36.1,
+          "end": 36.314,
+          "approx": true
+        },
+        {
+          "w": "发",
+          "start": 36.314,
+          "end": 36.529,
+          "approx": true
+        },
+        {
+          "w": "现",
+          "start": 36.529,
+          "end": 36.743,
+          "approx": true
+        },
+        {
+          "w": "对",
+          "start": 36.743,
+          "end": 36.957,
+          "approx": true
+        },
+        {
+          "w": "数",
+          "start": 36.957,
+          "end": 37.172,
+          "approx": true
+        },
+        {
+          "w": "表",
+          "start": 37.172,
+          "end": 37.386,
+          "approx": true
+        },
+        {
+          "w": "前",
+          "start": 37.386,
+          "end": 37.601,
+          "approx": true
+        },
+        {
+          "w": "几",
+          "start": 37.601,
+          "end": 37.815,
+          "approx": true
+        },
+        {
+          "w": "页",
+          "start": 37.815,
+          "end": 38.03,
+          "approx": true
+        },
+        {
+          "w": "更",
+          "start": 38.03,
+          "end": 38.244,
+          "approx": true
+        },
+        {
+          "w": "脏",
+          "start": 38.244,
+          "end": 38.459,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 38.459,
+          "end": 38.555,
+          "approx": true
+        }
+      ]
+    },
+    {
+      "id": "close-2",
+      "text": "如今，这条定律成了审计工具。",
+      "start": 38.228,
+      "dur": 2.855,
+      "words": [
+        {
+          "w": "如",
+          "start": 38.228,
+          "end": 38.449,
+          "approx": true
+        },
+        {
+          "w": "今",
+          "start": 38.449,
+          "end": 38.671,
+          "approx": true
+        },
+        {
+          "w": "，",
+          "start": 38.671,
+          "end": 38.77,
+          "approx": true
+        },
+        {
+          "w": "这",
+          "start": 38.77,
+          "end": 38.992,
+          "approx": true
+        },
+        {
+          "w": "条",
+          "start": 38.992,
+          "end": 39.213,
+          "approx": true
+        },
+        {
+          "w": "定",
+          "start": 39.213,
+          "end": 39.434,
+          "approx": true
+        },
+        {
+          "w": "律",
+          "start": 39.434,
+          "end": 39.656,
+          "approx": true
+        },
+        {
+          "w": "成",
+          "start": 39.656,
+          "end": 39.877,
+          "approx": true
+        },
+        {
+          "w": "了",
+          "start": 39.877,
+          "end": 40.098,
+          "approx": true
+        },
+        {
+          "w": "审",
+          "start": 40.098,
+          "end": 40.319,
+          "approx": true
+        },
+        {
+          "w": "计",
+          "start": 40.319,
+          "end": 40.541,
+          "approx": true
+        },
+        {
+          "w": "工",
+          "start": 40.541,
+          "end": 40.762,
+          "approx": true
+        },
+        {
+          "w": "具",
+          "start": 40.762,
+          "end": 40.983,
+          "approx": true
+        },
+        {
+          "w": "。",
+          "start": 40.983,
+          "end": 41.083,
+          "approx": true
+        }
+      ]
+    }
+  ]
+}

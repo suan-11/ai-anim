@@ -6,7 +6,7 @@ import { sat, smoothstep, css } from '../../../src/core/util.js';
 const SETS=['人口','河流','股价'];
 export default makeShot('bridge',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const bars=barLayout(W,H); const maxH=H-380;
     const setIdx=Math.min(2,Math.floor(lt/1.7));
     // 微抖（不同数据但分布同）

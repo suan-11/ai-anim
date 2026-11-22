@@ -5,7 +5,7 @@ import { BENFORD, barLayout } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('mechanism',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const bars=barLayout(W,H); const maxH=H-380;
     // 对数轴演示：上方画一条数轴 1..10，线性→对数变形
     const k=smoothstep(0.5,4.0,lt);
