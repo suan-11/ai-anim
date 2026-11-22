@@ -5,7 +5,7 @@ import { coastline } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('close',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zoom=1.6-0.6*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({scale:zoom,anchor:[W/2,H/2]});
     const pts=coastline(W,H,3);

@@ -5,7 +5,7 @@ import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('mechanism',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 细分级别 0→4 随时间
     const depth=Math.min(4,Math.floor(smoothstep(0.3,5.0,lt)*4.99));
     const pts=coastline(W,H,depth);

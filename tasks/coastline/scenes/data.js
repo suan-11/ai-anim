@@ -5,7 +5,7 @@ import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('data',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 测各级长度
     const data=[]; for(let d=0;d<=4;d++){ const L=pathLen(coastline(W,H,d)); const eps=Math.pow(1/3,d); data.push([Math.log10(eps),Math.log10(L)]); }
     const zt=sat((lt-3.5)/0.6); const zoom=1+0.6*smoothstep(0,1,zt);

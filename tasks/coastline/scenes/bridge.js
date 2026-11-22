@@ -5,7 +5,7 @@ import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('bridge',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const depth=Math.min(2,Math.floor(smoothstep(0.3,3.5,lt)*2.99));
     const pts=coastline(W,H,depth);
     const coarse=coastline(W,H,0);

@@ -5,7 +5,7 @@ import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 export default makeShot('hook',{
   draw(ctx){
-    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt;
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const fine=coastline(W,H,3); // 真实细海岸
     const coarse=coastline(W,H,0); // 大尺子粗量
     const zt=sat((lt-1.5)/0.6); const zoom=1+2*smoothstep(0,1,zt);
