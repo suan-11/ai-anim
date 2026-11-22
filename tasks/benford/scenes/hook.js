@@ -14,6 +14,8 @@ export default makeShot('hook',{
     // zoom 锚点对柱群中心（1号柱中部），温和放大不裁切
     ctx.setXform({scale:zoom,anchor:[b0.x+80,b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE*0.45]});
     lines.begin();
+    // 柱间淡竖纹（填充背景降空格）
+    for(let x=160;x<W-160;x+=48) lines.seg(x,180,x,H-160,0.5,withAlpha(P.graphite,0.08));
     // 均匀虚线基线（直觉参考，真实柱穿过它）
     const uniY=b0.baseY-UNIFORM[0]*MAX_BAR_H*BAR_SCALE;
     for(let x=140;x<W-140;x+=20) lines.seg(x,uniY,x+10,uniY,1,withAlpha(P.graphite,0.4*(1-k*0.5)));

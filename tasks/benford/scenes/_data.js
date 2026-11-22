@@ -4,7 +4,7 @@ export const BENFORD = [1,2,3,4,5,6,7,8,9].map(d => Math.log10(1+1/d));
 export const UNIFORM = Array(9).fill(1/9);
 // 柱布局：九根，画面中下，柱高占画面 55%
 export function barLayout(W, H, pad=160) {
-  const bw = (W - 2*pad) / 9 * 0.72; // 更宽
+  const bw = (W - 2*pad) / 9 * 0.88; // 更宽降空格
   const gap = (W - 2*pad) / 9;
   const baseY = H - 140; // 更低
   return BENFORD.map((_,i) => ({ x: pad + i*gap + gap/2, baseY, bw, d:i+1 }));
