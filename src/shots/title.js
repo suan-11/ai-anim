@@ -1,10 +1,7 @@
 // @ts-check
 /**
  * 镜头模板：`title` —— 大标题入场。
- *
- * 绘制代码从 `tasks/demo/scenes/title.js` **逐字**搬过来，只把内容变成参数 ——
- * 所以它与 demo 的原始画面逐像素一致（验收：`node scripts/anim.mjs hashes demo --baseline`）。
- * ⚠ 改这里的任何数值或绘制顺序都会改变已有任务的画面：改之前先跑一次 hashes 存基线。
+ * 原型参考 `tasks/demo/scenes/title.js`，按视觉效果持续优化。
  *
  * ```js
  * export default shot('title', { title: '写代码，就是做动画' });
@@ -49,10 +46,15 @@ export function titleShot(opts = {}) {
           // 细网格：距离用逻辑像素表示，线宽用 fwidth 单位（这样 4K 下依然是一根细线）
           vec2 d = abs(fract(FRAG_PX / 60.0) - 0.5) * 60.0;
           vec2 w = vec2(fwidth(FRAG_PX.x), fwidth(FRAG_PX.y));
-          float grid = 1.0 - smoothstep(w.x, w.x * 2.0, min(d.x, d.y));
-          col += grid * 0.5 * smoothstep(1.1, 0.2, r);
-          // 中心一点暖光，让画面不平
-          col += C_SIGNAL * 0.05 * exp(-r * r * 6.0);
+          float gridMask = 1.0 - smoothstep(w.x, w.x * 2.0, min(d.x, d.y));
+          if (luma(ink) > 0.25) {
+            col = mix(col, grid * 2.0, gridMask * 0.28 * smoothstep(1.1, 0.2, r));
+            col = mix(col, C_SIGNAL, 0.04 * exp(-r * r * 6.0));
+          } else {
+            col += grid * gridMask * 1.4 * smoothstep(1.1, 0.2, r);
+            // 中心一点暖光，让画面不平
+            col += C_SIGNAL * 0.05 * exp(-r * r * 6.0);
+          }
           fragColor = vec4(col, 1.0);
         }`, {
         ink: P.ink, ink2: P.ink2, grid: P.graphite.map((x) => x * 0.5),

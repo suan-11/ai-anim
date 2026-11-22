@@ -342,8 +342,9 @@ export class RT {
 /* ------------------------------------------------------------------ GL 上下文 */
 
 export class GL {
-  /** @param {HTMLCanvasElement} canvas */
-  constructor(canvas, { scale = 1 } = {}) {
+  /** @param {HTMLCanvasElement} canvas @param {{ scale?: number, palette?: any }} [opts] */
+  constructor(canvas, { scale = 1, palette = null } = {}) {
+    this.palette = palette ?? null;
     const ctx = /** @type {WebGL2RenderingContext | null} */ (
       canvas.getContext('webgl2', {
         alpha: false,
@@ -485,7 +486,8 @@ export class GL {
   /** 编译（带缓存）一个 Pass 用的程序。 */
   program(key, fragSrc) {
     const hit = this.programs.get(key);
-    if (hit) return hit;
+    if (hit && hit.src === fragSrc) return hit;
+    if (hit) this.ctx.deleteProgram(hit.program);
     const g = this.ctx;
     const vs = g.createShader(g.VERTEX_SHADER);
     g.shaderSource(vs, VERT_FULLSCREEN);
@@ -509,7 +511,7 @@ export class GL {
     if (!g.getProgramParameter(p, g.LINK_STATUS)) throw new Error(`link (${key}):\n${g.getProgramInfoLog(p)}`);
     g.deleteShader(vs);
     g.deleteShader(fs);
-    const cached = { program: p, uniforms: new Map() };
+    const cached = { program: p, uniforms: new Map(), src: fragSrc };
     this.programs.set(key, cached);
     return cached;
   }
@@ -769,7 +771,7 @@ export class Pass {
     this.jitter = opts.jitter !== false;
     // 调色板以 GLSL 常量的形式注入（C_INK / C_SIGNAL …），任务可以在 task.config 里覆盖。
     // 后处理链也要用它（heat() 等函数），所以默认注入全局调色板。
-    const pal = opts.palette ?? DEFAULT_PALETTE;
+    const pal = opts.palette ?? gl?.palette ?? DEFAULT_PALETTE;
     const palSrc = typeof pal === 'string' ? pal : pal?.glsl?.() ?? '';
     // 精度限定符必须在调色板常量之前（const 里的小数需要精度）
     const src = `#version 300 es\nprecision highp float;\nprecision highp int;\n${palSrc}${GLSL_COMMON}\n${frag}`;

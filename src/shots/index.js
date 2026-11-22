@@ -21,9 +21,8 @@
  * 2. **参数写错会抛错**，不静默忽略：`shot('chart', { value: [...] })`（少个 s）会点名
  *    「没有参数 "value"」并列出可用参数。这一条是刻意的 —— 这个引擎最贵的 bug 全是
  *    「写错了但画面照样出」（见 `docs/history/IMPROVEMENTS-1-3.md`）。
- * 3. **模板里的绘制代码是从已经出过片的场景逐字搬过来的**，画面逐像素一致
- *    （`tasks/demo` / `tasks/beat` 的验收：`node scripts/anim.mjs hashes <任务> --baseline`）。
- *    想改模板的数值/顺序之前，先跑一次那个命令，改完再跑一次。
+ * 3. **模板与样式以视觉效果优先**，可按需直接优化（`tasks/demo` / `tasks/beat` 仅作参考，
+ *    `node scripts/anim.mjs hashes <任务>` 只作变更对照工具，不锁死旧画面）。
  *
  * ## 看看有哪些模板
  *

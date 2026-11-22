@@ -43,9 +43,8 @@
  * 2. **风格由内容决定；连做两支同题材的片子时，想一想是否换脸**（建议，不是门）——
  *    观众记住的是"你的片子长什么样"，连着两支一模一样容易腻。`anim styles` 列出全部可选风格与它们适合讲什么。
  *
- * ⚠ **不写 `style` 时 = `print`**，而 `print` 的定义就是"引擎从前的默认观感"
- * （色板 = `DEFAULT_PALETTE`、字体 = `FAMILIES`、post = 空、字幕关闭）。
- * 所以老任务一个像素都不会变（`anim hashes <任务> --baseline` 可验证）。
+ * ⚠ **不写 `style` 时默认用 `print`**：它是一套自包含的印刷品风格包，
+ * 与其它风格一样按视觉效果优先迭代（不需要为了锁死旧任务而保持空对象）。
  */
 
 // 依赖方向：`core` 不知道 `style` 的存在，反过来可以 —— 这里只需要引擎那份字幕默认值，
@@ -71,7 +70,7 @@ const SERIF = "'Cormorant Garamond', 'Noto Serif SC', 'Songti SC', serif";
 const SONG = "'Songti SC', 'SimSun', 'Noto Serif SC', Georgia, serif";
 const KAI = "'KaiTi', 'STKaiti', 'Songti SC', 'Microsoft YaHei', serif";
 const ENG = "'Bahnschrift', 'Segoe UI', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif";
-const GEORGIA = "Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif SC', serif";
+const GEORGIA = "Georgia, 'Times New Roman', 'Songti SC', 'SimSun', 'Noto Serif SC', serif";
 const UI = "'Segoe UI', 'Helvetica Neue', Arial, 'Microsoft YaHei', system-ui, sans-serif";
 const MONO_UI = "Consolas, 'Sarasa Mono SC', 'Courier New', monospace";
 
@@ -163,14 +162,23 @@ export const STYLES = {
   /* ------------------------------------------------------------------ 印刷品（默认） */
   print: {
     label: '印刷品',
-    note: '墨黑纸面 + 骨白正文 + 单一信号橙。引擎从前的默认观感；不写 style 就是它，适合"信息密度高的技术讲解"。',
-    palette: {},
-    fonts: {},
-    post: {},
+    note: '墨黑纸面 + 骨白正文 + 单一信号橙。高信息密度技术讲解的默认风格。',
+    palette: {
+      ink: '#0a0a0b',
+      ink2: '#151517',
+      graphite: '#5e5b57',
+      ash: '#9c978f',
+      bone: '#eee9df',
+      signal: '#ff4d12',
+      ember: '#ff8a3d',
+      blood: '#c21d0b',
+      acid: '#d8ff3c',
+    },
+    fonts: { sans: SANS, mono: MONO, serif: SERIF },
+    post: { bloom: 0.30, halation: 0.10, grain: 0.028, vignette: 0.36, ca: 0, shoulder: 0.92 },
     motif: 'grid',
     grid: { ...GRID_BASE },
-    // ⚠ `false` = **这套风格默认不开字幕**。`print` 必须保持 false：它是"引擎从前的默认观感"，
-    //   老任务（有旁白、但从来没写 captions）不该因为我们加了字幕层就凭空多出一行字幕。
+    // ⚠ `false` = **这套风格默认不开字幕**，显式写 `captions: true` 才开。
     //   其余风格写对象 = 默认开字幕（想关就写 `captions: false`）。
     captions: false,
   },
@@ -192,7 +200,7 @@ export const STYLES = {
       cyan: '#4fd0ff',
     },
     fonts: { sans: ENG, mono: MONO_UI },
-    post: { bloom: 0.22, grain: 0.014, vignette: 0.40, ca: 0.06, shoulder: 0.92 },
+    post: { bloom: 0.22, halation: 0, grain: 0.014, vignette: 0.40, ca: 0.06, shoulder: 0.92 },
     motif: 'blueprint',
     grid: { ...GRID_BASE },
     captions: { ...CAPTIONS_BASE, size: 42, bg: 0.44 },
@@ -221,7 +229,7 @@ export const STYLES = {
     // 中文视频几乎全是黑体，换成宋体的那一刻"介质"就变了（引文/出处走楷体）
     fonts: { sans: SONG, serif: KAI, mono: MONO_UI },
     // 浅底最怕泛光：bloom 一高整片就糊成一片白。颗粒可以给足（纸的质感全靠它）。
-    post: { bloom: 0.06, grain: 0.055, vignette: 0.10, ca: 0, shoulder: 0.97, lift: 0, contrast: 1.03 },
+    post: { bloom: 0.06, halation: 0, grain: 0.055, vignette: 0.10, ca: 0, shoulder: 0.97, lift: 0, contrast: 1.03 },
     motif: 'paper',
     grid: { ...GRID_BASE, pad: 140 },
     captions: { ...CAPTIONS_BASE, size: 46, bg: 0.0, dim: 0.5 },
@@ -247,7 +255,7 @@ export const STYLES = {
     },
     // 全片等宽：连标题都是打字机，这是这套风格最值钱的地方
     fonts: { sans: MONO_UI, serif: MONO_UI },
-    post: { bloom: 0.44, grain: 0.03, vignette: 0.62, ca: 0.18, shoulder: 0.88 },
+    post: { bloom: 0.44, halation: 0, grain: 0.03, vignette: 0.62, ca: 0.18, shoulder: 0.88 },
     motif: 'scan',
     grid: { ...GRID_BASE, pad: 84, top: 76, footerLineY: 986 },
     // ⚠ **不要在这里改 `captionBand`**（第一版给这套风格挪到了底部 [990,1052]，出图当场看到字幕贴到
@@ -268,7 +276,7 @@ export const STYLES = {
     // 底 = 近黑里带一点冷青（"摄影棚"），正文 = 更干净的纸白。信号橙保持不变（它是全引擎的"正色"）。
     palette: { ink: '#0b0c0f', bone: '#f7f4ec' },
     fonts: { sans: ENG, mono: MONO_UI },
-    post: { bloom: 0.30, grain: 0.03, vignette: 0.55, ca: 0.08, shoulder: 0.95 },
+    post: { bloom: 0.30, halation: 0, grain: 0.03, vignette: 0.55, ca: 0.08, shoulder: 0.95 },
     // 用户 2026-10-25 拍板：「网格直接去掉」。motif 不是"没写"，是**刻意画成纯色**（见 world.js 的 flat 分支）
     motif: 'flat',
     grid: { ...GRID_BASE, pad: 128, top: 96 },
@@ -294,7 +302,7 @@ export const STYLES = {
       cyan: '#8fb4d8',
     },
     fonts: { sans: UI, serif: GEORGIA, mono: MONO_UI },
-    post: { bloom: 0.30, grain: 0.07, vignette: 0.78, ca: 0.10, contrast: 1.12, saturation: 0.85 },
+    post: { bloom: 0.30, halation: 0.12, grain: 0.07, vignette: 0.78, ca: 0.10, shoulder: 0.90, contrast: 1.12, saturation: 0.85 },
     motif: 'noir',
     grid: { ...GRID_BASE, pad: 160, top: 110 },   // ← 同上：不要改 captionBand
     captions: { ...CAPTIONS_BASE, size: 44, weight: 500, bg: 0.34 },
@@ -347,7 +355,7 @@ function resolveView(view) {
  * 把 `task.style` 解析成一份完整的风格对象。
  *
  * 三种写法：
- *   · 不写 / `null`      → `print`（= 引擎从前的默认观感，老任务零变化）
+ *   · 不写 / `null`      → `print`（默认印刷品风格包）
  *   · `'paper'`          → 取风格包
  *   · `{ name: 'paper', grid: { pad: 160 }, captions: false }` → 风格包 + 局部覆盖
  *

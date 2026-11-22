@@ -3,10 +3,6 @@
  * 镜头模板：`outro` —— 片尾（极简收尾、细线动画、末尾淡出）。
  * 原场景：片尾。演示——极简收尾、细线动画、结尾淡出（用 post.fade 而不是切黑）。
  *
- * 绘制代码从 `tasks/demo/scenes/outro.js` **逐字**搬过来，只把内容变成参数 ——
- * 所以它与 demo 的原始画面逐像素一致（验收：`node scripts/anim.mjs hashes demo --baseline`）。
- * ⚠ 改这里的任何数值或绘制顺序都会改变已有任务的画面：改之前先跑一次 hashes 存基线。
- *
  * ```js
  * export default shot('outro', { title: '代码即素材' });
  * ```

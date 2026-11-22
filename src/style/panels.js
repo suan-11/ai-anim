@@ -13,7 +13,7 @@
  *
  * ## 三条纪律（与 `src/style/index.js` 其余部分一致）
  *
- * 1. **不写 `style` 的老任务一个像素都不变** —— 新增只能追加，不能改 `print` 与既有风格；
+ * 1. **风格包按视觉效果优先迭代** —— 需要优化观感时直接改进 `print` 与既有风格；
  * 2. **每套必须一眼看得出不同**：底色明暗、字体介质、背景母题至少差两项；
  * 3. **字体栈只挑本机真的有的**（缺了按顺序回退，不会报错 —— 但两套就会长得一样）。
  *    Windows 上确定存在且差异明显的：宋体 / 楷体 / 黑体 / Bahnschrift / Georgia / Consolas。
@@ -22,10 +22,9 @@
  */
 
 const SONG = "'Songti SC', 'SimSun', 'Noto Serif SC', Georgia, serif";
-const KAI = "'Songti SC', 'STKaiti', 'KaiTi', 'Microsoft YaHei', serif";
 const ENG = "'Bahnschrift', 'Segoe UI', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif";
 const UI = "'Segoe UI', 'Helvetica Neue', Arial, 'Microsoft YaHei', system-ui, sans-serif";
-const GEORGIA = "Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif SC', serif";
+const GEORGIA = "Georgia, 'Times New Roman', 'Songti SC', 'SimSun', 'Noto Serif SC', serif";
 const MONO = "Consolas, 'Sarasa Mono SC', 'Courier New', monospace";
 
 /** 字幕基线（与其余风格包同一份，见 src/style/index.js 的 CAPTIONS_BASE） */
@@ -47,7 +46,7 @@ export const PANELS = {
     },
     fonts: { sans: SONG, serif: SONG, mono: MONO },
     // 浅底最怕泛光：bloom 压到 0.1 以下，颗粒给足（纸的质感全靠它）
-    post: { bloom: 0.09, grain: 0.05, vignette: 0.12, ca: 0, contrast: 1.04, shoulder: 0.96 },
+    post: { bloom: 0.09, halation: 0, grain: 0.05, vignette: 0.12, ca: 0, contrast: 1.04, shoulder: 0.96 },
     motif: 'paper',
     grid: G({ pad: 140 }),
     captions: { ...CAPS, size: 46, bg: 0.0 },
@@ -65,7 +64,7 @@ export const PANELS = {
       acid: '#2ec4b6', cyan: '#3a86ff',
     },
     fonts: { sans: ENG, serif: GEORGIA, mono: MONO },
-    post: { bloom: 0.10, grain: 0.018, vignette: 0.06, ca: 0, contrast: 1.12, shoulder: 0.98 },
+    post: { bloom: 0.10, halation: 0, grain: 0.018, vignette: 0.06, ca: 0, contrast: 1.12, shoulder: 0.98 },
     motif: 'flat',
     grid: G({ pad: 128 }),
     captions: { ...CAPS, size: 44, bg: 0.0 },
@@ -83,7 +82,7 @@ export const PANELS = {
       acid: '#0f766e', cyan: '#0e7490',
     },
     fonts: { sans: UI, serif: SONG, mono: MONO },
-    post: { bloom: 0.08, grain: 0.02, vignette: 0.10, ca: 0, contrast: 1.06, shoulder: 0.97 },
+    post: { bloom: 0.08, halation: 0, grain: 0.02, vignette: 0.10, ca: 0, contrast: 1.06, shoulder: 0.97 },
     motif: 'blueprint',
     grid: G({ pad: 136 }),
     captions: { ...CAPS, size: 44, bg: 0.06 },
@@ -100,7 +99,7 @@ export const PANELS = {
       acid: '#3f8f6f', cyan: '#2f7fa8',
     },
     fonts: { sans: ENG, serif: GEORGIA, mono: MONO },
-    post: { bloom: 0.10, grain: 0.022, vignette: 0.08, ca: 0, contrast: 1.05, shoulder: 0.97 },
+    post: { bloom: 0.10, halation: 0, grain: 0.022, vignette: 0.08, ca: 0, contrast: 1.05, shoulder: 0.97 },
     motif: 'flat',
     grid: G({ pad: 130 }),
     captions: { ...CAPS, size: 44, bg: 0.0 },
@@ -118,7 +117,7 @@ export const PANELS = {
       acid: '#2d6a4f', cyan: '#1f6f7a',
     },
     fonts: { sans: SONG, serif: SONG, mono: MONO },
-    post: { bloom: 0.07, grain: 0.04, vignette: 0.14, ca: 0, contrast: 1.03, shoulder: 0.97 },
+    post: { bloom: 0.07, halation: 0, grain: 0.04, vignette: 0.14, ca: 0, contrast: 1.03, shoulder: 0.97 },
     motif: 'paper',
     grid: G({ pad: 148 }),
     captions: { ...CAPS, size: 46, bg: 0.0 },
@@ -135,7 +134,7 @@ export const PANELS = {
       acid: '#3a6b35', cyan: '#1f5f7a',
     },
     fonts: { sans: ENG, serif: SONG, mono: MONO },
-    post: { bloom: 0.09, grain: 0.045, vignette: 0.16, ca: 0, contrast: 1.06, shoulder: 0.96 },
+    post: { bloom: 0.09, halation: 0, grain: 0.045, vignette: 0.16, ca: 0, contrast: 1.06, shoulder: 0.96 },
     motif: 'paper',
     grid: G({ pad: 120, top: 84 }),
     captions: { ...CAPS, size: 44, bg: 0.0 },
@@ -153,7 +152,7 @@ export const PANELS = {
     },
     fonts: { sans: UI, serif: GEORGIA, mono: MONO },
     // 留白的片子最怕颗粒把白面弄脏：颗粒压到 0.012
-    post: { bloom: 0.05, grain: 0.012, vignette: 0.05, ca: 0, contrast: 1.02, shoulder: 0.98 },
+    post: { bloom: 0.05, halation: 0, grain: 0.012, vignette: 0.05, ca: 0, contrast: 1.02, shoulder: 0.98 },
     motif: 'flat',
     grid: G({ pad: 160, top: 110 }),
     captions: { ...CAPS, size: 46, bg: 0.0 },
@@ -171,7 +170,7 @@ export const PANELS = {
       acid: '#2f9e8f', cyan: '#2b7fd4',
     },
     fonts: { sans: SONG, serif: GEORGIA, mono: MONO },
-    post: { bloom: 0.12, grain: 0.018, vignette: 0.06, ca: 0, contrast: 1.05, shoulder: 0.98 },
+    post: { bloom: 0.12, halation: 0, grain: 0.018, vignette: 0.06, ca: 0, contrast: 1.05, shoulder: 0.98 },
     motif: 'flat',
     grid: G({ pad: 138 }),
     captions: { ...CAPS, size: 44, bg: 0.0 },
@@ -189,7 +188,7 @@ export const PANELS = {
       acid: '#1f6f4a', cyan: '#1f5f9c',
     },
     fonts: { sans: GEORGIA, serif: GEORGIA, mono: MONO },
-    post: { bloom: 0.11, grain: 0.03, vignette: 0.18, ca: 0, contrast: 1.08, shoulder: 0.97 },
+    post: { bloom: 0.11, halation: 0, grain: 0.03, vignette: 0.18, ca: 0, contrast: 1.08, shoulder: 0.97 },
     motif: 'paper',
     grid: G({ pad: 118 }),
     captions: { ...CAPS, size: 46, bg: 0.0 },
@@ -208,7 +207,7 @@ export const PANELS = {
       acid: '#2e6b52', cyan: '#1f5f7a',
     },
     fonts: { sans: UI, serif: SONG, mono: MONO },
-    post: { bloom: 0.08, grain: 0.03, vignette: 0.10, ca: 0, contrast: 1.05, shoulder: 0.97 },
+    post: { bloom: 0.08, halation: 0, grain: 0.03, vignette: 0.10, ca: 0, contrast: 1.05, shoulder: 0.97 },
     motif: 'paper',
     /**
      * 整片介质（BACKLOG 1-11 / 2026-10-30 用户拍板）：双版套印。
@@ -242,7 +241,7 @@ export const PANELS = {
      * 再大就变成「地震」（与 §4 铁律第 5 条同一个教训：幅度给足是效果、给过头是事故）。
      */
     post: {
-      bloom: 0.22, grain: 0.045, vignette: 0.28, ca: 0, contrast: 1.04, shoulder: 0.92,
+      bloom: 0.22, halation: 0.18, grain: 0.045, vignette: 0.28, ca: 0, contrast: 1.04, shoulder: 0.92,
       weave: 0.55, flicker: 0.35, scratch: 0.25,
     },
     motif: 'scan',

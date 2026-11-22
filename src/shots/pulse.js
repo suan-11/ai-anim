@@ -2,10 +2,6 @@
 /**
  * 镜头模板：`pulse` —— 同心圆 + 中心方块（每拍扩一圈的脉冲）。
  *
- * 绘制代码从 `tasks/beat/scenes/pulse.js` **逐字**搬过来，只把标题文案变成参数 ——
- * 所以它与 beat 的原始画面逐像素一致（验收：`node scripts/anim.mjs hashes beat --baseline`）。
- * ⚠ 改这里的任何数值或绘制顺序都会改变已有任务的画面：改之前先跑一次 hashes 存基线。
- *
  * ```js
  * export default shot('pulse', { title: '节奏不需要手抄' });
  * ```

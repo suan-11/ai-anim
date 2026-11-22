@@ -67,8 +67,6 @@ __anim.precise(t)                 // 精确帧：跑导出路径，返回 { mae,
 模板自带的整帧背景 Pass 在构造时把调色板常量注进 shader，而风格覆盖发生在它之后，
 Pass 又被按 key 缓存复用，于是第二套皮拿到的还是第一套的颜色。
 
-**修法（已落地，`src/kit/world.js`）**：`worldPass` 的缓存 key 带上 `paletteFingerprint(P, accent)`，
-换风格即失效、不复用上一套的 Pass 实例；同时把底色语义统一成 `bg`，并加了
-「底色是否真的画上」的机器判据（`check` 的背景守门）。复验：
+**修法（已落地）**：`worldPass` 的缓存 key 带上 `paletteFingerprint(P, accent)`，同时引擎层（`GL.palette` → `Pass` 默认调色板注入、`GL.program` 校验 `fragSrc`）与风格包 `post` 基线已清除初始 `pdoom` 默认污染（浅底/冷色风格不再串进黑橙底色、红晕 halation 与重暗角）。复验：
 `node scripts/anim.mjs still <任务> -t 3 --style mg-bauhaus` 与 `--style mg-vhs` 各出一张，
 底色应该一眼不同。**这份文档的「还没做」只以 §下表为准** —— 表里标 ✅ 的都已有实现。

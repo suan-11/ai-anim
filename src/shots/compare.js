@@ -57,9 +57,14 @@ export function compareShot(opts = {}) {
           vec3 col = mix(C_INK, C_INK2, smoothstep(0.0, 1.0, p.y));
           float band = abs(fract(FRAG_PX.y / 44.0) - 0.5) * 2.0;
           float w = fwidth(FRAG_PX.y / 44.0) * 1.5;
-          col += C_GRAPHITE * (1.0 - smoothstep(w, w * 3.0, band)) * 0.16;
           float axis = 1.0 - smoothstep(0.0, 2.0, abs(FRAG_PX.x - RES_LOGICAL.x * 0.5));
-          col += C_SIGNAL * axis * 0.02;
+          if (luma(C_INK) > 0.25) {
+            col = mix(col, C_GRAPHITE, (1.0 - smoothstep(w, w * 3.0, band)) * 0.25);
+            col = mix(col, C_SIGNAL, axis * 0.14);
+          } else {
+            col += C_GRAPHITE * (1.0 - smoothstep(w, w * 3.0, band)) * 0.16;
+            col += C_SIGNAL * axis * 0.02;
+          }
           col += (hash12(FRAG_PX + fract(t) * 37.0) - 0.5) * 0.012;
           fragColor = vec4(col, 1.0);
         }`, {}, { key: 'shot_compare_bg', blend: false });

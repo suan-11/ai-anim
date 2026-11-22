@@ -189,7 +189,8 @@ export function makeCaptionLayer({ narration, style, P, W, H, grid }) {
     c.save();
     c.globalAlpha = alpha;
     if (style.bg > 0) {
-      c.fillStyle = `rgba(6,7,9,${style.bg})`;
+      const inkL = 0.2126 * P.ink[0] + 0.7152 * P.ink[1] + 0.0722 * P.ink[2];
+      c.fillStyle = inkL > 0.25 ? css(P.ink, Math.min(0.88, style.bg)) : `rgba(6,7,9,${style.bg})`;
       if (c.roundRect) {
         c.beginPath();
         c.roundRect(bx, by, boxW, boxH, 10);

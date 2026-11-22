@@ -60,11 +60,17 @@ export function counterShot(opts = {}) {
           vec3 col = mix(C_INK2, C_INK, smoothstep(0.15, 1.15, r));
           float ring = abs(fract(r * 5.0 - t * 0.05) - 0.5) * 2.0;
           float w = fwidth(r * 5.0) * 1.5;
-          col += C_GRAPHITE * (1.0 - smoothstep(w, w * 3.0, ring)) * 0.20;
           float cross = max(1.0 - smoothstep(0.0, 1.5, abs(FRAG_PX.x - 0.5 * RES_LOGICAL.x)),
                             1.0 - smoothstep(0.0, 1.5, abs(FRAG_PX.y - 0.5 * RES_LOGICAL.y)));
-          col += C_SIGNAL * cross * 0.02;
-          col += C_SIGNAL * 0.05 * exp(-r * r * 3.0);
+          if (luma(C_INK) > 0.25) {
+            col = mix(col, C_GRAPHITE, (1.0 - smoothstep(w, w * 3.0, ring)) * 0.28);
+            col = mix(col, C_SIGNAL, cross * 0.12);
+            col = mix(col, C_SIGNAL, 0.04 * exp(-r * r * 3.0));
+          } else {
+            col += C_GRAPHITE * (1.0 - smoothstep(w, w * 3.0, ring)) * 0.20;
+            col += C_SIGNAL * cross * 0.02;
+            col += C_SIGNAL * 0.05 * exp(-r * r * 3.0);
+          }
           col += (hash12(FRAG_PX + fract(t) * 53.0) - 0.5) * 0.012;
           fragColor = vec4(col, 1.0);
         }`, {}, { key: 'shot_counter_bg', blend: false });

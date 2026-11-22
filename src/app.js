@@ -17,6 +17,7 @@ import { loadTaskList, loadTask } from './tasks.js';
 import { auditUnderRequires, declaredSelfBase, planWorldAudit, worldAuditVerdict } from './timeline.js';
 import { layoutVerdict, LAYOUT_LIMITS } from './layout.js';
 import { DEFAULT_POST } from './core/post.js';
+import { listStyles } from './style/index.js';
 
 const q = new URLSearchParams(location.search);
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -239,6 +240,7 @@ async function boot() {
   // `--style paper`（CLI 会把它放进 URL 的 ?style=）—— 临时换风格出图对比，不改任务文件。
   // 这也是"每片换一套"这条纪律最容易执行的方式：先出几张对比图，再写进 task.config.mjs。
   const styleOverride = q.get('style');
+  const signalOverride = q.get('signal');
   if (styleOverride) {
     const { resolveStyle } = await import('./style/index.js');
     try {
@@ -251,14 +253,20 @@ async function boot() {
 
   const canvas = /** @type {HTMLCanvasElement} */ ($('c'));
   // 调试出口：让 agent / 工作台能读到"这一帧到底用的哪份调色板"（风格串皮排查用）
-  window.__animPalette = makePalette({ ...(task.styleResolved?.palette ?? {}), ...(task.palette ?? {}) });
+  // ⚠ 显式传了 ?style= 时不要让原任务的 task.palette 盖回旧颜色（例如 demo 的橙色漏进 paper/blueprint）
+  const palette = makePalette({
+    ...(task.styleResolved?.palette ?? {}),
+    ...(styleOverride ? {} : (task.palette ?? {})),
+    ...(signalOverride ? { signal: signalOverride } : {}),
+  });
+  window.__animPalette = palette;
 
   engine = new Engine(canvas, {
     width, height, scale, fps,
     // 调色板 = 风格包的 palette + 任务自己的 palette（任务优先）。
     // ⚠ 必须在 new Engine 之前合成：Post 构造时就把调色板常量注进 shader 源码了，
     //   之后再换 P 只会让场景变、后处理链还是旧配色（Engine 构造函数里也写了这条）。
-    palette: makePalette({ ...(task.styleResolved?.palette ?? {}), ...(task.palette ?? {}) }),
+    palette,
   });
 
   setHud('编译着色器…');
@@ -729,7 +737,7 @@ const api = {
       // 2) 副标在上（等宽、信号色）—— 先算它，标题再往上排
       const subSize = 26 * k;
       c.font = '400 ' + subSize + 'px ' + fam('mono');
-      c.fillStyle = 'rgba(255,77,18,0.92)';
+      c.fillStyle = engine.P?.css ? engine.P.css('signal', 0.92) : 'rgba(255,77,18,0.92)';
       c.fillText(sub, px, baseline);
       // ⚠ 原来只上移 46px，而标题 96px —— 副标会压在标题字身上（实测踩过）
       baseline -= 92 * k;
@@ -742,10 +750,10 @@ const api = {
       const w = c.measureText(title).width;
       if (w > maxW) size *= maxW / w;
       c.font = '800 ' + size + 'px ' + fam('sans');
-      c.fillStyle = '#eee9df';
+      c.fillStyle = engine.P?.hex?.bone ?? '#eee9df';
       c.fillText(title, px, baseline);
       // 4) 标题下一条信号色短线
-      c.fillStyle = '#ff4d12';
+      c.fillStyle = engine.P?.hex?.signal ?? '#ff4d12';
       c.fillRect(px, baseline + 18 * k, Math.min(260 * k, cv.width * 0.2), 4 * k);
     }
     return { png: cv.toDataURL('image/png'), samples: r.samples };
@@ -1602,9 +1610,7 @@ function setupPanel(engineRef) {
 
   const sel = wbEl('wbStyle');
   if (sel) {
-    const names = ['print', 'blueprint', 'paper', 'terminal', 'flat', 'noir',
-      'mg-cel', 'mg-isometric', 'mg-flat-vector', 'mg-lineart', 'mg-soft3d', 'mg-morph', 'mg-sticker',
-      'mg-hud', 'mg-collage', 'mg-aurora', 'mg-bauhaus', 'mg-vhs', 'mg-pixel', 'mg-liquid', 'mg-variety'];
+    const names = listStyles().map((s) => s.name);
     const now = engineRef.style?.name ?? 'print';
     sel.innerHTML = names.map((n) => '<option' + (n === now ? ' selected' : '') + '>' + n + '</option>').join('');
     sel.addEventListener('change', () => reloadWith({ style: sel.value }));

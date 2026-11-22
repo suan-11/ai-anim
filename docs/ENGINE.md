@@ -228,7 +228,7 @@ export default {
 | `world` | 这一段的共享背景：`'auto'`（= `task.world`，全片复用）/ 一个 `Pass` / 一个 `(ctx) => Pass` 工厂 / `false`（本段自己铺底）。引擎在场景 `render()` **之前**就把它画进 `ctx.out` —— 所以场景里别再铺一遍，也别指望 `setXform` 能把它留下（§3.5 要点 2） |
 | `narration` | 旁白查询（没配旁白时所有方法安全返回 `null`）：`at(t)` / `recent(t, hold=1.2)` / `typed(t)` / `progress(t)` / `in(t, id)` / `line(id)` / `durOf(id)` / `until(t)`；`at(t)` 返回的句子自带 `p` / `remain` / **`typedText`** / `restText` / `charIndex` / `words`（`typedText` 就是打字机文本，`words` 直接喂 `type.karaoke`） |
 | `params` | 这一段的时间线参数 |
-| `style` | **风格包**（`docs/STYLE.md`，`src/style/index.js`）：`{ name, label, motif, palette, fonts, post, grid, captions }`。不写 `task.style` 时它是 `print`（= 引擎从前的默认观感，零像素变化）。颜色已经通过 `P` 生效，这里给的是"这一片用的是什么介质"这类元信息 + 栅格/母题 |
+| `style` | **风格包**（`docs/STYLE.md`，`src/style/index.js`）：`{ name, label, motif, palette, fonts, post, grid, captions }`。不写 `task.style` 时它是 `print`（引擎默认风格包）。颜色已经通过 `P` 生效，这里给的是"这一片用的是什么介质"这类元信息 + 栅格/母题 |
 | `grid` | **风格栅格**（已按分辨率缩放）：`{ pad, top, footerLineY, footerY, captionLineY, captionY, contentBottom, captionBand }`。别在场景里再写 `120` / `964` 这类魔数 —— kit 的 `bandsOf(ctx)` 就是读它 |
 | `captions` | **引擎字幕层**（`docs/CAPTIONS.md`）：`active(t)`（此刻该显示的那句，含"说完再留一会儿"）/ `band`（字幕保留带矩形）/ `style` / `lines`。没开字幕时是一个安全空实现（`band` 也给了默认值），所以场景可以无条件读 `ctx.captions.band` 来避让 |
 | `warnings` | 运行期**警告**通道（与 `engine.warnings` 是同一个数组）：kit 的 `assertInBand()`（文字压进字幕带）、`captionNote()`（说明条写成了句子）会往这里 push。用 `ctx.warnings.push('…')` 而不是 `console.warn` —— 它每帧都会发生；`anim check` 会把它们打出来 |

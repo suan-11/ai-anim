@@ -38,7 +38,11 @@ export function placeholderShot(opts = {}) {
           vec2 g = abs(fract(p / 64.0) - 0.5) * 2.0;
           float w = fwidth(p.x / 64.0) * 1.4;
           float line = 1.0 - smoothstep(w, w * 3.0, min(g.x, g.y));
-          col += C_GRAPHITE * line * 0.22;
+          if (luma(C_INK) > 0.25) {
+            col = mix(col, C_GRAPHITE, line * 0.35);
+          } else {
+            col += C_GRAPHITE * line * 0.22;
+          }
           col += (hash12(p + fract(t) * 31.0) - 0.5) * 0.01;
           fragColor = vec4(col, 1.0);
         }`, {}, { key: 'shot_placeholder_bg', blend: false });

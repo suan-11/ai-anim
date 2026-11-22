@@ -3,10 +3,6 @@
  * 镜头模板：`kinetic` —— 动态大字 + GLSL 背景。
  * 原场景：动态文字 + GLSL 背景。演示——shader 域扭曲、逐字上浮、计数器阵列。
  *
- * 绘制代码从 `tasks/demo/scenes/kinetic.js` **逐字**搬过来，只把内容变成参数 ——
- * 所以它与 demo 的原始画面逐像素一致（验收：`node scripts/anim.mjs hashes demo --baseline`）。
- * ⚠ 改这里的任何数值或绘制顺序都会改变已有任务的画面：改之前先跑一次 hashes 存基线。
- *
  * ```js
  * export default shot('kinetic', { headline: ['第一行', '第二行'] });
  * ```
@@ -47,8 +43,13 @@ export function kineticShot(opts = {}) {
         float band = abs(fract(f * 9.0) - 0.5) * 2.0;
         float w = fwidth(f * 9.0) * 1.5;
         float line = 1.0 - smoothstep(w, w * 3.0, band);
-        col += mix(C_GRAPHITE, C_SIGNAL, smoothstep(0.45, 0.85, f)) * line * 0.55;
-        col += C_SIGNAL * 0.05 * exp(-8.0 * dot(p, p));
+        if (luma(C_INK) > 0.25) {
+          col = mix(col, mix(C_GRAPHITE, C_SIGNAL, smoothstep(0.45, 0.85, f)), line * 0.45);
+          col = mix(col, C_SIGNAL, 0.04 * exp(-8.0 * dot(p, p)));
+        } else {
+          col += mix(C_GRAPHITE, C_SIGNAL, smoothstep(0.45, 0.85, f)) * line * 0.55;
+          col += C_SIGNAL * 0.05 * exp(-8.0 * dot(p, p));
+        }
         // 极轻的噪声，避免出现色带
         col += (hash12(FRAG_PX + fract(t) * 91.0) - 0.5) * 0.012;
         fragColor = vec4(col, 1.0);

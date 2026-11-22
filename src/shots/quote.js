@@ -63,8 +63,13 @@ export function quoteShot(opts = {}) {
           float s = (FRAG_PX.x + FRAG_PX.y) * 0.5;
           float band = abs(fract(s / 26.0) - 0.5) * 2.0;
           float w = fwidth(s / 26.0) * 1.2;
-          col += C_GRAPHITE * (1.0 - smoothstep(w, w * 3.0, band)) * 0.15;
-          col += C_SIGNAL * 0.05 * exp(-dot(c, c) * 5.0);
+          if (luma(C_INK) > 0.25) {
+            col = mix(col, C_GRAPHITE, (1.0 - smoothstep(w, w * 3.0, band)) * 0.22);
+            col = mix(col, C_SIGNAL, 0.04 * exp(-dot(c, c) * 5.0));
+          } else {
+            col += C_GRAPHITE * (1.0 - smoothstep(w, w * 3.0, band)) * 0.15;
+            col += C_SIGNAL * 0.05 * exp(-dot(c, c) * 5.0);
+          }
           col += (hash12(FRAG_PX + fract(t) * 71.0) - 0.5) * 0.012;
           fragColor = vec4(col, 1.0);
         }`, {}, { key: 'shot_quote_bg', blend: false });

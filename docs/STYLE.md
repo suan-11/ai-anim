@@ -36,9 +36,8 @@
 （色板、字体、背景母题、后处理基线、版面栅格、字幕样式），而且**没有任何一处文档鼓励你换** ——
 于是所有人都照抄同一份示范。
 
-第 1、2 条本来是**正确**的工程决定（不许悄悄改变老任务的画面；验收：`anim hashes demo --baseline`），
-但叠加起来就变成了"风格被定死"。**所以这份文档的意义**：把"换个风格"从要拼六样东西的事变成**一行**，
-再把"换"写成纪律（§6）。
+第 1、2 条曾用来锁住老任务画面不发生变化（配合 `anim hashes demo --baseline`），
+叠加起来就变成了"风格被定死"。现在**取消「老任务逐像素不变」的冻结限制**：`print` 本身也是一套自包含的风格包，风格包、模板与引擎默认值均以**视觉效果最优**为准持续改进（`hashes` 只作变更对照，不作冻结枷锁）；把"换个风格"变成**一行**，再把"换"写成纪律（§6）。
 
 ---
 
@@ -59,7 +58,7 @@ export default {
 
 | 写法 | 结果 |
 |---|---|
-| 不写 / `null` / `undefined` | `print`（= 引擎从前的默认观感，**老任务一像素不变**） |
+| 不写 / `null` / `undefined` | `print`（默认风格包） |
 | `'paper'` | 取 `STYLES.paper` 整包 |
 | `{ name: 'paper', … }` | 取 `STYLES.paper` + 局部覆盖（`palette` / `fonts` / `post` / `grid` / `captions` / `motif`） |
 | `style: false` | **显式关掉整个风格系统**（返回 `null`，老行为的保险绳） |
@@ -99,7 +98,7 @@ node scripts/anim.mjs still _style-sampler -t 1.8,6,9.6 --style noir
 
 **适合讲什么**（`note` 原文）：
 
-- **`print`** —— 「墨黑纸面 + 骨白正文 + 单一信号橙。引擎从前的默认观感；不写 style 就是它，适合"信息密度高的技术讲解"。」
+- **`print`** —— 「墨黑纸面 + 骨白正文 + 单一信号橙。不写 style 时的默认风格，适合"信息密度高的技术讲解"。」
 - **`blueprint`** —— 「深蓝坐标纸 + 白描线 + 青色标注。适合讲结构、管线、坐标与"这东西怎么拼起来"。」
 - **`paper`** —— 「米白纸面 + 墨黑正文 + 朱红强调 —— 把 ink/bone **反过来**，整片立刻从"屏幕"变成"纸"。适合科普、说明、任何想让观众"读得下去"的长片。」
 - **`terminal`** —— 「纯黑 + 磷光绿 + **全片等宽字**。适合讲代码、日志、协议、命令行 —— 一眼就是"机器在说话"。」
@@ -161,9 +160,7 @@ node scripts/anim.mjs still _style-sampler -t 1.8,6,9.6 --style noir
 ⚠ **它们和 `paper` 一样是浅底**，所以 §8 那条「浅底不是安全的」照旧适用：场景里任何高 `bloom`、
 `mul(col, 1.6)` 的发光写法都会在浅底上糊掉。九套的 `post.bloom` 已经压到 0.05–0.12。
 
-⚠ **`chart` 这类模板在浅底风格下会反相**（模板刻意用 `P.bone` 当纸、`P.ink` 画柱，
-见 `src/shots/chart.js` 的注释 —— 那是设计意图，不是 bug）。浅底风格配图表要手写场景，
-或者接受「纸面上的深色图表」这个观感。**标题 / 大字 / 片尾这几类模板不受影响。**
+`chart` 模板已按 `P.ink`/`P.bone` 亮度自动适配浅底与暗底风格（浅底时直接用 `P.ink` 当纸、`P.bone` 当墨）。**标题 / 大字 / 片尾等模板同样适配浅底。**
 
 出对比图（不改任何文件）：
 
@@ -335,9 +332,8 @@ type.write('FOURIER · 4 项', 140, 176, { size: 'label', family: 'mono', color:
 3. **`captions: false` 是特例** —— 它要能**覆盖掉**风格包里的字幕样式，而不是被 merge 成对象
    （`resolveStyle()` 里专门有一条注释处理这件事）。
 
-**不写 `style` = `print`，而 `print` 的定义就是"引擎从前的默认观感"**
-（色板 = `DEFAULT_PALETTE`、字体 = `FAMILIES`、`post` = 空、`motif` = `grid`、**`captions` = `false`**）。
-老任务写了 `style` 与否**画面一个像素都不该变**：`node scripts/anim.mjs hashes <老任务> --baseline`。
+**不写 `style` = `print`**（引擎默认风格包：自包含墨黑/骨白/信号橙调色板、`SANS`/`MONO`/`SERIF` 字体栈、独立 `post` 基线、`motif: 'grid'`、**`captions: false`**）。
+风格包、模板与引擎默认值均以画面效果优先持续改进，不要求老任务逐像素锁死；想对比改前改后变化时可用 `node scripts/anim.mjs hashes <任务>` 对照。
 
 > **字幕 `karaoke`（"唱到哪亮哪"）默认是 `false` —— 四套风格与引擎默认一致。**
 > 依据是一项对照实验：它研究的正是"**偶尔出现的关键词**"这类字幕增强，方向是关键词突显对学习不利
@@ -504,8 +500,7 @@ Cleo Abram / MKBHD / Fireship）逐帧反推的测量：
 
 1. `task.config.mjs` 里**写了 `style`**，而且是对象或字符串（写错名字会抛错）；
    风格与内容的匹配想过了（连做两支同题材时，对照 §6 纪律二的四项看过同味风险 —— 建议不是门）。
-2. 老任务改完跑 `node scripts/anim.mjs hashes <任务> --baseline` —— **逐像素没变**
-   （不写 `style` 就该等于 `print`）。纯逻辑回归：`node tools/test-style.mjs`。
+2. 纯逻辑回归：`node tools/test-style.mjs`；需要比对画面变化时可跑 `node scripts/anim.mjs hashes <任务> --baseline`（有意改进画面用 `--accept --note "…"` 更新对照基线）。
 3. 段与段之间**没有 20 秒以上的"零变化"**（`sheet` 扫一遍；⚠ 渲染期间不许写文件）。
 4. 场景里**没有**用 `alpha` 承担"压暗"（那是 `tone` 的活，§7.7 第 3 条）。
 5. 想快速看别的风格长什么样：`node scripts/anim.mjs still <任务> -t <时刻> --style <名字>`

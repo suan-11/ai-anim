@@ -5,21 +5,23 @@
  *
  *   node tools/test-style.mjs
  *
- * 为什么这份测试值得存在：风格系统改的是**每一支片子的观感**，而它有一条不能破的底线 ——
- * **不写 `style` 的老任务必须一个像素都不变**（验收命令是 `anim hashes <任务> --baseline`）。
- * 那条底线在像素层面靠 hashes 守，但在逻辑层面就是这里断言的几件事：
- * `resolveStyle({})` 的 `palette` / `fonts` / `post` 必须是**空对象** ——
- * 只要有人给 `print` 加了一个色值，全仓库所有老片子的画面就一起变了。
+ * 为什么这份测试值得存在：风格系统管的是**每一支片子的观感**，
+ * 需要守住默认值解析、合并优先级、字体/色板完整性、防默认参数污染与字幕带约束。
  *
  * 另外还钉住字幕层的两条语义（`docs/CAPTIONS.md`）：
- *   · 默认**关**（`resolveCaptionStyle(null, null) === false`）—— 老任务不该凭空多出字幕；
+ *   · 默认**关**（`resolveCaptionStyle(null, null) === false`）—— 没写 `captions` 不擅自开字幕；
  *   · 字幕带落在 `style.grid.captionBand` 里，且 x 只占中间那一段（不是整幅宽度）。
  */
 
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { STYLES, resolveStyle, listStyles, gridFor, GRID_BASE } from '../src/style/index.js';
 import { resolveCaptionStyle, DEFAULT_CAPTION_STYLE, makeCaptionLayer } from '../src/core/captions.js';
 import { makeNarration, makeNarrationReader } from '../src/core/narration.js';
 import { makePalette } from '../src/core/palette.js';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 let fail = 0;
 let pass = 0;
@@ -32,13 +34,13 @@ function section(msg) { console.log(`\n── ${msg} ──`); }
 
 /* ---------------------------------------------------------------- 风格包 */
 
-section('风格包：底线（老任务零变化）');
+section('风格包：默认解析与独立自包含');
 const def = resolveStyle({});
 ok(def.name === 'print', '不写 style → print');
-ok(Object.keys(def.palette).length === 0, 'print 的 palette 是空的（= 引擎 DEFAULT_PALETTE）');
-ok(Object.keys(def.fonts).length === 0, 'print 的 fonts 是空的（= text.js 的 FAMILIES）');
-ok(Object.keys(def.post).length === 0, 'print 的 post 是空的（= 镜头模板自己的 post 不变）');
-ok(def.captions === false, 'print 默认**不开**字幕（老任务不会凭空多出字幕）');
+ok(Object.keys(def.palette).length > 0, 'print 有自己独立的 palette（不依赖隐式空对象）');
+ok(Object.keys(def.fonts).length > 0, 'print 有自己独立的 fonts（不依赖隐式空对象）');
+ok(Object.keys(def.post).length > 0, 'print 有自己独立的 post 基线');
+ok(def.captions === false, 'print 默认**不开**字幕（显式写 captions: true 才开）');
 ok(resolveStyle(false) === null, 'style: false → 显式关掉风格系统（返回 null）');
 
 section('风格包：清单与形状');
@@ -54,10 +56,9 @@ for (const [name, s] of Object.entries(STYLES)) {
   ok(!!g && Array.isArray(g.captionBand) && g.captionBand.length === 2,
     `${name} 有栅格与字幕带`);
 }
-// 每套风格必须**一眼看得出不同**：色板里至少要有 ink 或 bone 被改掉
+// 每套风格必须显式声明底色或正文色
 for (const [name, s] of Object.entries(STYLES)) {
-  if (name === 'print') continue;
-  ok(!!(s.palette.ink || s.palette.bone), `${name} 改了底色或正文色（否则"换风格"看不出来）`);
+  ok(!!(s.palette.ink || s.palette.bone), `${name} 显式声明了底色或正文色`);
 }
 
 section('风格包：合并与报错');
@@ -175,6 +176,45 @@ ok(b.x0 > 400 && b.x1 < 1520, `字幕带 x 只占中间一段（${b.x0}–${b.x1
 ok(Math.abs((b.x0 + b.x1) / 2 - 960) < 2, '字幕带水平居中');
 // 默认在顶部：底部已经被模板的 readout / 页脚 / 说明条占满了（见 style/index.js 的注释）
 ok(cb[1] <= 200, `默认字幕带在顶部（y ${cb[0]}–${cb[1]}），不与底部元件抢位置`);
+
+section('风格包：防初始默认污染（Pass / post 基线 / 类型校验）');
+{
+  const glSrc = readFileSync(path.join(ROOT, 'src/core/gl.js'), 'utf8');
+  const engSrc = readFileSync(path.join(ROOT, 'src/core/engine.js'), 'utf8');
+  ok(/opts\.palette\s*\?\?\s*gl\?\.palette\s*\?\?\s*DEFAULT_PALETTE/.test(glSrc),
+    'Pass 优先读取 gl?.palette 再回退 DEFAULT_PALETTE（C_INK/C_SIGNAL 随风格包走）');
+  ok(/hit\.src\s*===\s*fragSrc/.test(glSrc),
+    'GL.program 按 key 缓存时校对 fragSrc 一致性，不复用旧着色器');
+  ok(/this\.gl\.palette\s*=\s*this\.P/.test(engSrc),
+    'Engine 构造时把 P 挂到 gl.palette（先于 Post 与场景建 Pass）');
+  ok(/post\s*=\s*\{\s*\.\.\.post,\s*\.\.\.\(ovObj\s*\?\?\s*\{\}\),\s*\.\.\.\(stylePost\s*\?\?\s*\{\}\),\s*\.\.\.\(item\.post\s*\?\?\s*\{\}\)\s*\}/.test(engSrc),
+    'Engine.composite 按 DEFAULT → 场景 return → style.post → item.post 合并，且 return 为空时 stylePost 仍生效');
+
+  const VALID_DITHER = new Set(['off', 'rpdf', 'tpdf']);
+  const hexLum = (hex) => {
+    const n = parseInt(String(hex).slice(1), 16);
+    return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  };
+  const mgSans = new Set();
+  for (const [name, s] of Object.entries(STYLES)) {
+    const post = s.post ?? {};
+    ok(post.dither === undefined || VALID_DITHER.has(post.dither),
+      `${name}.post.dither 合法（非数字，实测 ${String(post.dither)}）`);
+    ok(post.blur === undefined || post.blur === 0,
+      `${name}.post.blur 为 undefined 或 0（不把径向缩放模糊焊进风格基线）`);
+    ok(typeof post.halation === 'number' && Number.isFinite(post.halation),
+      `${name}.post.halation 显式声明（不泄露 DEFAULT_POST.halation）`);
+    const pal = makePalette(s.palette ?? {});
+    if (hexLum(pal.hex.ink) > 0.5) {
+      for (const k of ['bloom', 'halation', 'vignette', 'shoulder', 'ca']) {
+        ok(typeof post[k] === 'number' && Number.isFinite(post[k]),
+          `浅底 ${name}.post.${k} 显式声明（防深色电影默认泄露，实测 ${post[k]}）`);
+      }
+    }
+    if (name.startsWith('mg-') && s.fonts?.sans) mgSans.add(s.fonts.sans);
+  }
+  ok(mgSans.size >= 3, `mg15 至少使用 3 套不同 sans 字体栈（实测 ${mgSans.size} 套）`);
+}
 
 console.log(`\n${fail ? '✗' : '✓'} ${pass} 项通过${fail ? `，${fail} 项失败` : ''}`);
 process.exit(fail ? 1 : 0);

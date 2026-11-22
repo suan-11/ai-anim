@@ -60,8 +60,14 @@ export function lineartShot(opts = {}) {
           vec2 d = abs(fract(FRAG_PX / 80.0) - 0.5) * 80.0;
           vec2 w = vec2(fwidth(FRAG_PX.x), fwidth(FRAG_PX.y));
           float grid = 1.0 - smoothstep(min(w.x, w.y), min(w.x, w.y) * 2.5, min(d.x, d.y));
-          col += graphite * grid * 0.075;
-          col += signal * exp(-pow((p.x - 0.16) * 2.8, 2.0) - pow((p.y - 0.24) * 3.2, 2.0)) * 0.035;
+          float glow = exp(-pow((p.x - 0.16) * 2.8, 2.0) - pow((p.y - 0.24) * 3.2, 2.0));
+          if (luma(ink) > 0.25) {
+            col = mix(col, graphite, grid * 0.22);
+            col = mix(col, signal, glow * 0.05);
+          } else {
+            col += graphite * grid * 0.075;
+            col += signal * glow * 0.035;
+          }
           col += (hash12(FRAG_PX + fract(t) * 43.0) - 0.5) * 0.010;
           fragColor = vec4(col, 1.0);
         }`, {

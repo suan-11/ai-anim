@@ -154,44 +154,54 @@ export function worldPass(ctx, opts = {}) {
       float mask = 1.0 - smoothstep(0.18, 0.95, length(e));
 
       if (motif < 0.5) {
-        // ── grid：引擎从前的默认底（这一段逐像素不变，老任务的基线靠它） ──
+        // ── grid：引擎从前的默认底（暗底逐像素不变，浅底改为 mix 避免加爆成白） ──
         vec2 gu = q / spacing;
         vec2 g = abs(fract(gu) - 0.5) * spacing;
         float fine = 1.0 - smoothstep(fw.x * 0.6, fw.x * 1.9, min(g.x, g.y));
         vec2 g5 = abs(fract(gu / 5.0) - 0.5) * spacing * 5.0;
         float coarse = 1.0 - smoothstep(fw.x * 0.6, fw.x * 1.9, min(g5.x, g5.y));
-        col += cLine * 0.016 * fine * mask;
-        col += cLine * 0.022 * coarse * mask;
-
         // 取样带：一道很淡的横向扫描线，慢慢往下走
         // 压得比网格还轻，因为它会横穿文字
         float band = fract((FRAG_PX.y / res.y) - sweep);
-        col += cAccent * 0.013 * (1.0 - smoothstep(0.0, 0.085, band)) * mask;
-
-        // 边界：还没解算的时候四角留一点暗示
-        col += cAccent * 0.024 * warp * smoothstep(0.55, 1.15, length(e) * vig);
+        if (luma(cInk) > 0.25) {
+          col = mix(col, cLine, 0.06 * fine * mask);
+          col = mix(col, cLine, 0.12 * coarse * mask);
+          col = mix(col, cAccent, 0.05 * (1.0 - smoothstep(0.0, 0.085, band)) * mask);
+        } else {
+          col += cLine * 0.016 * fine * mask;
+          col += cLine * 0.022 * coarse * mask;
+          col += cAccent * 0.013 * (1.0 - smoothstep(0.0, 0.085, band)) * mask;
+          // 边界：还没解算的时候四角留一点暗示
+          col += cAccent * 0.024 * warp * smoothstep(0.55, 1.15, length(e) * vig);
+        }
       } else if (motif < 1.5) {
         // ── blueprint：坐标纸（细格 + 每 8 格一根亮线）+ 图框 ──
         vec2 gu = q / spacing;
         vec2 g = abs(fract(gu) - 0.5) * spacing;
         float fine = 1.0 - smoothstep(fw.x * 0.7, fw.x * 2.2, min(g.x, g.y));
-        col += cLine * 0.028 * fine * mask;
         vec2 g8 = abs(fract(gu / 8.0) - 0.5) * spacing * 8.0;
         float coarse = 1.0 - smoothstep(fw.x * 0.7, fw.x * 2.0, min(g8.x, g8.y));
-        col += cAccent * 0.05 * coarse * mask;
         // 图框：离画面边缘 46px 处一条亮线（工程图的图廓）
         float edge = min(min(FRAG_PX.x, res.x - FRAG_PX.x), min(FRAG_PX.y, res.y - FRAG_PX.y));
-        col += cAccent * 0.10 * (1.0 - smoothstep(0.0, 1.6, abs(edge - 46.0)));
-        col += cAccent * 0.03 * smoothstep(0.6, 1.2, length(e) * vig);
+        if (luma(cInk) > 0.25) {
+          col = mix(col, cLine, 0.06 * fine * mask);
+          col = mix(col, cAccent, 0.14 * coarse * mask);
+          col = mix(col, cAccent, 0.28 * (1.0 - smoothstep(0.0, 1.6, abs(edge - 46.0))));
+        } else {
+          col += cLine * 0.028 * fine * mask;
+          col += cAccent * 0.05 * coarse * mask;
+          col += cAccent * 0.10 * (1.0 - smoothstep(0.0, 1.6, abs(edge - 46.0)));
+          col += cAccent * 0.03 * smoothstep(0.6, 1.2, length(e) * vig);
+        }
       } else if (motif < 2.5) {
         // ── paper：纸面（极淡的横格 + 一点纤维噪声），几乎不做错位 ──
         float rule = abs(fract(q.y / 36.0) - 0.5) * 36.0;
         float line = 1.0 - smoothstep(fw.y * 0.8, fw.y * 2.6, rule);
-        col -= cLine * 0.020 * line * mask;
+        col = mix(col, cLine, 0.055 * line * mask);
         // 纤维：确定性哈希噪声（不是逐帧抖动 —— 这个 shader 只吃 t，但噪声取的是像素坐标，本来就静止）
         float fiber = fract(sin(dot(floor(q * 0.5), vec2(12.9898, 78.233))) * 43758.5453);
         col += (fiber - 0.5) * 0.012 * mask;
-        col -= cLine * 0.020 * smoothstep(0.55, 1.15, length(e) * vig);
+        col = mix(col, cLine, 0.035 * smoothstep(0.55, 1.15, length(e) * vig));
       } else if (motif < 3.5) {
         // ── scan：终端（每 4px 一道暗扫描线 + 一条缓慢下移的回扫亮带） ──
         float s = 1.0 - smoothstep(0.0, 1.4, abs(fract(FRAG_PX.y / 4.0) - 0.5) * 4.0);

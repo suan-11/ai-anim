@@ -69,6 +69,7 @@ export class Engine {
     // P 必须在 Post 之前赋值：Pass 在构造时就把调色板常量注入 shader 源码，
     // 顺序反了的话，任务覆盖的 palette 只在场景里生效，后处理链里还是默认配色。
     this.P = opts.palette ?? DEFAULT_PALETTE;
+    this.gl.palette = this.P;
     this.fps = opts.fps ?? 60;
     this.comp = new Compositor(this.gl);
     this.post = new Post(this.gl, this.P);
@@ -570,9 +571,8 @@ export class Engine {
     /**
      * 风格包的后处理**基线**（`docs/STYLE.md`）。
      *
-     * 合并顺序是 `DEFAULT_POST → item.post → 场景 return 的 post → style.post`，
-     * 也就是风格的这几项**最后生效**。为什么让它盖过模板：风格里的 bloom/grain/vignette
-     * 描述的是**介质**（"这是纸、这是磷光屏"），不是某个镜头的设计 ——
+     * 合并顺序是 `DEFAULT_POST → 场景 return 的 post → style.post → item.post`，
+     * 也就是风格的这几项会盖过模板默认，而时间线段级 `item.post` 优先级最高（与 `docs/STYLE.md` §5 一致）。
      * 浅底风格（`paper`）如果不把 bloom 压下来，整片会糊成一片白。
      * 反过来，`print`（默认风格）的 `post` 是空对象，所以老任务一个像素都不变。
      */
@@ -696,8 +696,8 @@ export class Engine {
       let drewErrorCard = false;
       try {
         const ov = scene.render(ctx);
-        if (ov && typeof ov === 'object') post = { ...post, ...(item.post ?? {}), ...ov, ...stylePost };
-        else if (item.post) post = { ...post, ...item.post, ...stylePost };
+        const ovObj = (ov && typeof ov === 'object') ? ov : null;
+        post = { ...post, ...(ovObj ?? {}), ...(stylePost ?? {}), ...(item.post ?? {}) };
         // C3「被拍摄感」预设：写了 preset 才生效，不写则上面的合并逐像素不变（零回归）。
         // 优先级：引擎默认 < style.post < preset < 场景 return 显式字段；写错当场抛（列出可用清单）。
         post = applyPostPreset(post, { ov, itemPost: item.post, stylePost });

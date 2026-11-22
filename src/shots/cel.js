@@ -29,12 +29,15 @@ const DEFAULTS = {
   amp: 1.8,
 };
 
+const luma3 = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+
 export function celShot(opts = {}) {
   const o = { ...DEFAULTS, ...opts };
   return {
     id: o.id,
     setup(ctx) {
       const Q = ctx.P;
+      const lightBg = luma3(Q.ink) > luma3(Q.bone);
       this.paper = new Pass(ctx.gl, /* glsl */ `
         uniform vec3 cPaper, cStain;
         float h(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
@@ -46,7 +49,7 @@ export function celShot(opts = {}) {
           col = mix(col, cStain, stain * 0.10);
           col *= 1.0 - 0.20 * smoothstep(0.5, 1.25, length((p - 0.5) * vec2(1.02, 1.0)) * 1.5);
           fragColor = vec4(col, 1.0);
-        }`, { cPaper: mixColor(Q.ink, [1, 1, 1], 0.35), cStain: Q.ember }, { key: 'shot_cel_paper', blend: false });
+        }`, { cPaper: lightBg ? Q.ink : mixColor(Q.ink, [1, 1, 1], 0.35), cStain: Q.ember }, { key: 'shot_cel_paper', blend: false });
     },
 
     render(ctx) {
@@ -54,7 +57,8 @@ export function celShot(opts = {}) {
       const t = f.lt;
       this.paper.render(gl, ctx.out, t, f.dt);
 
-      const ink = mixColor(Q.ink, [0, 0, 0], 0.55);
+      const lightBg = luma3(Q.ink) > luma3(Q.bone);
+      const ink = lightBg ? Q.bone : mixColor(Q.ink, [0, 0, 0], 0.55);
       const red = Q.signal;
       const inkC = [ink[0], ink[1], ink[2], 0.92];
       const k = sat(prog(t, 0.15, 1.2));

@@ -53,11 +53,16 @@ export function scanShot(opts = {}) {
           vec2 d = abs(fract(FRAG_PX / 60.0) - 0.5) * 60.0;
           vec2 w = vec2(fwidth(FRAG_PX.x), fwidth(FRAG_PX.y));
           float grid = 1.0 - smoothstep(min(w.x, w.y), min(w.x, w.y) * 2.5, min(d.x, d.y));
-          col += graphite * grid * 0.10;
           // 扫描线附近：只在内容框的纵向范围内发光，越靠线越亮
           float inside = step(boxTop, RES_LOGICAL.y - FRAG_PX.y) * step(RES_LOGICAL.y - FRAG_PX.y, boxBot);
           float band = exp(-pow((FRAG_PX.x - scanX) / 46.0, 2.0)) * inside;
-          col += signal * band * 0.11;
+          if (luma(ink) > 0.25) {
+            col = mix(col, graphite, grid * 0.22);
+            col = mix(col, signal, band * 0.14);
+          } else {
+            col += graphite * grid * 0.10;
+            col += signal * band * 0.11;
+          }
           col += (hash12(FRAG_PX + fract(t) * 41.0) - 0.5) * 0.011;
           fragColor = vec4(col, 1.0);
         }`, {

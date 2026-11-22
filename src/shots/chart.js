@@ -1,10 +1,7 @@
 // @ts-check
 /**
  * 镜头模板：`chart` —— 柱状图逐条生长。
- *
- * 绘制代码从 `tasks/demo/scenes/chart.js` **逐字**搬过来，只把数据与文案变成参数 ——
- * 所以它与 demo 的原始画面逐像素一致（验收：`node scripts/anim.mjs hashes demo --baseline`）。
- * ⚠ 改这里的任何数值或绘制顺序都会改变已有任务的画面：改之前先跑一次 hashes 存基线。
+ * 原型参考 `tasks/demo/scenes/chart.js`，支持深/浅底色风格自适应。
  *
  * ```js
  * export default shot('chart', { values: [0.3, 0.7, 0.95], title: '这一轮的成绩' });
@@ -27,6 +24,8 @@ const DEFAULTS = {
   peak: 0.95,
 };
 
+const luma3 = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+
 /**
  * @param {{ id?: string, values?: number[], title?: string, sub?: string,
  *           footer?: string, peak?: number }} [opts]
@@ -40,11 +39,9 @@ export function chartShot(opts = {}) {
 
     setup(ctx) {
       const P = ctx.P;
-      // 纸面：骨白纸 + 细横线（让画面有"印刷品"的质感）
-      // ⚠ 这里**刻意**用 bone，不要改成 P.bg：本模板的字 / 坐标轴 / 柱子全画 P.ink（暗色），
-      //   纸面必须是亮底才读得出来。「底色语义统一（P.bg）」那轮把它换成 P.bg 之后，
-      //   print/flat 下 bg === ink ⇒ 暗底暗字、整屏几乎看不见（demo 基线 3/11 帧变、mean≈150）。
-      //   bg 是「整帧底色」的语义，只给 gl.clear / worldPass / 全屏 Pass 用。
+      const lightBg = luma3(P.ink) > luma3(P.bone);
+      const paperCol = lightBg ? P.ink : P.bone;
+      // 纸面：暗底风格用骨白纸 + 墨字；浅底风格直接用 P.ink 当纸 + P.bone 当墨，避免图表整屏变黑且与顶部字幕反色
       this.paper = new Pass(ctx.gl, /* glsl */ `
         uniform vec3 paper, rule;
         void main() {
@@ -55,13 +52,16 @@ export function chartShot(opts = {}) {
           col = mix(col, rule, (1.0 - smoothstep(w, w * 3.0, l)) * 0.25);
           col *= 1.0 - 0.35 * smoothstep(0.55, 1.2, length((p - 0.5) * vec2(1.1, 1.0)));
           fragColor = vec4(col, 1.0);
-        }`, { paper: P.bone, rule: P.ash }, { key: 'demo_chart_paper', blend: false });
+        }`, { paper: paperCol, rule: P.ash }, { key: 'demo_chart_paper', blend: false });
     },
 
     render(ctx) {
       const { f, gl, P, text, type, comp, lines } = ctx;
       const { W, H } = gl;
       const t = f.lt;
+      const lightBg = luma3(P.ink) > luma3(P.bone);
+      const paperCol = lightBg ? P.ink : P.bone;
+      const inkCol = lightBg ? P.bone : P.ink;
 
       this.paper.render(gl, ctx.out, f.t, f.dt);
 
@@ -73,14 +73,14 @@ export function chartShot(opts = {}) {
       lines.begin();
 
       // 坐标轴
-      lines.seg(L, T, L, B, 2, P.ink);
-      lines.seg(L, B, R, B, 2, P.ink);
+      lines.seg(L, T, L, B, 2, inkCol);
+      lines.seg(L, B, R, B, 2, inkCol);
 
       // 水平刻度线
       for (let i = 0; i <= 4; i++) {
         const k = i / 4;
         const y = B - (B - T) * k;
-        lines.seg(L - 14, y, R, y, 1, P.ink);
+        lines.seg(L - 14, y, R, y, 1, inkCol);
       }
 
       // 柱子：逐条生长
@@ -91,7 +91,7 @@ export function chartShot(opts = {}) {
         const hh = (B - T) * o.values[i] * k;
         const y = B - hh;
         const isMax = o.values[i] >= o.peak;
-        const col = isMax ? P.signal : P.ink;
+        const col = isMax ? P.signal : inkCol;
         lines.rect(x, y, bw, hh, isMax ? 3 : 2, col);
         // 内部排线：越高的柱排线越密（版画感）
         const nl = Math.max(1, Math.round(o.values[i] * 7));
@@ -101,8 +101,8 @@ export function chartShot(opts = {}) {
         }
         // 顶端小帽：到位的瞬间弹一下
         const pop = 1 + 0.5 * Math.exp(-Math.max(0, t - (start + 0.9)) * 6);
-        if (k > 0.98) lines.seg(x - 6 * pop, y, x + bw + 6 * pop, y, 3, isMax ? P.signal : P.bone);
-        lines.seg(L + slot * (i + 0.5), B, L + slot * (i + 0.5), B + 8, 1, P.ink);
+        if (k > 0.98) lines.seg(x - 6 * pop, y, x + bw + 6 * pop, y, 3, isMax ? P.signal : paperCol);
+        lines.seg(L + slot * (i + 0.5), B, L + slot * (i + 0.5), B + 8, 1, inkCol);
       }
 
       // 扫描线：随时间从左扫到右
@@ -115,11 +115,11 @@ export function chartShot(opts = {}) {
       // 文字层
       text.clear();
       type.write(o.title, L, T - 46, {
-        size: 44, weight: 700, family: 'sans', color: css(P.ink),
+        size: 44, weight: 700, family: 'sans', color: css(inkCol),
         stagger: 0.03, from: 'none', t: t - 0.1,
       });
       type.write(o.sub, L, T - 14, {
-        size: 20, family: 'mono', tracking: 4, color: css(P.ink, 0.55),
+        size: 20, family: 'mono', tracking: 4, color: css(inkCol, 0.55),
       });
 
       // 读数：跟随扫描线位置
@@ -133,13 +133,13 @@ export function chartShot(opts = {}) {
         const k = i / 4;
         const y = B - (B - T) * k;
         type.write(`${Math.round(k * 100)}`, L - 26, y + 6, {
-          size: 19, family: 'mono', color: css(P.ink, 0.5), align: 'right',
+          size: 19, family: 'mono', color: css(inkCol, 0.5), align: 'right',
         });
       }
 
       // 底部结论：最后才淡入
       type.write(o.footer, W / 2, H * 0.92, {
-        size: 30, weight: 500, family: 'sans', color: css(P.ink, 0.8), align: 'center',
+        size: 30, weight: 500, family: 'sans', color: css(inkCol, 0.8), align: 'center',
         alpha: [0, 1], t: t - 3.2,
       });
 

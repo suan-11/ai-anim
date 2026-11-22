@@ -74,14 +74,14 @@ import { Pass, RT } from './gl.js';
 /** 默认后处理参数。场景返回的 post 对象会与它合并。 */
 export const DEFAULT_POST = /** @type {PostParams} */ ({
   exposure: 1,
-  shoulder: 0.85,
-  bloom: 0.35,
+  shoulder: 0.92,
+  bloom: 0.25,
   bloomThreshold: 0.9,
   bloomRadius: 1,
-  halation: 0.25,
+  halation: 0,
   ca: 0.0,
-  grain: 0.035,
-  vignette: 0.35,
+  grain: 0.025,
+  vignette: 0.25,
   saturation: 1.0,
   contrast: 1.0,
   lift: 0.0,
@@ -95,8 +95,8 @@ export const DEFAULT_POST = /** @type {PostParams} */ ({
   blur: 0,
   radialBlur: 0,
   tonemap: 'off',
-  dither: 'rpdf',
-  bloomKaris: false,
+  dither: 'tpdf',
+  bloomKaris: true,
   // 胶片磨损三件套（weave / flicker / scratch）：默认全 0 —— 不写就一个像素都不变。
   // 动画时间不由这里给：render() 第 6 参 t 由引擎每帧喂进 uniform（详见 pFinal 的 shader 注释）。
   weave: 0,

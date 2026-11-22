@@ -8,10 +8,6 @@
  *   · f.tin 从 0 走到 1，就是"转场进度"
  *   · ctx.under 是上一个场景这一时刻的成帧（HDR 纹理），可以直接采样
  *
- * 绘制代码从 `tasks/demo/scenes/whip.js` **逐字**搬过来，只把内容变成参数 ——
- * 所以它与 demo 的原始画面逐像素一致（验收：`node scripts/anim.mjs hashes demo --baseline`）。
- * ⚠ 改这里的任何数值或绘制顺序都会改变已有任务的画面：改之前先跑一次 hashes 存基线。
- *
  * ```js
  * export default shot('whip', { streaks: 26, dir: [1, 0.12] });
  * ```
