@@ -8,19 +8,21 @@
 > **2026-11-15**：`docs/PLAN-2026-11-08.md` 与 `docs/STATUS.md` §18–§19 **已归档/去重**，本页里的旧路径按 [history/](history/) 找。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
 
-### 2026-11-22（oklab 标杆片过线 + 正面标杆 / anim cues / 离线双预检 + 叙事节奏与钩子盘点）
+### 2026-11-22（oklab 标杆片过线 + 叙事节奏盘点 + 风格/后处理收口与工作区清零）
 
-**一句话**：`tasks/oklab` 6 段手写标杆片完成独立审查过线并补齐 `BAR.md` 正面标杆与防返工工具链（`fa1fb36`..`8641e3d`）；本轮完成引擎「叙事节奏与开头钩子」三层评价标准盘点并登记缺口 `1-86`/`1-87`，已推送至 `origin/master`。
+**一句话**：涵盖 `tasks/oklab` 标杆片过线与防返工工具链（`fa1fb36`..`8641e3d`）、叙事节奏与开头钩子标准盘点（`ce319bf`）、`unit:cues` 测试去本地依赖（`1c43b77`）以及既有 30 个风格/后处理/镜头模板改动收口入库（`47118c3`），**当前工作区干净且与 `origin/master` 同步**。
 
-- **已入库变更（`fa1fb36` → `6981207` → `8641e3d`）**：
-  - `tasks/oklab`：6 段手写讲解片（`hook`/`gamma_trap`/`linear_limit`/`oklab_mech`/`css_bridge`/`close`），主模型独立审查 `round-29` 48 项全 ≥ 4 分过线，`layout.guard` 0 告警，`lint-craft` 100/100，5 处切点 `railU`/`zoomBoost` 连续归零。
+- **已入库变更（`fa1fb36` → `47118c3`）**：
+  - `tasks/oklab`（`fa1fb36` / `6981207`）：6 段手写讲解片（`hook`/`gamma_trap`/`linear_limit`/`oklab_mech`/`css_bridge`/`close`），主模型独立审查 `round-29` 48 项全 ≥ 4 分过线，`layout.guard` 0 告警，`lint-craft` 100/100，5 处切点 `railU`/`zoomBoost` 连续归零。
   - 工具与规范（`8641e3d`）：[BAR.md](BAR.md) 补入 3 张正面标杆（`docs/images/bar/pro-oklab-{hook,mech,close}.png`）；新增 `anim cues`（`scripts/lib/cues.mjs` + `scripts/cmd/cues.mjs`）；`tools/scene-harness.mjs` 接入离线双预检（`layout.guard` + `cut-zoom-jump`，纯函数 `tools/lib/harness-checks.mjs`）；[CRAFT.md](CRAFT.md) §8 固化首版防返工 6 条；[CRAFT-RUBRIC.md](CRAFT-RUBRIC.md) 补模型对等/复审冻结/三轮止损三项防漂移纪律；`test-cues` / `test-harness-checks` 接入 `tools/regress-all.mjs`。
-- **本轮新增记录（叙事节奏与开头钩子）**：三层现有评价标准与两项缺口（`1-86` 文案/剧作层叙事节奏与前 3 秒钩子标准、`1-87` C4/C5 与 `anim rhythm` 门禁收口）已记入 [BACKLOG.md](BACKLOG.md) §1.J。
-- **⚠ 工作区既有未提交修改（不要误提或覆盖）**：工作区保留 2026-11-20 既有的 **30 个未提交修改**（`src/style/*`、`src/shots/*`、`src/core/*`、`src/kit/world.js`、`docs/STYLE*.md`、`docs/ENGINE.md`、`tools/test-style.mjs`、`tools/test-portrait.mjs`，涉及 `print` 风格包自包含与 `item.post` 优先级），均早于 11-21/22 提交，本轮刻意未纳入提交。
+  - 叙事节奏与开头钩子盘点（`ce319bf`）：三层现有评价标准与两项缺口（`1-86` 文案/剧作层叙事节奏与前 3 秒钩子标准、`1-87` C4/C5 与 `anim rhythm` 门禁收口）已记入 [BACKLOG.md](BACKLOG.md) §1.J。
+  - 测试修复（`1c43b77`）：`fix(test)`，移除 `unit:cues` 对被忽略本地任务 `beast` 的依赖。
+  - 风格与后处理收口（`47118c3`）：`feat(style)`，原工作区 30 个文件已收口提交（清除默认后处理污染、`item.post` 优先级修正、`print` 风格包自包含、浅底色自适应与镜头模板配色修复，含 `test-style.mjs` / `test-portrait.mjs`）。
+- **工作区状态**：干净（无未提交修改），`master` 与 `origin/master` 同步。
 
 **验证**：离线单测 `test-style.mjs` / `test-portrait.mjs` / `test-cues.mjs` / `test-harness-checks.mjs` / `test-brief-lint.mjs` / `test-craft.mjs` 全通过；文档与预检守门 `lint-agents-size.mjs` / `lint-agents-refs.mjs` / `lint-doc-facts.mjs` / `gen-changes.mjs --check` / `precommit-report.mjs` 全通过。
 
-**接手下一步**：① 按 [BACKLOG.md](BACKLOG.md) `1-86`/`1-87` 补齐脚本层叙事钩子评估并收口节奏门禁；② 核验并决定工作区 2026-11-20 既有 30 个风格/模板改动的提交策略；③ `oklab` 如需成片待用户拍板后正式渲染；④ `pv-kattachi` A/B/C 仍待用户拍板。
+**接手下一步**：① 按 [BACKLOG.md](BACKLOG.md) `1-86`/`1-87` 补齐脚本/文案层叙事节奏与前 3 秒钩子标准并收口节奏门禁；② `oklab` 如需成片待用户拍板后正式渲染；③ `pv-kattachi` A/B/C 仍待用户拍板。
 
 ### 2026-11-21（1-83～1-85：首版即成片 —— 手艺规范 / 结构化分镜 / 偷懒检测 / 评审包）
 
