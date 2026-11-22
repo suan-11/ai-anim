@@ -30,7 +30,7 @@ export default makeShot('mechanism',{
     lines.flush(ctx.out);
     text.clear();
     for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+30,{anchor:'center',size:28,color:css(P.ash,0.8)});}
-    if(k>0.7) type.writeLine('log₁₀(1+1/d)', W*0.5, 130, {anchor:'center',size:44,color:css(P.signal,smoothstep(0.7,1,k))});
+    if(k>0.7) type.writeLine('log₁₀(1+1/d)', W*0.5, 210, {anchor:'center',size:44,color:css(P.signal,smoothstep(0.7,1,k))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
     return{grain:0.012,vignette:0.3};
   },
