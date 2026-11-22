@@ -10,7 +10,7 @@ const S=(i)=>timing.scenes[i];
 export default { title:'第一位是 1 的数字，凭什么这么多', width:1920,height:1080,fps:24,scale:1,
   style:{name:'paper',grid:{pad:120}}, captions:true,
   narration:'./audio/narration.json',
-  audio:{ vo:'./audio/benford-vo.mp3' },
+  audio:{music:'./audio/bed.mp3',vo:'./audio/benford-vo.mp3',mix:'./audio/benford-mix.mp3'},
   timeline:seq([
     cut(hook,{id:'hook',dur:S(0).slot,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','light']},relayTo:'bar1',params:{stretch:S(0).stretch}}),
     cut(bridge,{id:'bridge',dur:S(1).slot,overlap:0.6,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','light']},relayTo:'bars',params:{stretch:S(1).stretch}}),
