@@ -1,0 +1,10 @@
+[
+  { "t_start": 0, "t_end": 3, "intensity": 4, "info_density": 1, "resistance": 0.38, "attention_target": "single_anchor", "motion_grammar": "deck_twist_hook", "sound_density": 0.35, "beat_role": "pressure" },
+  { "t_start": 3, "t_end": 9, "intensity": 2, "info_density": 3, "resistance": 0.45, "attention_target": "single_anchor", "motion_grammar": "heave_to_twist", "sound_density": 0.45, "beat_role": "hold" },
+  { "t_start": 9, "t_end": 14, "intensity": 3, "info_density": 3, "resistance": 0.76, "attention_target": "single_anchor", "motion_grammar": "airflow_feedback_build", "sound_density": 0.50, "beat_role": "pressure" },
+  { "t_start": 14, "t_end": 18, "intensity": 4, "info_density": 3, "resistance": 0.24, "attention_target": "single_anchor", "motion_grammar": "twist_amplitude_reveal", "sound_density": 0.55, "beat_role": "release" },
+  { "t_start": 18, "t_end": 21, "intensity": 1, "info_density": 1, "resistance": 0.30, "attention_target": "single_anchor", "motion_grammar": "deck_twist_reset", "sound_density": 0.25, "beat_role": "residue" },
+  { "t_start": 21, "t_end": 25, "intensity": 3, "info_density": 1, "resistance": 0.82, "attention_target": "single_anchor", "motion_grammar": "deck_twist_build", "sound_density": 0.55, "beat_role": "pressure" },
+  { "t_start": 25, "t_end": 28, "intensity": 5, "info_density": 2, "resistance": 0.13, "attention_target": "single_anchor", "motion_grammar": "deck_fracture_drop", "sound_density": 0.75, "beat_role": "release" },
+  { "t_start": 28, "t_end": 35, "intensity": 1, "info_density": 2, "resistance": 0.28, "attention_target": "single_anchor", "motion_grammar": "model_response_settle", "sound_density": 0.35, "beat_role": "residue" }
+]
