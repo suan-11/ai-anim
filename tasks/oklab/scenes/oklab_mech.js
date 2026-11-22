@@ -17,7 +17,7 @@ const R_H = 640;
 
 // 色域切面视窗：a ∈ [-0.34, +0.30], b ∈ [-0.40, +0.32]（右留 L 标尺、底留 72px 读数净空、pG 距顶标 >=32px、L=0.628..0.866 零压字）
 const A_MIN = -0.34;
-const A_MAX = 0.30;
+const A_MAX = 0.36;
 const B_MIN = -0.40;
 const B_MAX = 0.32;
 
@@ -144,8 +144,8 @@ void main() {
     float mMap = roundBoxMask(p, vec2(180.0, 668.0), vec2(684.0, 136.0), 8.0);
     if (mMap > 0.001) {
       float mu = sat((p.x - 180.0) / 684.0);
-      float rev = 1.0 - smoothstep(uMapReveal - 0.025, uMapReveal + 0.005, mu);
-      vec3 show = evalRedGreenOklab(mu) * mix(0.24, 1.0, sat(rev * uMapReveal * 4.0));
+      float rev = 1.0 - smoothstep(uMapReveal - 0.03, uMapReveal + 0.01, mu);
+      vec3 show = evalRedGreenOklab(mu) * mix(0.28, 1.0, rev * smoothstep(0.005, 0.04, uMapReveal));
       col = mix(col, show, mMap * s3A);
       alpha = max(alpha, mMap * s3A);
     }
@@ -156,13 +156,13 @@ void main() {
     }
   }
 
-  // ── 右侧：随探针实时 L = uSliceL 变形的真实 Oklab (a, b) 色域切片（开场 0.15..2.6s 自左向右显影）──
+  // ── 右侧：随探针实时 L = uSliceL 变形的真实 Oklab (a, b) 色域切片（开场 0.15..2.6s 自有效左沿扫显）──
   float rX = 924.0, rY = 212.0, rW = 836.0, rH = 640.0;
   float mRight = roundBoxMask(p, vec2(rX, rY), vec2(rW, rH), 12.0);
   if (mRight > 0.001) {
     float uu = (p.x - rX) / rW;
     float vv = 1.0 - (p.y - rY) / rH;
-    float aVal = mix(-0.34, 0.30, uu);
+    float aVal = mix(-0.34, 0.36, uu);
     float bVal = mix(-0.40, 0.32, vv);
     vec3 lin = oklabToLin(vec3(uSliceL, aVal, bVal));
     bool inside = inSrgbGamut(lin);
@@ -176,7 +176,7 @@ void main() {
     if (inside != inSrgbGamut(linDx) || inside != inSrgbGamut(linDy)) {
       sliceCol = mix(sliceCol, C_BONE * 0.82, 0.88);
     }
-    float revEdge = uSliceReveal * 1.06 - 0.03;
+    float revEdge = mix(0.14, 0.96, uSliceReveal);
     float revS = 1.0 - smoothstep(revEdge - 0.04, revEdge + 0.01, uu);
     sliceCol = mix(outCol, sliceCol, revS);
     col = mix(col, sliceCol, mRight * 0.90 * uEnter);
@@ -208,6 +208,14 @@ export default makeShot('oklab_mech', {
       uSliceReveal: 0,
       uMapReveal: 0,
     }, { palette: ctx.P, key: 'oklab_mech' });
+
+    // sRGB 立方体 6 顶点在 Oklab (a, b) 平面上的 2D 凸包投影，说明 R(L=0.628)/G(L=0.866) 处于投影边界而非出界
+    this.hullAb = [
+      [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1],
+    ].map(([r, g, b]) => {
+      const o = linToOklab(r, g, b);
+      return [o[1], o[2]];
+    });
   },
 
   draw(ctx, { k, dx, dy }) {
@@ -215,27 +223,30 @@ export default makeShot('oklab_mech', {
     const t = f.lt;
 
     const vis = k;
-    // 开场即亮 M1 + 色域自左向右扫显 + 4.2s 起立根绘制 + 9.4s 探针诚实滑向 0.747 + 17.4s 恒 L 检视次级运动
-    const sliceReveal = smoothstep(0.15, 2.6, t);
+    // 进场即露出色域左半 + Stage 3 低亮预演；词点同步 M1(3.8..5.2) -> 立方根(6.8..8.75) -> M2(8.9..10.2) -> 探针同步 Oklab 带(9.4..16.55)
+    const sliceReveal = 0.35 + 0.65 * smoothstep(0.0, 1.8, t);
     const chordTrace = smoothstep(0.4, 2.8, t);
-    const tone1 = 0.26 + 0.74 * smoothstep(0.2, 2.6, t) - 0.54 * smoothstep(6.6, 7.6, t);
-    const tone2 = 0.28 + 0.72 * smoothstep(5.4, 6.8, t) - 0.55 * smoothstep(9.6, 10.6, t);
-    const tone3 = 0.24 + 0.76 * smoothstep(9.4, 10.8, t) - 0.42 * smoothstep(16.2, 17.4, t);
+    const tone1 = 0.55 + 0.45 * smoothstep(3.8, 5.2, t) - 0.60 * smoothstep(7.2, 8.2, t);
+    const tone2 = 0.25 + 0.75 * smoothstep(6.6, 7.6, t) - 0.55 * smoothstep(9.6, 10.6, t);
+    const tone3 = 0.16 + 0.84 * smoothstep(8.9, 10.2, t) - 0.36 * smoothstep(16.2, 17.4, t);
     const sliceLit = 0.28 + 0.44 * smoothstep(0.2, 2.6, t) + 0.26 * smoothstep(8.8, 11.4, t);
-    const stage3Show = smoothstep(1.2, 2.8, t);
-    const mapReveal = smoothstep(9.6, 13.8, t);
+    const stage3Show = smoothstep(0.15, 1.1, t);
 
-    const cbrtEndU = smoothstep(4.2, 8.8, t);
+    const cbrtEndU = smoothstep(6.8, 8.75, t);
     const probeU = 0.5 * smoothstep(9.4, 16.55, t);
+    const mapReveal = t < 16.55 ? probeU : lerp(0.50, 1.0, smoothstep(16.55, 17.6, t));
+    const ltFrame = Math.max(0, (f.idx / 60) - f.start);
+    const tick747A = sat((t - 16.0) / 0.5);
     const peakLock = sat(spring((t - 16.55) * 1.8, 1, 120, 15));
 
-    // 17.4..22.8s 恒定 L=0.747 切面上的诚实次级检视扫描（绝不改变 L 数值与切片形状）
-    const tailScanWin = t > 17.4 && t < 22.8 ? smoothstep(17.4, 18.0, t) * (1 - smoothstep(22.2, 22.8, t)) : 0;
-    const tailScanU = smoothstep(17.4, 22.8, t);
+    // 17.4..23.2s 恒定 L=0.7472 安全内域 (r=0.11 < 0.1270) 的等亮度色相环诚实检视扫描
+    const tailScanWin = t > 17.4 && t < 23.2 ? smoothstep(17.4, 18.0, t) * (1 - smoothstep(22.6, 23.2, t)) : 0;
+    const tailScanU = smoothstep(17.4, 23.2, t);
 
     const okR = linToOklab(1, 0, 0);
     const okG = linToOklab(0, 1, 0);
     const curL = lerp(okR[0], okG[0], probeU);
+    const curLText = lerp(okR[0], okG[0], 0.5 * smoothstep(9.4, 16.55, ltFrame));
     const curA = lerp(okR[1], okG[1], probeU);
     const curB = lerp(okR[2], okG[2], probeU);
 
@@ -313,7 +324,7 @@ export default makeShot('oklab_mech', {
     }
     if (t >= 0.6 && t < 6.4) {
       const flowU = ((t - 0.6) * 0.45) % 1;
-      const fx = lerp(204, 336, flowU) + dx;
+      const fx = (flowU < 0.5 ? lerp(204, 224, flowU * 2) : lerp(322, 336, (flowU - 0.5) * 2)) + dx;
       const flowWin = sat(smoothstep(0.6, 1.1, t)) * (1 - smoothstep(5.8, 6.4, t));
       lines.fillCircle(fx, 306 + dy, 3.8, withAlpha(P.signal, 0.85 * flowWin * vis));
     }
@@ -346,11 +357,15 @@ export default makeShot('oklab_mech', {
         const lmsFade = sat((t - 9.4) / 0.5);
         for (let i = 0; i < 3; i++) {
           const xv = sat(lms[i]);
+          const pxDot = cx0 + xv * cw;
+          const pyDot = cyBot - Math.cbrt(xv) * ch;
+          const rDot = i === 0 ? 4.8 : 3.6;
+          lines.fillCircle(pxDot, pyDot, rDot + 1.2, withAlpha(P.ink, 0.85 * lmsFade * k));
           lines.fillCircle(
-            cx0 + xv * cw,
-            cyBot - Math.cbrt(xv) * ch,
-            i === 0 ? 6.0 : 4.5,
-            i === 0 ? withAlpha(P.signal, 0.92 * lmsFade * k) : withAlpha(P.bone, (0.85 - i * 0.2) * lmsFade * k),
+            pxDot,
+            pyDot,
+            rDot,
+            i === 0 ? withAlpha(P.signal, 0.92 * lmsFade * k) : withAlpha(P.bone, (0.88 - i * 0.2) * lmsFade * k),
           );
         }
       }
@@ -372,41 +387,57 @@ export default makeShot('oklab_mech', {
         const barAlpha = Math.max(0.28, m2Fade) * stage3Show;
         if (i > 0) {
           lines.seg(xx + bw * 0.5, barTop - 8, xx + bw * 0.5, barTop - 2, 1.6, withAlpha(P.bone, 0.52 * barAlpha * vis));
-        } else {
-          lines.seg(xx + bw * 0.747, barTop - 10, xx + bw * 0.747, barTop - 2, 2.2, withAlpha(P.signal, 0.92 * barAlpha * vis));
+        } else if (tick747A > 0.01) {
+          lines.seg(xx + bw * 0.747, barTop - 10, xx + bw * 0.747, barTop - 2, 2.2, withAlpha(P.signal, 0.92 * tick747A * barAlpha * vis));
         }
         const nx = xx + mVals[i] * bw;
         lines.seg(nx, barTop + 2, nx, barTop + 50, 2.8, withAlpha(P.bone, barAlpha * vis));
         lines.fillCircle(nx, barTop + 26, 6.0, i === 0 ? withAlpha(P.signal, barAlpha * vis) : withAlpha(P.bone, barAlpha * vis));
       }
+      // 三轴底部汇流细线接入 Oklab 红→绿带 (y=602..666)
+      const busCol = withAlpha(P.graphite, (0.35 + 0.45 * m2Fade) * stage3Show * vis);
+      lines.seg(287 + dx, 602 + dy, 287 + dx, 634 + dy, 1.2, busCol);
+      lines.seg(522 + dx, 602 + dy, 522 + dx, 634 + dy, 1.2, busCol);
+      lines.seg(757 + dx, 602 + dy, 757 + dx, 634 + dy, 1.2, busCol);
+      lines.seg(287 + dx, 634 + dy, 757 + dx, 634 + dy, 1.2, busCol);
+      lines.seg(522 + dx, 634 + dy, 522 + dx, 666 + dy, 1.2, busCol);
       if (mapReveal > 0.02) {
         const mapPx = 180 + probeU * 684 + dx;
         lines.seg(mapPx, 660 + dy, mapPx, 668 + dy, 2.2, withAlpha(P.bone, 0.9 * mapReveal * stage3Show * k));
         lines.seg(mapPx, 804 + dy, mapPx, 812 + dy, 2.2, withAlpha(P.bone, 0.9 * mapReveal * stage3Show * k));
       }
-      if (tailScanWin > 0.02) {
-        const txMap = 180 + tailScanU * 684 + dx;
-        lines.seg(txMap, 666 + dy, txMap, 806 + dy, 1.8, withAlpha(P.bone, 0.68 * tailScanWin * k));
-      }
     }
 
-    // 右侧动态 L=curL 色域切片：a=0 竖轴 260..696，右沿 L 高度标尺 314..650
+    // 右侧动态 L=curL 色域切片：a=0 竖轴 260..696，右沿 L 高度标尺 314..650（A_MAX=0.36 使白边永远落在 +a 左侧）
     const [ax0, ay0] = abToScreen(A_MIN, 0, dx, dy);
     const [ax1, ay1] = abToScreen(A_MAX, 0, dx, dy);
     const [bx0, by0] = abToScreen(0, B_MIN, dx, dy);
     const [bx1, by1] = abToScreen(0, B_MAX, dx, dy);
-    lines.seg(ax0 + 20, ay0, ax1 - 36, ay1, 1.2, withAlpha(P.bone, 0.22 * vis));
+    lines.seg(ax0 + 20, ay0, ax1 - 48, ay1, 1.2, withAlpha(P.bone, 0.22 * vis));
     lines.seg(bx0, Math.min(by0 - 20, 696 + dy), bx1, Math.max(by1 + 48, 260 + dy), 1.2, withAlpha(P.bone, 0.22 * vis));
 
-    // 右侧 L 高度标尺 (L ∈ [0.55, 0.92])
+    // 右侧 L 高度标尺 (L ∈ [0.55, 0.92]) + 2D sRGB 色域投影边界虚线包络
+    for (let hi = 0; hi < this.hullAb.length; hi++) {
+      const [ha0, hb0] = this.hullAb[hi];
+      const [ha1, hb1] = this.hullAb[(hi + 1) % this.hullAb.length];
+      const [hx0, hy0] = abToScreen(ha0, hb0, dx, dy);
+      const [hx1, hy1] = abToScreen(ha1, hb1, dx, dy);
+      for (let s = 0; s < 16; s++) {
+        if (s % 2 === 1) continue;
+        lines.seg(lerp(hx0, hx1, s / 16), lerp(hy0, hy1, s / 16), lerp(hx0, hx1, (s + 1) / 16), lerp(hy0, hy1, (s + 1) / 16), 1.1, withAlpha(P.graphite, 0.44 * vis));
+      }
+    }
+
     const lRailX = R_X + R_W - 22 + dx;
     const lRailTop = 314 + dy;
-    const lRailBot = 650 + dy;
+    const lRailBot = 590 + dy;
     const yAtAlt = (L) => lerp(lRailBot, lRailTop, sat((L - 0.55) / 0.37));
     lines.seg(lRailX, lRailTop, lRailX, lRailBot, 1.6, withAlpha(P.graphite, 0.72 * vis));
     lines.seg(lRailX - 6, yAtAlt(0.628), lRailX + 4, yAtAlt(0.628), 2.0, [1, 0.25, 0.25, 0.85 * vis]);
     lines.seg(lRailX - 6, yAtAlt(0.866), lRailX + 4, yAtAlt(0.866), 2.0, [0.25, 0.95, 0.3, 0.85 * vis]);
-    lines.seg(lRailX - 8, yAtAlt(0.747), lRailX + 4, yAtAlt(0.747), 2.0, withAlpha(P.bone, 0.75 * vis));
+    if (tick747A > 0.01) {
+      lines.seg(lRailX - 11, yAtAlt(0.747), lRailX + 4, yAtAlt(0.747), 2.0, withAlpha(P.bone, 0.75 * tick747A * vis));
+    }
     lines.fillCircle(lRailX, yAtAlt(curL), 5.5, withAlpha(P.signal, vis));
 
     const [pRx, pRy] = abToScreen(okR[1], okR[2], dx, dy);
@@ -434,19 +465,38 @@ export default makeShot('oklab_mech', {
     lines.circle(pPx, pPy, 12.5, 2.6, withAlpha(P.bone, vis));
 
     if (tailScanWin > 0.02) {
-      const scanX = lerp(pRx, pGx, tailScanU);
-      const scanY = lerp(pRy, pGy, tailScanU);
-      lines.circle(scanX, scanY, 6.5, 1.8, withAlpha(P.bone, 0.82 * tailScanWin * k));
+      // 17.4..23.2s 在恒定 L=0.7472 安全内域 (r=0.11 < 0.1270) 上绕环检视等亮度色相平滑过渡
+      const ringR = 0.11;
+      const [cx0, cy0] = abToScreen(0, 0, dx, dy);
+      for (let i = 0; i < 36; i++) {
+        if (i % 2 === 1) continue;
+        const a0 = (i / 36) * Math.PI * 2;
+        const a1 = ((i + 1) / 36) * Math.PI * 2;
+        const [rx0, ry0] = abToScreen(ringR * Math.cos(a0), ringR * Math.sin(a0), dx, dy);
+        const [rx1, ry1] = abToScreen(ringR * Math.cos(a1), ringR * Math.sin(a1), dx, dy);
+        lines.seg(rx0, ry0, rx1, ry1, 1.4, withAlpha(P.bone, 0.34 * tailScanWin * k));
+      }
+      const ang = Math.atan2(curB, curA) + tailScanU * Math.PI * 2;
+      const ha = ringR * Math.cos(ang);
+      const hb = ringR * Math.sin(ang);
+      const [hx, hy] = abToScreen(ha, hb, dx, dy);
+      lines.seg(cx0, cy0, hx, hy, 1.4, withAlpha(P.bone, 0.28 * tailScanWin * k));
+      const hLin = oklabToLin(0.7472, ha, hb);
+      lines.fillCircle(hx, hy, 7.5, [sat(hLin[0]), sat(hLin[1]), sat(hLin[2]), tailScanWin * k]);
+      lines.circle(hx, hy, 9.5, 1.6, withAlpha(P.bone, 0.90 * tailScanWin * k));
+      const pulseR = 14 + 3.5 * Math.sin(tailScanU * Math.PI * 2);
+      lines.circle(pPx, pPy, pulseR, 1.8, withAlpha(P.bone, 0.55 * tailScanWin * k));
     }
 
     if (peakLock > 0.02) {
       const midLin = oklabToLin(lerp(okR[0], okG[0], 0.5), lerp(okR[1], okG[1], 0.5), lerp(okR[2], okG[2], 0.5));
       const swCol = [sat(midLin[0]), sat(midLin[1]), sat(midLin[2]), peakLock * k];
-      lines.fillRect(1542 + dx, 804 + dy, 18, 18, swCol, 4);
-      lines.rect(1542 + dx, 804 + dy, 18, 18, 1.2, withAlpha(P.bone, 0.8 * peakLock * k));
+      lines.fillRect(1528 + dx, 796 + dy, 32, 32, swCol, 6);
+      lines.rect(1528 + dx, 796 + dy, 32, 32, 1.4, withAlpha(P.bone, 0.85 * peakLock * k));
     }
 
-    drawSpectrumRail(ctx, { ...RAIL_BOX, probeU, alpha: k, dx, dy });
+    const railU = t < 22.6 ? probeU : lerp(probeU, 0.0, smoothstep(22.6, 24.0, t));
+    drawSpectrumRail(ctx, { ...RAIL_BOX, probeU: railU, alpha: k, dx, dy });
     lines.flush(ctx.out);
 
     // ── 文字层：严格 3 档字号 (20 / 28 / 72) + offSubject <= 2 + inFocus = 2 ──
@@ -484,24 +534,24 @@ export default makeShot('oklab_mech', {
       anchor: 'left', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.85 * tone2 * vis),
     });
 
-    // 左下群落 (offSubject #2: y=486 与 y=518 间距 32<=37 合并成 1 块，横跨 <=1664 与 '+a' 并组维持 offSubject=2)
+    // 左下群落 (offSubject #2: y=486 与 y=518 间距 32<=37 合并成 1 块，横跨 <=1664 与 '+a'/0.628 并组维持 offSubject=2)
     if (stage3Show > 0.02) {
       const s3T = stage3Show * vis;
       type.writeLine('M2 · (L, a, b) → Oklab 红→绿', 160 + dx, 486 + dy, {
         anchor: 'left', size: 20, weight: 700, family: 'sans', color: css(P.bone, (0.45 + 0.52 * tone3) * s3T),
       });
-      type.writeLine('L · 0.747', 287 + dx, 518 + dy, {
-        anchor: 'center', size: 20, weight: 600, family: 'mono', color: css(P.signal, 0.92 * tone3 * s3T),
+      type.writeLine(t >= 16.55 ? 'L · 0.747' : 'L', 287 + dx, 518 + dy, {
+        anchor: 'center', size: 20, weight: 600, family: 'mono', color: css(t >= 16.55 ? P.signal : P.bone, (0.36 + 0.56 * tone3) * s3T),
       });
       type.writeLine('a', 522 + dx, 518 + dy, {
-        anchor: 'center', size: 20, weight: 600, family: 'mono', color: css(P.ash, 0.88 * tone3 * s3T),
+        anchor: 'center', size: 20, weight: 600, family: 'mono', color: css(P.ash, (0.36 + 0.56 * tone3) * s3T),
       });
       type.writeLine('b', 757 + dx, 518 + dy, {
-        anchor: 'center', size: 20, weight: 600, family: 'mono', color: css(P.ash, 0.88 * tone3 * s3T),
+        anchor: 'center', size: 20, weight: 600, family: 'mono', color: css(P.ash, (0.36 + 0.56 * tone3) * s3T),
       });
     }
 
-    // 右侧切面群落 1 (inFocus #1: y=294 与左上 bot=261 间距 >16 严格分离；与 pG y=337 净空 32px)
+    // 右侧切面群落 1 (inFocus #1: 标注 R/G 投影端点与 L 标尺刻度 0.866 / 0.628，inF=2 / off=2)
     type.writeLine('Oklab (a, b)', R_X + 24 + dx, 294 + dy, {
       anchor: 'left', size: 20, weight: 700, family: 'sans', color: css(P.bone, 0.94 * vis),
     });
@@ -511,32 +561,52 @@ export default makeShot('oklab_mech', {
     type.writeLine('L', lRailX, 294 + dy, {
       anchor: 'center', size: 20, weight: 700, family: 'mono', color: css(P.signal, 0.92 * vis),
     });
-    type.writeLine('+a', 1664 + dx, ay0 - 10, {
-      anchor: 'right', size: 20, weight: 600, family: 'mono', color: css(P.ash, 0.82 * vis),
+    if (chordTrace > 0.75) {
+      type.writeLine('G · 0.866', pGx + 14, 314 + dy, {
+        anchor: 'left', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.86 * sat((chordTrace - 0.75) / 0.25) * vis),
+      });
+    }
+    type.writeLine('R · 0.628', pRx - 14, 350 + dy, {
+      anchor: 'right', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.86 * vis),
+    });
+    type.writeLine('0.866', lRailX - 12, yAtAlt(0.866) + 6, {
+      anchor: 'right', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.78 * vis),
+    });
+    type.writeLine('+a', 1680 + dx, ay0 - 10, {
+      anchor: 'right', size: 20, weight: 600, family: 'mono', color: css(P.bone, 0.90 * vis),
+    });
+    type.writeLine('0.628', lRailX - 12, yAtAlt(0.628) + 6, {
+      anchor: 'right', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.78 * vis),
     });
 
-    // 右侧切面群落 2 (inFocus #2: 100% 数值诚实：静停 0.628 -> 滑移实算 -> 锁定 0.747)
-    if (t < 9.4) {
+    // 右侧切面群落 2 (inFocus #2: 使用主帧整型号 ltFrame 计算读数，彻底消灭子帧 7/8 重影；tailScan 时标出等 L=0.747 色相环)
+    if (ltFrame < 9.4) {
       type.writeLine('L = 0.628', R_X + R_W - 28 + dx, 782 + dy, {
         anchor: 'right', size: 72, weight: 800, family: 'mono', color: css(P.bone, 0.68 * vis),
       });
-    } else if (t < 16.55) {
-      type.writeLine(`L = ${curL.toFixed(3)}`, R_X + R_W - 28 + dx, 782 + dy, {
+    } else if (ltFrame < 16.55) {
+      type.writeLine(`L = ${curLText.toFixed(3)}`, R_X + R_W - 28 + dx, 782 + dy, {
         anchor: 'right', size: 72, weight: 800, family: 'mono', color: css(P.bone, 0.86 * vis),
       });
     } else {
       type.writeLine('L = 0.747', R_X + R_W - 28 + dx, 782 + dy, {
-        anchor: 'right', size: 72, weight: 800, family: 'mono', color: css(P.bone, peakLock * k),
+        anchor: 'right', size: 72, weight: 800, family: 'mono', color: css(P.bone, lerp(0.86, 1.0, peakLock) * k),
       });
       type.writeLine('(208, 168, 0)', R_X + R_W - 28 + dx, 820 + dy, {
         anchor: 'right', size: 20, weight: 500, family: 'mono', color: css(P.bone, 0.90 * peakLock * k),
+      });
+    }
+    if (tailScanWin > 0.02) {
+      type.writeLine('等 L = 0.747 色相环', R_X + 24 + dx, 820 + dy, {
+        anchor: 'left', size: 20, weight: 600, family: 'sans', color: css(P.bone, 0.86 * tailScanWin * k),
       });
     }
 
     text.upload();
     comp.draw(gl, text, ctx.out, { premult: false });
 
-    const zoomBoost = 0.022 * peakLock;
+    const zoomRelease = 1 - smoothstep(22.6, 23.8, t);
+    const zoomBoost = 0.022 * peakLock * zoomRelease;
     return oklabPost(f, { zoomBoost });
   },
 });

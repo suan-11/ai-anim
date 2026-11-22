@@ -16,7 +16,7 @@ export const SCENES = [
     id: 'hook',
     internal: 14.5,
     lines: [
-      { cue: 0.5, text: '把纯红和纯绿直接平均，电脑算出来的不是亮黄，是一块发暗发脏的橄榄色。' },
+      { cue: 0.5, text: '纯红和纯绿直接平均，算出的不是亮黄，是暗脏橄榄色。' },
       { cue: 5.8, text: '同一个中点，数值正好是 128，物理上却只发出了百分之二十一的光。' },
       { cue: 11.5, text: '颜色存成什么数，和眼睛怎么看，根本不是一回事。' },
     ],
@@ -26,7 +26,8 @@ export const SCENES = [
     internal: 9.5,
     lines: [
       { cue: 0.8, text: '问题出在 sRGB 编码。' },
-      { cue: 2.8, text: '人眼对暗部远比亮部敏感，文件把亮度弯过约 2.2 次方才存下来，128 根本不是一半光强。' },
+      { cue: 3.0, text: '人眼对暗部更敏感，亮度先弯过约 2.2 次方才存。' },
+      { cue: 6.8, text: '所以存到 128，根本不是一半光强。' },
     ],
   },
   {
@@ -39,7 +40,7 @@ export const SCENES = [
   },
   {
     id: 'oklab_mech',
-    internal: 21.0,
+    internal: 22.0,
     lines: [
       { cue: 0.8, text: '2020 年，Björn Ottosson 提出了 Oklab。' },
       { cue: 4.2, text: '先将线性 RGB 乘进视锥响应，再开一次立方根。' },
@@ -49,9 +50,10 @@ export const SCENES = [
   },
   {
     id: 'css_bridge',
-    internal: 6.5,
+    internal: 5.2,
     lines: [
-      { cue: 0.8, text: '连 CIELAB 在蓝白渐变上都会偏紫，Oklab 却沿着色相直走，已经写进 CSS Color 4。' },
+      { cue: 0.6, text: '连 CIELAB 蓝白渐变都会偏紫。' },
+      { cue: 3.1, text: 'Oklab 沿着色相直走，已写进 CSS Color 4。' },
     ],
   },
   {

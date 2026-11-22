@@ -257,7 +257,7 @@ export function oklabPost(f, { zoomBoost = 0, fade = 0 } = {}) {
     bloom: 0.06,
     ca: 0,
     grain: 0.010,
-    vignette: 0.54,
+    vignette: 0.30,
     fade,
   };
 }

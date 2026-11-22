@@ -7,20 +7,20 @@ import { Pass } from '../../../src/core/gl.js';
 import { makeShot } from '../../../src/kit/index.js';
 import {
   GLSL_OKLAB_MATH, RAIL_BOX, css, drawHeader, drawSpectrumRail, lerp, linToOklab,
-  oklabPost, prog, sat, smoothstep, spring, srgbToLinScalar, withAlpha,
+  mul, oklabPost, prog, sat, smoothstep, spring, srgbToLinScalar, withAlpha,
 } from './_oklab.js';
 
 const X0 = 400;
 const W_STRIP = 1360;
 
-// 底栏三列严格收进与主图 / RAIL_BOX 同轴的 x=400..1760
+// 底栏三列严格居中对称 (x=400..1760：C1 400..800，C2 880..1280 中心严格对齐 x=1080，C3 1360..1760，BAR_H=70)
 const C1_X = 400;
-const C2_X = 916;
-const C3_X = 1432;
-const BAR_W = 480;
-const BAR_Y = 784;
+const C2_X = 880;
+const C3_X = 1360;
+const BAR_W = 400;
+const BAR_Y = 786;
 const BAR_H = 62;
-const CARD_W = 328;
+const CARD_W = 400;
 
 const CLOSE_FRAG = /* glsl */ `
 ${GLSL_OKLAB_MATH}
@@ -30,6 +30,9 @@ uniform float uHeroGrow;
 uniform float uSnap;
 uniform float uBlueOn;
 uniform float uCardOn;
+uniform float uCalibSweep;
+uniform float uCardGlow;
+uniform float uCurveTrace;
 uniform float uSrgbY;
 uniform float uSrgbH;
 uniform float uLinY;
@@ -59,72 +62,82 @@ void main() {
     alpha = max(alpha, mL * uEnter);
   }
 
-  // 2) Oklab 主角条带：待机期纯净深暗空轨（绝不显 0.22 泥褐），3.8s 起居中幕布拉开明艳色带
-  float mO = roundBoxMask(p, vec2(x0, uOkY), vec2(w, uOkH), 10.0);
-  if (mO > 0.001 && u >= 0.0 && u <= 1.0) {
-    float dC = abs(u - 0.5) * 2.0;
-    float curtain = uHeroGrow > 0.01 ? (1.0 - smoothstep(uHeroGrow * 1.08 - 0.08, uHeroGrow * 1.08, dC)) : 0.0;
-    float glint = exp(-pow((dC - uHeroGrow) * 16.0, 2.0)) * smoothstep(0.02, 0.2, uHeroGrow) * (1.0 - smoothstep(0.88, 1.0, uHeroGrow));
-    vec3 okFill = mix(C_INK * 0.85, evalRedGreenOklab(u), curtain) + C_BONE * (0.26 * glint);
-    col = mix(col, okFill, mO * uEnter);
-    alpha = max(alpha, mO * uEnter);
-  }
-  float eO = roundBoxEdge(p, vec2(x0, uOkY), vec2(w, uOkH), 10.0, 1.8);
-  if (eO > 0.001) {
-    col = mix(col, mix(C_GRAPHITE * 0.58, C_BONE * 0.90, uHeroGrow), eO * mix(0.32, 0.95, uHeroGrow) * uEnter);
-    alpha = max(alpha, eO * mix(0.32, 0.95, uHeroGrow) * uEnter);
+  // 2) Oklab 主角条带：待机期 (t < 3.55s) 绝不占位画空心黑框，伴随 heroGrow 居中弹簧展开并拉开明艳色带
+  if (uHeroGrow > 0.01 && uOkH > 2.0) {
+    float mO = roundBoxMask(p, vec2(x0, uOkY), vec2(w, uOkH), 10.0);
+    if (mO > 0.001 && u >= 0.0 && u <= 1.0) {
+      float dC = abs(u - 0.5) * 2.0;
+      float curtain = 1.0 - smoothstep(uHeroGrow * 1.08 - 0.08, uHeroGrow * 1.08, dC);
+      float glint = exp(-pow((dC - uHeroGrow) * 16.0, 2.0)) * smoothstep(0.02, 0.2, uHeroGrow) * (1.0 - smoothstep(0.88, 1.0, uHeroGrow));
+      vec3 okFill = mix(C_INK * 0.85, evalRedGreenOklab(u), curtain) + C_BONE * (0.26 * glint);
+      float sheenWin = smoothstep(0.0, 0.12, uCalibSweep) * (1.0 - smoothstep(0.88, 1.0, uCalibSweep));
+      float sheen = exp(-pow((u - uCalibSweep) * 14.0, 2.0)) * sheenWin;
+      okFill += C_BONE * (0.28 * sheen);
+      col = mix(col, okFill, mO * uHeroGrow * uEnter);
+      alpha = max(alpha, mO * uHeroGrow * uEnter);
+    }
+    float eO = roundBoxEdge(p, vec2(x0, uOkY), vec2(w, uOkH), 10.0, 1.8);
+    if (eO > 0.001) {
+      col = mix(col, C_BONE * 0.90, eO * 0.95 * uHeroGrow * uEnter);
+      alpha = max(alpha, eO * 0.95 * uHeroGrow * uEnter);
+    }
   }
 
-  // 3) 曲线凹陷底衬 (gTop=468, gBot=714, gH=222 全段恒定，均分上下呼吸)
-  float gBot = 714.0;
-  float gTop = 468.0;
-  float gH = 222.0;
-  float gMask = roundBoxMask(p, vec2(x0, gTop), vec2(w, 254.0), 8.0);
+  // 3) 曲线凹陷底衬：gBot 从 824 动态收至 696，顶部预留 34px 呼吸净空，纵轴 L ∈ [0.48, 0.89]
+  float gTop = mix(408.0, 468.0, uHeroGrow);
+  float gBot = mix(824.0, 696.0, uBlueOn);
+  float gBoxH = max(160.0, gBot - gTop);
+  float gH = max(120.0, gBoxH - 34.0);
+  float gMask = roundBoxMask(p, vec2(x0, gTop), vec2(w, gBoxH), 8.0);
   if (gMask > 0.001) {
     col = mix(col, C_INK * 0.76, gMask * 0.72 * uEnter);
     alpha = max(alpha, gMask * 0.72 * uEnter);
   }
-  float egMask = roundBoxEdge(p, vec2(x0, gTop), vec2(w, 254.0), 8.0, 1.0);
+  float egMask = roundBoxEdge(p, vec2(x0, gTop), vec2(w, gBoxH), 8.0, 1.0);
   if (egMask > 0.001) {
     col = mix(col, C_GRAPHITE * 0.85, egMask * 0.55 * uEnter);
     alpha = max(alpha, egMask * 0.55 * uEnter);
   }
 
-  if (gMask > 0.001 && u >= 0.0 && u <= 1.0 && uSnap > 0.01) {
+  if (gMask > 0.001 && u >= 0.0 && u <= 1.0) {
     vec3 srgbLin = evalRedGreenSrgb(u);
     float sL = linToOklab(srgbLin).x;
     float oL = mix(0.6280, 0.8664, u);
+    float ySrgb = gBot - clamp((sL - 0.48) / 0.41, 0.0, 1.0) * gH;
+    float yIdeal = gBot - clamp((oL - 0.48) / 0.41, 0.0, 1.0) * gH;
     float curL = mix(sL, oL, uSnap);
-    float ySrgb = gBot - clamp((sL - 0.52) / 0.38, 0.0, 1.0) * gH;
-    float yCur = gBot - clamp((curL - 0.52) / 0.38, 0.0, 1.0) * gH;
-    if (p.y >= yCur && p.y <= ySrgb) {
+    float yCur = gBot - clamp((curL - 0.48) / 0.41, 0.0, 1.0) * gH;
+    if (u <= uCurveTrace && uSnap < 0.99 && p.y >= yIdeal && p.y <= ySrgb) {
+      col = mix(col, C_SIGNAL, 0.14 * (1.0 - uSnap) * smoothstep(0.0, 0.04, u) * uEnter);
+    }
+    if (uSnap > 0.01 && p.y >= yCur && p.y <= ySrgb) {
       col = mix(col, C_SIGNAL, 0.22 * uSnap * uEnter);
     }
   }
 
-  // 4) 同轴底部辅证三栏 (x=400..1760, y=784..846 等高齐平)：7.8s 起才展开蓝白带与规格卡，杜绝提前空黑框占位
+  // 4) 同轴底部辅证三栏 (x=400..1760：C1 400..800，C2 880..1280 居中对齐 midX=1080，C3 1360..1760，h=70)
   if (uBlueOn > 0.005) {
-    float mCie = roundBoxMask(p, vec2(400.0, 784.0), vec2(480.0, 62.0), 8.0);
+    float mCie = roundBoxMask(p, vec2(400.0, 786.0), vec2(400.0, 62.0), 8.0);
     if (mCie > 0.001) {
-      float bu = sat((p.x - 400.0) / 480.0);
+      float bu = sat((p.x - 400.0) / 400.0);
       vec3 cieShow = evalBlueWhiteCielab(bu) * 0.86;
       col = mix(col, cieShow, mCie * uBlueOn * uEnter);
       alpha = max(alpha, mCie * uBlueOn * uEnter);
     }
-    float eCie = roundBoxEdge(p, vec2(400.0, 784.0), vec2(480.0, 62.0), 8.0, 1.2);
+    float eCie = roundBoxEdge(p, vec2(400.0, 786.0), vec2(400.0, 62.0), 8.0, 1.2);
     if (eCie > 0.001) {
       col = mix(col, C_GRAPHITE * 1.12, eCie * 0.85 * uBlueOn * uEnter);
       alpha = max(alpha, eCie * 0.85 * uBlueOn * uEnter);
     }
 
-    float mOkB = roundBoxMask(p, vec2(916.0, 784.0), vec2(480.0, 62.0), 8.0);
+    float mOkB = roundBoxMask(p, vec2(880.0, 786.0), vec2(400.0, 62.0), 8.0);
     if (mOkB > 0.001) {
-      float bu = sat((p.x - 916.0) / 480.0);
+      float bu = sat((p.x - 880.0) / 400.0);
       vec3 okbShow = evalBlueWhiteOklab(bu) * 0.90;
       col = mix(col, okbShow, mOkB * uBlueOn * uEnter);
       alpha = max(alpha, mOkB * uBlueOn * uEnter);
     }
-    float eOkB = roundBoxEdge(p, vec2(916.0, 784.0), vec2(480.0, 62.0), 8.0, 1.4);
+    float eOkB = roundBoxEdge(p, vec2(880.0, 786.0), vec2(400.0, 62.0), 8.0, 1.4);
     if (eOkB > 0.001) {
       col = mix(col, C_BONE * 0.72, eOkB * 0.90 * uBlueOn * uEnter);
       alpha = max(alpha, eOkB * 0.90 * uBlueOn * uEnter);
@@ -132,15 +145,16 @@ void main() {
   }
 
   if (uCardOn > 0.005) {
-    float mCard = roundBoxMask(p, vec2(1432.0, 784.0), vec2(328.0, 62.0), 8.0);
+    float mCard = roundBoxMask(p, vec2(1360.0, 786.0), vec2(400.0, 62.0), 8.0);
     if (mCard > 0.001) {
       col = mix(col, C_INK * 0.92, mCard * 0.82 * uCardOn * uEnter);
       alpha = max(alpha, mCard * 0.82 * uCardOn * uEnter);
     }
-    float eCard = roundBoxEdge(p, vec2(1432.0, 784.0), vec2(328.0, 62.0), 8.0, 1.2);
+    float eCard = roundBoxEdge(p, vec2(1360.0, 786.0), vec2(400.0, 62.0), 8.0, 1.2);
     if (eCard > 0.001) {
-      col = mix(col, C_GRAPHITE * 1.1, eCard * 0.75 * uCardOn * uEnter);
-      alpha = max(alpha, eCard * 0.75 * uCardOn * uEnter);
+      vec3 ecCol = mix(C_GRAPHITE * 1.1, C_BONE * 0.92, uCardGlow * 0.75);
+      col = mix(col, ecCol, eCard * (0.75 + 0.20 * uCardGlow) * uCardOn * uEnter);
+      alpha = max(alpha, eCard * (0.75 + 0.20 * uCardGlow) * uCardOn * uEnter);
     }
   }
 
@@ -157,6 +171,9 @@ export default makeShot('close', {
       uSnap: 0,
       uBlueOn: 0,
       uCardOn: 0,
+      uCalibSweep: 0,
+      uCardGlow: 0,
+      uCurveTrace: 0,
       uSrgbY: 224,
       uSrgbH: 26,
       uLinY: 260,
@@ -177,21 +194,25 @@ export default makeShot('close', {
     const curveTrace = smoothstep(0.25, 2.85, t);
     const tipFadeOut = 1 - smoothstep(2.85, 3.25, t);
     const returnMid = smoothstep(2.85, 3.70, t);
-    const midReady = smoothstep(1.60, 2.25, t);
+    const midReady = smoothstep(3.15, 3.75, t);
 
-    const heroGrow = smoothstep(3.8, 5.4, t);
+    const heroGrow = smoothstep(3.55, 5.20, t);
+    const blueOn = sat(smoothstep(5.4, 6.7, t));
     const snap = sat(spring((t - 7.35) * 1.9, 1, 120, 14));
-    const blueOn = sat(smoothstep(7.8, 8.9, t));
-    const sweepBlueU = t < 8.6 ? 0.15 : lerp(0.15, 0.50, smoothstep(8.6, 11.2, t));
-    const finA = sat(spring((t - 10.4) * 2.0, 1, 120, 15));
+    const sweepBlueU = t < 6.4 ? 0.15 : lerp(0.15, 0.50, smoothstep(6.4, 10.2, t));
+    const finA = sat(spring((t - 6.7) * 2.0, 1, 120, 15));
+    const calibSweep = smoothstep(8.4, 10.4, t);
+    const alignPulse = smoothstep(10.2, 10.9, t) * (1 - 0.65 * smoothstep(11.6, 12.4, t));
+    const cardGlow = smoothstep(10.4, 11.2, t) * (1 - 0.65 * smoothstep(11.8, 12.5, t));
     const endFade = prog(f.lt, Math.max(0, (f.end - f.start) - 0.85), f.end - f.start);
 
+    // 待机期 (t < 3.55s) 由 sRGB 与 Linear 各以 74px 高撑满上半区、下接动态图框 (gTop=408..gBot=824)；5.4s 起底栏居中 3 列对接
     const srgbY = 224;
-    const srgbH = 26;
-    const linY = 260;
-    const linH = 26;
-    const okY = lerp(312, 306, heroGrow);
-    const okH = lerp(68, 128, heroGrow);
+    const srgbH = lerp(74, 26, heroGrow);
+    const linY = lerp(310, 260, heroGrow);
+    const linH = lerp(74, 26, heroGrow);
+    const okY = lerp(380, 306, heroGrow);
+    const okH = lerp(4, 128, heroGrow);
 
     this.pass.set({
       uOffset: [dx, dy],
@@ -200,6 +221,9 @@ export default makeShot('close', {
       uSnap: snap,
       uBlueOn: blueOn,
       uCardOn: finA,
+      uCalibSweep: calibSweep,
+      uCardGlow: cardGlow,
+      uCurveTrace: curveTrace,
       uSrgbY: srgbY,
       uSrgbH: srgbH,
       uLinY: linY,
@@ -210,14 +234,43 @@ export default makeShot('close', {
 
     lines.begin();
     const ox = X0 + dx;
-    const gBot = 714 + dy;
-    const gH = 222;
-    const yAtL = (val) => gBot - sat((val - 0.52) / 0.38) * gH;
+    const gTop = lerp(408, 468, heroGrow) + dy;
+    const gBot = lerp(824, 696, blueOn) + dy;
+    const gH = Math.max(120, gBot - gTop - 34);
+    const yAtL = (val) => gBot - sat((val - 0.48) / 0.41) * gH;
 
-    lines.seg(ox, gBot, ox + W_STRIP, gBot, 1.2, withAlpha(P.graphite, 0.55 * vis));
-    lines.seg(ox, yAtL(0.8664) - 10, ox, gBot, 1.2, withAlpha(P.graphite, 0.55 * vis));
+    lines.seg(ox, Math.min(gTop + 12, yAtL(0.8664) - 10), ox, gBot, 1.2, withAlpha(P.graphite, 0.55 * vis));
     lines.seg(ox - 8, yAtL(0.8664), ox, yAtL(0.8664), 1.6, withAlpha(P.ash, 0.72 * vis));
     lines.seg(ox - 8, yAtL(0.6280), ox, yAtL(0.6280), 1.6, withAlpha(P.ash, 0.72 * vis));
+    if (snap > 0.1) {
+      lines.seg(ox - 8, yAtL(0.7472), ox, yAtL(0.7472), 1.8, withAlpha(P.signal, 0.88 * snap * k));
+    }
+    for (const lv of [0.6280, 0.7472, 0.8664]) {
+      const ylv = yAtL(lv);
+      const gc = lv === 0.7472 && snap > 0.1
+        ? withAlpha(P.signal, 0.34 * snap * k)
+        : withAlpha(P.graphite, 0.28 * vis);
+      if (lv === 0.7472 && snap > 0.1) {
+        const startX = ox + 432;
+        const maxX = ox + W_STRIP * 0.5;
+        const segs = 8;
+        for (let i = 0; i < segs; i++) {
+          if (i % 2 === 1) continue;
+          lines.seg(lerp(startX, maxX, i / segs), ylv, lerp(startX, maxX, (i + 1) / segs), ylv, 1.1, gc);
+        }
+      } else {
+        const maxX = ox + W_STRIP;
+        const segs = 26;
+        const avoidNum = t >= 3.25 && ylv >= gTop + 48 && ylv <= gTop + 136;
+        for (let i = 0; i < segs; i++) {
+          if (i % 2 === 1) continue;
+          const sx0 = lerp(ox, maxX, i / segs);
+          const sx1 = lerp(ox, maxX, (i + 1) / segs);
+          if (avoidNum && sx1 >= ox + 12 && sx0 <= ox + 428) continue;
+          lines.seg(sx0, ylv, sx1, ylv, 1.1, gc);
+        }
+      }
+    }
 
     const steps = 64;
     if (curveTrace > 0.005) {
@@ -231,6 +284,9 @@ export default makeShot('close', {
         const sL1 = linToOklab(l1, g1, 0)[0];
         const okL0 = lerp(0.6280, 0.8664, u0);
         const okL1 = lerp(0.6280, 0.8664, u1);
+        if (i % 2 === 0 && snap < 0.05) {
+          lines.seg(ox + u0 * W_STRIP, yAtL(okL0), ox + u1 * W_STRIP, yAtL(okL1), 1.5, withAlpha(P.bone, 0.36 * (1 - snap / 0.05) * vis));
+        }
         if (i % 2 === 0 && snap > 0.02) {
           lines.seg(ox + u0 * W_STRIP, yAtL(sL0), ox + u1 * W_STRIP, yAtL(sL1), 1.6, withAlpha(P.ash, 0.42 * k));
         }
@@ -251,11 +307,11 @@ export default makeShot('close', {
       const tR = srgbToLinScalar(1 - curveTrace), tG = srgbToLinScalar(curveTrace);
       const tipL = linToOklab(tR, tG, 0)[0];
       const tipY = yAtL(tipL);
-      lines.seg(tipX, tipY, tipX, gBot, 1.4, withAlpha(P.bone, 0.35 * tipFadeOut * k));
+      lines.seg(tipX, tipY, tipX, yAtL(lerp(0.6280, 0.8664, curveTrace)), 1.4, withAlpha(P.bone, 0.42 * tipFadeOut * k));
       lines.fillCircle(tipX, tipY, 6.5, withAlpha(P.bone, tipFadeOut * k));
     }
 
-    // 中点锚定与引导：外沿刻度绝不穿条带或穿图框，折线直指中点读数（含 L=0.581 橙色引线）
+    // 中点锚定与引导：hero 居中框 + 断开 C2 色带的垂直同轴对准线 (x=1080)
     const midX = ox + W_STRIP * 0.5;
     const midL = lerp(0.5807, 0.7472, snap);
     const midY = yAtL(midL);
@@ -271,31 +327,38 @@ export default makeShot('close', {
       lines.seg(ox - 7, yDip, ox, yDip, 2.0, withAlpha(P.signal, dipGuideA));
     }
     if (heroGrow > 0.1) {
-      // 下外沿引线止于 464（在图框顶边 468 之前干净收止）
-      lines.seg(midX, okY + okH + dy + 2, midX, 464 + dy, 1.8, withAlpha(P.bone, 0.65 * heroGrow * k));
+      lines.seg(midX, okY + okH + dy + 2, midX, gTop - 4, 1.8, withAlpha(P.bone, (0.65 + 0.35 * alignPulse) * heroGrow * k));
     }
-    const dipCalloutA = sat((t - 0.9) / 0.55) * (1 - snap) * k;
+    if (snap > 0.05) {
+      lines.rect(midX - 24, okY + dy - 3, 48, okH + 6, 1.8, withAlpha(P.bone, 0.85 * snap * k));
+    }
+    const calloutY = gTop + 82;
+    const calloutStartX = ox + 432;
+    const dipCalloutA = sat((t - 3.30) / 0.45) * (1 - snap) * k;
     if (dipCalloutA > 0.02) {
-      lines.seg(midX - 18, 538 + dy, midX, 538 + dy, 1.4, withAlpha(P.signal, 0.45 * dipCalloutA));
-      lines.seg(midX, 538 + dy, midX, yDip, 1.4, withAlpha(P.signal, 0.45 * dipCalloutA));
+      lines.seg(calloutStartX, calloutY, midX, calloutY, 1.4, withAlpha(P.signal, 0.45 * dipCalloutA));
+      lines.seg(midX, calloutY, midX, yDip, 1.4, withAlpha(P.signal, 0.45 * dipCalloutA));
     }
     if (midReady > 0.02) {
-      // 从中点左侧 72px 读数右端折线指向 (midX, midY)
-      lines.seg(midX - 18, 538 + dy, midX, 538 + dy, 1.4, withAlpha(P.bone, 0.45 * snap * k));
-      lines.seg(midX, 538 + dy, midX, midY, 1.4, withAlpha(P.bone, 0.45 * snap * k));
       lines.fillCircle(midX, midY, 8 * midReady, withAlpha(P.signal, midReady * k));
+    }
+    if (alignPulse > 0.02) {
+      // 直抵 C2 色带顶沿 (x=1080 在 C2 标签右方 75px 净空，绝不遮字) 并续接 RAIL_BOX
+      lines.seg(midX, gBot + 4, midX, BAR_Y + dy - 4, 1.6, withAlpha(P.bone, 0.45 * alignPulse * k));
+      lines.seg(midX, BAR_Y + BAR_H + dy + 6, midX, RAIL_BOX.y + dy - 8, 1.6, withAlpha(P.bone, 0.55 * alignPulse * k));
+      lines.circle(midX, midY, 12 + 4 * alignPulse, 1.8, withAlpha(P.bone, 0.75 * alignPulse * k));
     }
 
     if (blueOn > 0.02) {
       const c1CurX = C1_X + sweepBlueU * BAR_W + dx;
       const c2CurX = C2_X + sweepBlueU * BAR_W + dx;
-      lines.seg(c1CurX, BAR_Y + dy - 4, c1CurX, BAR_Y + BAR_H + dy + 4, 2.2, withAlpha(P.signal, blueOn * k));
-      lines.seg(c2CurX, BAR_Y + dy - 4, c2CurX, BAR_Y + BAR_H + dy + 4, 4.2, withAlpha(P.ink, 0.85 * blueOn * k));
-      lines.seg(c2CurX, BAR_Y + dy - 4, c2CurX, BAR_Y + BAR_H + dy + 4, 2.0, withAlpha(P.bone, blueOn * k));
+      lines.seg(c1CurX, BAR_Y + dy - 2, c1CurX, BAR_Y + BAR_H + dy + 2, 2.2, withAlpha(P.signal, blueOn * k));
+      lines.seg(c2CurX, BAR_Y + dy - 2, c2CurX, BAR_Y + BAR_H + dy + 2, 4.2, withAlpha(P.ink, 0.85 * blueOn * k));
+      lines.seg(c2CurX, BAR_Y + dy - 2, c2CurX, BAR_Y + BAR_H + dy + 2, 2.0, withAlpha(P.bone, blueOn * k));
     }
 
-    // 标尺透度始终用 k，保证 t=85.00s 切点不断并由前段 0.50 平滑归零展开
-    const railU = t < 0.25 ? lerp(0.50, 0.0, smoothstep(0, 0.25, t)) : t < 2.85 ? curveTrace : t < 3.8 ? lerp(1.0, 0.50, returnMid) : t < 8.6 ? 0.50 : sweepBlueU;
+    // 标尺平滑承接上一镜 0.0 -> 0.25..2.85 随曲线扫至 1.0 -> 3.80 后稳锁中点 0.50
+    const railU = t < 0.25 ? 0.0 : t < 2.85 ? curveTrace : t < 3.8 ? lerp(1.0, 0.50, returnMid) : 0.50;
     drawSpectrumRail(ctx, { ...RAIL_BOX, probeU: railU, alpha: k, dx, dy });
     lines.flush(ctx.out);
 
@@ -308,55 +371,64 @@ export default makeShot('close', {
       t, alpha: vis, dx, dy,
     });
 
-    type.writeLine('sRGB (128,128,0)', 160 + dx, 244 + dy, {
-      anchor: 'left', size: 20, weight: 600, family: 'mono', color: css(P.bone, (0.95 - 0.35 * heroGrow) * labRefA),
+    const srgbLabelY = srgbY + srgbH * 0.5 + 7 + dy;
+    const linLabelY = linY + linH * 0.5 + 7 + dy;
+    type.writeLine('sRGB (128,128,0)', 160 + dx, srgbLabelY, {
+      anchor: 'left', size: 20, weight: 600, family: 'mono', color: css(mul(P.bone, lerp(0.96, 0.56, heroGrow)), labRefA),
     });
-    type.writeLine('Linear (188,188,0)', 160 + dx, 280 + dy, {
-      anchor: 'left', size: 20, weight: 600, family: 'mono', color: css(P.bone, (0.92 - 0.30 * heroGrow) * labRefA),
+    type.writeLine('Linear (188,188,0)', 160 + dx, linLabelY, {
+      anchor: 'left', size: 20, weight: 600, family: 'mono', color: css(mul(P.bone, lerp(0.92, 0.58, heroGrow)), labRefA),
     });
 
     const okLabelY = okY + okH * 0.5 + 7 + dy;
-    if (heroGrow > 0.15) {
+    if (heroGrow > 0.08) {
       type.writeLine('Oklab (208,168,0)', 160 + dx, okLabelY, {
         anchor: 'left', size: 20, weight: 700, family: 'mono', color: css(P.bone, heroGrow * labOkA),
       });
-    } else {
-      type.writeLine('Oklab', 160 + dx, okLabelY, {
-        anchor: 'left', size: 20, weight: 700, family: 'mono', color: css(P.ash, 0.55 * labOkA),
-      });
     }
 
-    // 主数字群落直挂中点 x=1080 左侧安全区（远离左端，inFocus #1）
-    type.writeLine('感知亮度 L: 0.628 → 0.866', midX - 28, 494 + dy, {
-      anchor: 'right', size: 20, weight: 500, family: 'sans', color: css(P.ash, 0.88 * labOkA),
+    // 主数字群落左对齐于图区左上净空（纵轴刻度 0.866 / 0.747 / 0.628 置于轴外 ox-14 纳入 FOCUS_CLOSE）
+    type.writeLine('0.866', ox - 14, yAtL(0.8664) + 6, {
+      anchor: 'right', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.78 * vis),
     });
-    const preSnapA = sat((t - 0.9) / 0.55) * (1 - snap) * k;
+    if (snap > 0.1) {
+      type.writeLine('0.747', ox - 14, yAtL(0.7472) + 6, {
+        anchor: 'right', size: 20, weight: 600, family: 'mono', color: css(P.signal, 0.92 * snap * k),
+      });
+    }
+    type.writeLine('0.628', ox - 14, yAtL(0.6280) + 6, {
+      anchor: 'right', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.78 * vis),
+    });
+    type.writeLine('感知亮度 L: 0.628 → 0.866', ox + 20, gTop + 26, {
+      anchor: 'left', size: 20, weight: 500, family: 'sans', color: css(P.ash, 0.88 * labOkA),
+    });
+    const preSnapA = sat((t - 3.30) / 0.45) * (1 - snap) * k;
     if (preSnapA > 0.02) {
-      type.writeLine('L = 0.581', midX - 28, 562 + dy, {
-        anchor: 'right', size: 72, weight: 800, family: 'mono', color: css(P.signal, preSnapA),
+      type.writeLine('L = 0.581', ox + 20, gTop + 116, {
+        anchor: 'left', size: 72, weight: 800, family: 'mono', color: css(P.signal, preSnapA),
       });
     }
     if (snap > 0.02) {
-      type.writeLine('L = 0.747', midX - 28, 562 + (1 - snap) * 14 + dy, {
-        anchor: 'right', size: 72, weight: 800, family: 'mono', color: css(P.bone, snap * k),
+      type.writeLine('L = 0.747', ox + 20, gTop + 116 + (1 - snap) * 14, {
+        anchor: 'left', size: 72, weight: 800, family: 'mono', color: css(P.bone, snap * k),
       });
     }
 
-    // 底部同轴三列 x=400..1760 (inFocus #2: 齐高 BAR_Y=784..846 + 左对齐规格卡)
+    // 底部同轴居中三列 x=400..1760 (C2 中心严格等于 1080 = midX)
     if (blueOn > 0.02) {
-      type.writeLine('CIELAB · 偏紫', C1_X + dx, 774 + dy, {
+      type.writeLine('CIELAB · 偏紫', C1_X + dx, 772 + dy, {
         anchor: 'left', size: 20, weight: 600, family: 'sans', color: css(P.bone, 0.88 * blueOn * k),
       });
-      type.writeLine('Oklab · 蓝→白', C2_X + dx, 774 + dy, {
+      type.writeLine('Oklab · 蓝→白', C2_X + dx, 772 + dy, {
         anchor: 'left', size: 20, weight: 700, family: 'sans', color: css(P.bone, 0.94 * blueOn * k),
       });
     }
 
     if (finA > 0.02) {
-      type.writeLine('Oklab · 2020', C3_X + 24 + dx, 808 + dy, {
+      type.writeLine('Oklab · 2020', C3_X + 24 + dx, 807 + dy, {
         anchor: 'left', size: 20, weight: 700, family: 'mono', color: css(P.bone, 0.92 * finA * k),
       });
-      type.writeLine('CSS Color 4 · oklab()', C3_X + 24 + dx, 834 + dy, {
+      type.writeLine('CSS Color 4 · oklab()', C3_X + 24 + dx, 836 + dy, {
         anchor: 'left', size: 20, weight: 500, family: 'mono', color: css(P.ash, 0.92 * finA * k),
       });
     }

@@ -71,7 +71,7 @@ export default {
       stateDiff: '物理均匀基准线展开出感知偏差波形',
       relayTo: 'spectrum-rail',
       onscreen: ['03 · 线性光限度', '(188,188,0)', '物理 50% ≠ 感知均匀'],
-      build: { shot: 'compare', why: '辅助过渡对比可用 compare 模板并接回标尺母题' },
+      build: 'custom',
     },
     {
       id: 'oklab_mech',
@@ -103,7 +103,7 @@ export default {
       stateDiff: '红绿轴切换为蓝白轴，引入 CSS Color 4 标准写法',
       relayTo: 'spectrum-rail',
       onscreen: ['05 · CSS Color 4', 'CIELAB 偏紫', 'oklab() / oklch()'],
-      build: { shot: 'scan', why: '单句 8s 短过渡段用扫频模板连接机制与收尾' },
+      build: 'custom',
     },
     {
       id: 'close',
