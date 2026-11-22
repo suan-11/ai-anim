@@ -13,8 +13,8 @@ export default makeShot('hook',{
     ctx.setXform({scale:zoom,anchor:[CX,CY]});
     lines.begin();
     // 井口（暗框）
-    lines.rect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,3,withAlpha(P.graphite,0.8));
-    lines.fillRect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,withAlpha(P.ink,0.5));
+    lines.rect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,3,withAlpha(P.ash,0.9));
+    lines.fillRect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,withAlpha(P.graphite,0.18));
     // 方盖（旋转 + 掉落）
     const cs=Math.cos(rot),sn=Math.sin(rot); const hw=LID/2;
     const corners=[[-hw,-hw],[hw,-hw],[hw,hw],[-hw,hw]].map(([x,y])=>[CX+x*cs-y*sn, CY+x*sn+y*cs+drop]);

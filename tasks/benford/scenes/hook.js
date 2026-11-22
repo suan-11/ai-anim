@@ -22,7 +22,7 @@ export default makeShot('hook', {
       const v = UNIFORM[i] + (BENFORD[i]-UNIFORM[i])*k;
       const h = v*maxH*2.6; // 放大显示
       const b = bars[i];
-      const col = i===0 ? withAlpha(P.signal, 0.95) : withAlpha(P.bone, 0.75);
+      const col = i===0 ? withAlpha(P.signal, 0.95) : withAlpha(P.bone, 0.92);
       lines.fillRect(b.x-b.bw/2, b.baseY-h, b.bw, h, col);
       // 数字标签
     }

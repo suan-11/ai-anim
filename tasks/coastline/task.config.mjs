@@ -3,7 +3,7 @@ import { seq, cut } from '../../src/timeline.js'; import { worldPass } from '../
 import hook from './scenes/hook.js'; import bridge from './scenes/bridge.js'; import mechanism from './scenes/mechanism.js'; import data from './scenes/data.js'; import close from './scenes/close.js';
 export const world=(ctx)=>worldPass(ctx,{motif:'auto',vignette:0.4});
 const F={x:160,y:250,w:1600,h:560};
-export default { title:'这条海岸线，量不准', width:1920,height:1080,fps:24,scale:1, style:{name:'blueprint',grid:{pad:120}}, captions:true,
+export default { title:'这条海岸线，量不准', width:1920,height:1080,fps:24,scale:1, style:{name:'paper',grid:{pad:120}}, captions:true,
   timeline:seq([
     cut(hook,{id:'hook',at:0,dur:4,handlesTransition:true,world:'auto',focus:F,state:{diff:['position']},relayTo:'coast'}),
     cut(bridge,{id:'bridge',at:4,dur:5,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape']},relayTo:'coast'}),

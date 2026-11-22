@@ -26,7 +26,7 @@ export default makeShot('mechanism',{
     if(k>0.5){ const ba=smoothstep(0.5,1,k); lines.fillRect(x1,axY-30,x2-x1,60,withAlpha(P.signal,0.25*ba)); lines.rect(x1,axY-30,x2-x1,60,2,withAlpha(P.signal,ba)); }
     // 下方九柱（本福特）
     lines.seg(140,bars[0].baseY,W-140,bars[0].baseY,1.5,withAlpha(P.graphite,0.6));
-    for(let i=0;i<9;i++){ const h=BENFORD[i]*maxH*2.6; const b=bars[i]; lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,i===0?withAlpha(P.signal,0.9):withAlpha(P.bone,0.7)); }
+    for(let i=0;i<9;i++){ const h=BENFORD[i]*maxH*2.6; const b=bars[i]; lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,i===0?withAlpha(P.signal,0.9):withAlpha(P.bone,0.92)); }
     lines.flush(ctx.out);
     text.clear();
     for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+30,{anchor:'center',size:28,color:css(P.ash,0.8)});}

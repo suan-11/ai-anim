@@ -11,7 +11,7 @@ export default makeShot('close',{
     const bars=barLayout(W,H); const maxH=H-380;
     lines.begin();
     lines.seg(140,bars[0].baseY,W-140,bars[0].baseY,1.5,withAlpha(P.graphite,0.6));
-    for(let i=0;i<9;i++){const h=BENFORD[i]*maxH*2.6;const b=bars[i];lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,i===0?withAlpha(P.signal,0.85):withAlpha(P.bone,0.7));}
+    for(let i=0;i<9;i++){const h=BENFORD[i]*maxH*2.6;const b=bars[i];lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,i===0?withAlpha(P.signal,0.85):withAlpha(P.bone,0.92));}
     lines.flush(ctx.out);
     text.clear();
     for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+30,{anchor:'center',size:28,color:css(P.ash,0.8)});}
