@@ -98,9 +98,25 @@
 
 | 编号 | 事 | 状态 / 落地位置 | 出处 |
 |---|---|---|---|
-| ~~1-83~~ | **已做（2026-11-21）**：讲解片四步两停规范与手艺标杆 —— 新增 [CRAFT.md](CRAFT.md)（几何/数值手艺规范）、[CRAFT-RUBRIC.md](CRAFT-RUBRIC.md)（8 维评分表 + 防放水 + 派单模板）、[BAR.md](BAR.md)（反面样本 `anti-light-seconds-t10.png` / `anti-optifine-t120.png`）；同步更新 [AGENTS.md](../AGENTS.md) §0.6/§2/§9/§10、[SKILL.md](../skills/ai-anim/SKILL.md)、[SCENE-BRIEF-TEMPLATE.md](SCENE-BRIEF-TEMPLATE.md) §11、`scripts/cmd/new.mjs` | 已完成（正面标杆待 `oklab` 风格帧确认后补入 BAR.md） | 首版即成片计划第一阶段 |
+| ~~1-83~~ | **已做（2026-11-21）**：讲解片四步两停规范与手艺标杆 —— 新增 [CRAFT.md](CRAFT.md)（几何/数值手艺规范）、[CRAFT-RUBRIC.md](CRAFT-RUBRIC.md)（8 维评分表 + 防放水 + 派单模板）、[BAR.md](BAR.md)（反面样本 `anti-light-seconds-t10.png` / `anti-optifine-t120.png`）；同步更新 [AGENTS.md](../AGENTS.md) §0.6/§2/§9/§10、[SKILL.md](../skills/ai-anim/SKILL.md)、[SCENE-BRIEF-TEMPLATE.md](SCENE-BRIEF-TEMPLATE.md) §11、`scripts/cmd/new.mjs` | 已完成（2026-11-22 `8641e3d` 已补齐 oklab 3 帧正面标杆、CRAFT.md §8 防返工 6 条、anim cues 与 scene-harness 离线双预检） | 首版即成片计划第一阶段 |
 | ~~1-84~~ | **已做（2026-11-21）**：结构化分镜校验 `anim brief <任务>`（`scripts/lib/brief-lint.mjs` + `scripts/cmd/brief.mjs`）与偷懒检测 `tools/lint-craft.mjs`（`tools/lib/craft-signals.mjs`，9 个 `CRAFT-*` 信号，默认只报不进 `check`，`CRAFT-TEXTONLY` 暂未接线）；离线单测 `test-brief-lint` + `test-craft` 进 CI | 已完成 | 首版即成片计划第二阶段 |
 | ~~1-85~~ | **已做（2026-11-21）**：独立审查评审包 `anim review <任务>`（`scripts/cmd/review.mjs`）：三帧 `--samples auto` + board + cuts + `lint-craft` 读数 + 空白评分表 + 派单模板落 `out/<任务>/review/round-N/index.md` | 已完成 | 首版即成片计划第二阶段 |
+
+### 1.J 叙事节奏与开头钩子评估（盘点 + 缺口 1-86～1-87）
+
+> **2026-11-22 盘点**：当前引擎已具备「分镜前置门禁 → 画面手艺与独立审查 → 时间线/成片量化指标」三层叙事节奏与开头钩子评价标准，重点覆盖**视觉钩子、剪辑节奏与单段叙事推进**：
+> - **分镜前置门禁（`anim brief` / `scripts/lib/brief-lint.mjs`）**：必填 `role: 'hook'` 与 `'close'`；`hook` / `mechanism` / `close` 三个主角段必须手写（`build: 'custom'`）；每段必填 `peak: { at, what }` 与 `relayTo`（除末段外）。
+> - **画面手艺与独立审查（[CRAFT.md](CRAFT.md) §5/§7/§8.3 · [CRAFT-RUBRIC.md](CRAFT-RUBRIC.md) · [BAR.md](BAR.md)）**：`hook` 第 1 秒直接抛反常现象或矛盾结果（严禁模板黑底居中大字淡入），`close` 回扣开场视觉母题闭环；每段唯一高光峰值且 `p15` 不提前剧透；独立审查 8 维普通段均分 ≥ 4.0 且无 ≤ 2 分，**`hook` / `close` 为硬门须 8 项全 ≥ 4 分**。
+> - **节奏与过程钩子量化指标**：
+>   - 镜头长度分布：`anim check` 静态腿 + `tools/lint-anti-ppt.mjs` C4，要求段长 `CoV ≥ 0.25`（防节拍器），每 30s 至少一段 ≥ 2.5s 呼吸镜头；
+>   - 过程钩子：`tools/lint-anti-ppt.mjs` C5，每 10s 窗口至少 1 次强事件（≤ 1.2s 冲击段 / `light`·`material` 状态差 / `wipe·iris·glitch·pixel` 转场；默认漏 ≤ 25%，`--strict` 0 漏）；
+>   - 画面活跃度与动静对比：`tools/lint-event-density.mjs`（已进 `check`：最长静止 ≤ 3.5s、稀薄 2s 窗口 ≤ 25%，对应 [RULES.md](RULES.md) R1）+ C7 运动节奏（已进 `check`：帧间差 `CV ≥ 0.30` 防匀速漂移）+ `anim rhythm`（死静帧 ≥ 25% 且最长真空静 hold ≥ 1.0s）；
+>   - 叙事推进与换气：[ANTI-PPT.md](ANTI-PPT.md) C1–C3（硬状态差 + 接力物 + 禁纯淡出）、[SCENE-BRIEF-TEMPLATE.md](SCENE-BRIEF-TEMPLATE.md) 每 20–40s 版面换气、[NARRATION.md](NARRATION.md) 旁白驱动段长与单段词锚点 ≤ 3。
+
+| 编号 | 事 | 从哪接着做 | 出处 |
+|---|---|---|---|
+| 1-86 | **脚本/文案层的叙事节奏与前 3 秒钩子评价标准** | 现有标准偏视觉与剪辑节奏，纯文案层面只有 `brief.logline ≤ 30 字`（`scripts/lib/brief-lint.mjs`）与去 AI 味（[RULES.md](RULES.md) C1）。**接着做**：定义前 3 秒信息差/悬念抓手、中段留存转折、信息递进坡度与话术钩子反例，扩充 `brief.mjs` 字段与校验规则或新增独立叙事 rubric 接入 `anim review`。**完成判据**：文档化标准 + 离线校验单测进 CI + 在 1 支样片上验证 | 2026-11-22 评价标准盘点 |
+| 1-87 | **节奏与过程钩子门禁收口** | `tools/lint-anti-ppt.mjs` 的 C4 呼吸窗 / C5 每 10s 过程钩子与 `anim rhythm` 静/动停顿目前仍需单独运行，尚未统一汇聚到 `anim check` / `anim review` 报告。**接着做**：评估按默认只报读数 / `--strict` 当门并依 `tools/lib/judge-tiers.mjs` 分层接入，保持存量任务退出码不变。**完成判据**：汇总读数落盘 + 离线回归全绿 | 2026-11-22 评价标准盘点 |
 
 ---
 

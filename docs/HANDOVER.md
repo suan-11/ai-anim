@@ -3,10 +3,24 @@
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >
-> **最后更新：2026-11-21**。**先读下面「2026-11-21」一节**（当前状态 + 待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
+> **最后更新：2026-11-22**。**先读下面「2026-11-22」一节**（当前状态 + 待决事项）。其余续接记录按时间倒序保留；分支、工作区、回归项数以实时 Git 为准。
 > 11-08 快照：拉齐上游 `9bd271a`；PR #3 / #5 均已合并；本页按 [`history/PLAN-2026-11-08.md`](history/PLAN-2026-11-08.md) A4 重写。
 > **2026-11-15**：`docs/PLAN-2026-11-08.md` 与 `docs/STATUS.md` §18–§19 **已归档/去重**，本页里的旧路径按 [history/](history/) 找。
 > 上一版描述的是**另一台机器**与 70/70 的旧状态，已作废。
+
+### 2026-11-22（oklab 标杆片过线 + 正面标杆 / anim cues / 离线双预检 + 叙事节奏与钩子盘点）
+
+**一句话**：`tasks/oklab` 6 段手写标杆片完成独立审查过线并补齐 `BAR.md` 正面标杆与防返工工具链（`fa1fb36`..`8641e3d`）；本轮完成引擎「叙事节奏与开头钩子」三层评价标准盘点并登记缺口 `1-86`/`1-87`，已推送至 `origin/master`。
+
+- **已入库变更（`fa1fb36` → `6981207` → `8641e3d`）**：
+  - `tasks/oklab`：6 段手写讲解片（`hook`/`gamma_trap`/`linear_limit`/`oklab_mech`/`css_bridge`/`close`），主模型独立审查 `round-29` 48 项全 ≥ 4 分过线，`layout.guard` 0 告警，`lint-craft` 100/100，5 处切点 `railU`/`zoomBoost` 连续归零。
+  - 工具与规范（`8641e3d`）：[BAR.md](BAR.md) 补入 3 张正面标杆（`docs/images/bar/pro-oklab-{hook,mech,close}.png`）；新增 `anim cues`（`scripts/lib/cues.mjs` + `scripts/cmd/cues.mjs`）；`tools/scene-harness.mjs` 接入离线双预检（`layout.guard` + `cut-zoom-jump`，纯函数 `tools/lib/harness-checks.mjs`）；[CRAFT.md](CRAFT.md) §8 固化首版防返工 6 条；[CRAFT-RUBRIC.md](CRAFT-RUBRIC.md) 补模型对等/复审冻结/三轮止损三项防漂移纪律；`test-cues` / `test-harness-checks` 接入 `tools/regress-all.mjs`。
+- **本轮新增记录（叙事节奏与开头钩子）**：三层现有评价标准与两项缺口（`1-86` 文案/剧作层叙事节奏与前 3 秒钩子标准、`1-87` C4/C5 与 `anim rhythm` 门禁收口）已记入 [BACKLOG.md](BACKLOG.md) §1.J。
+- **⚠ 工作区既有未提交修改（不要误提或覆盖）**：工作区保留 2026-11-20 既有的 **30 个未提交修改**（`src/style/*`、`src/shots/*`、`src/core/*`、`src/kit/world.js`、`docs/STYLE*.md`、`docs/ENGINE.md`、`tools/test-style.mjs`、`tools/test-portrait.mjs`，涉及 `print` 风格包自包含与 `item.post` 优先级），均早于 11-21/22 提交，本轮刻意未纳入提交。
+
+**验证**：离线单测 `test-style.mjs` / `test-portrait.mjs` / `test-cues.mjs` / `test-harness-checks.mjs` / `test-brief-lint.mjs` / `test-craft.mjs` 全通过；文档与预检守门 `lint-agents-size.mjs` / `lint-agents-refs.mjs` / `lint-doc-facts.mjs` / `gen-changes.mjs --check` / `precommit-report.mjs` 全通过。
+
+**接手下一步**：① 按 [BACKLOG.md](BACKLOG.md) `1-86`/`1-87` 补齐脚本层叙事钩子评估并收口节奏门禁；② 核验并决定工作区 2026-11-20 既有 30 个风格/模板改动的提交策略；③ `oklab` 如需成片待用户拍板后正式渲染；④ `pv-kattachi` A/B/C 仍待用户拍板。
 
 ### 2026-11-21（1-83～1-85：首版即成片 —— 手艺规范 / 结构化分镜 / 偷懒检测 / 评审包）
 
