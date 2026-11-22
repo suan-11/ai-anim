@@ -131,11 +131,19 @@ console.log('test-cues:');
   ok(tRes.status === 0 && bytes > 100 && bytes < 1024 && tRes.stdout.includes('cutStart=20.55s') && !tRes.stdout.includes('[02] gamma_trap'),
     `anim cues oklab --scene hook 退出码 0 且单段精简 ${bytes} B < 1024 B`);
 
-  const bRes = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'anim.mjs'), 'cues', 'beast', '--scene', 'hook'], {
+  const dRes = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'anim.mjs'), 'cues', 'demo'], {
     cwd: ROOT, encoding: 'utf8', timeout: 15_000,
   });
-  ok(bRes.status === 0 && bRes.stdout.includes('beast') && !bRes.stdout.includes('词点:'),
-    'anim cues beast（无词级时间戳）兼容通过');
+  const dOut = `${dRes.stdout || ''}\n${dRes.stderr || ''}`;
+  ok(dRes.status === 1 && dOut.includes('anim say'),
+    'anim cues demo（无配音时间表）返回退出码 1 并提示先跑 anim say');
+
+  const mRes = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'anim.mjs'), 'cues', 'oklab', '--scene', 'nonexistent_seg'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 15_000,
+  });
+  const mOut = `${mRes.stdout || ''}\n${mRes.stderr || ''}`;
+  ok(mRes.status === 1 && mOut.includes('可用段名'),
+    'anim cues 传入不存在的段名时返回退出码 1 并列出可用段名');
 }
 
 console.log(`\n✓ test-cues 全部通过（${passed} 项）`);
