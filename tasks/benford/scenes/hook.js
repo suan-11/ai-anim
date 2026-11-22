@@ -1,36 +1,39 @@
 // @ts-check
-/** 01 · hook —— 九根以为均匀的柱被真实数据砸歪，zoom punch 1 号柱（只问不答）。 */
+/** 01 · hook —— 均匀柱被真实数据砸歪（重构：填充+隐喻+zoom居中）。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
-import { BENFORD, UNIFORM, barLayout } from './_data.js';
+import { BENFORD, UNIFORM, barLayout, MAX_BAR_H, BAR_SCALE } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
-export default makeShot('hook', {
-  draw(ctx) {
-    const { f, lines, text, type, comp, gl, W, H, P } = ctx;
-    const lt = f.lt/(ctx.params?.stretch??1);
-    // 0-1.5s 均匀；1.5s 起砸成本福特
-    const k = smoothstep(1.5, 2.3, lt);
-    const bars = barLayout(W, H);
-    const maxH = H - 380;
-    // zoom punch 到 1 号柱
-    const zt = sat((lt-2.3)/0.6); const zoom = 1+1.8*smoothstep(0,1,zt);
-    const b0 = bars[0];
-    ctx.setXform({ scale: zoom, anchor: [b0.x, b0.baseY - maxH*BENFORD[0]] });
+import { shakeSmooth } from '../../../src/core/cam.js';
+export default makeShot('hook',{
+  draw(ctx){
+    const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
+    const k=smoothstep(1.5,2.3,lt);
+    const bars=barLayout(W,H);
+    const zt=sat((lt-2.3)/0.6); const zoom=1+1.0*smoothstep(0,1,zt);
+    const b0=bars[0];
+    // zoom 锚点对柱群中心（1号柱中部），温和放大不裁切
+    ctx.setXform({scale:zoom,anchor:[b0.x+80,b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE*0.45]});
     lines.begin();
+    // 均匀虚线基线（直觉参考，真实柱穿过它）
+    const uniY=b0.baseY-UNIFORM[0]*MAX_BAR_H*BAR_SCALE;
+    for(let x=140;x<W-140;x+=20) lines.seg(x,uniY,x+10,uniY,1,withAlpha(P.graphite,0.4*(1-k*0.5)));
     // 基线
-    lines.seg(140, b0.baseY, W-140, b0.baseY, 1.5, withAlpha(P.graphite, 0.6));
-    for (let i=0;i<9;i++){
-      const v = UNIFORM[i] + (BENFORD[i]-UNIFORM[i])*k;
-      const h = v*maxH*2.6; // 放大显示
-      const b = bars[i];
-      const col = i===0 ? withAlpha(P.signal, 0.95) : withAlpha(P.bone, 0.92);
-      lines.fillRect(b.x-b.bw/2, b.baseY-h, b.bw, h, col);
-      // 数字标签
+    lines.seg(140,b0.baseY,W-140,b0.baseY,1.5,withAlpha(P.graphite,0.6));
+    for(let i=0;i<9;i++){
+      const v=UNIFORM[i]+(BENFORD[i]-UNIFORM[i])*k;
+      const h=v*MAX_BAR_H*BAR_SCALE;
+      const b=bars[i];
+      const col=i===0?withAlpha(P.signal,0.95):withAlpha(P.bone,0.88);
+      lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,col);
     }
     lines.flush(ctx.out);
     text.clear();
-    for(let i=0;i<9;i++){ const b=bars[i]; type.writeLine(String(b.d), b.x, b.baseY+30, {anchor:'center',size:30,color:css(P.ash,0.8)}); }
-    if(zt>0.5) type.writeLine('？', b0.x+90, b0.baseY-maxH*BENFORD[0]*2.6-40, {anchor:'center',size:72,color:css(P.signal,smoothstep(0.5,1,zt))});
+    // 数字标签（zoom 时淡出避免出框）
+    const labelA=1-smoothstep(0,0.5,zt);
+    if(labelA>0.05) for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+34,{anchor:'center',size:26,color:css(P.ash,0.85*labelA)});}
+    if(zt>0.5){ const [shx,shy]=shakeSmooth(f.t,3); type.writeLine('？', b0.x+100, b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE-50, {anchor:'center',size:88,color:css(P.signal,smoothstep(0.5,1,zt))}); }
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return { grain:0.012, vignette:0.3 };
+    const [shx,shy]=shakeSmooth(f.t,zt>0.5?3:0.8);
+    return{grain:0.012,vignette:0.3,shake:[shx,shy]};
   },
 });
