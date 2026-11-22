@@ -7,14 +7,14 @@ export default {
   "overlap": 0.6,
   "tail": 1.2,
   "maxStretch": 1.8,
-  "total": 42.6,
+  "total": 48,
   "generatedBy": "anim say",
   "scenes": [
     {
       "id": "hook",
       "start": 0,
-      "slot": 7.8,
-      "stretch": 1.555,
+      "slot": 9,
+      "stretch": 1.705,
       "internal": 4,
       "lines": [
         {
@@ -23,222 +23,222 @@ export default {
           "text": "用一把大尺子量海岸线，得到一个数。",
           "file": "audio/vo/hook-1.mp3",
           "dur": 3.097,
-          "offset": 0.467,
-          "start": 0.467,
+          "offset": 0.512,
+          "start": 0.512,
           "words": [
             {
               "w": "用",
-              "start": 0.467,
-              "end": 0.662,
+              "start": 0.512,
+              "end": 0.707,
               "approx": true
             },
             {
               "w": "一",
-              "start": 0.662,
-              "end": 0.857,
+              "start": 0.707,
+              "end": 0.902,
               "approx": true
             },
             {
               "w": "把",
-              "start": 0.857,
-              "end": 1.051,
+              "start": 0.902,
+              "end": 1.096,
               "approx": true
             },
             {
               "w": "大",
-              "start": 1.051,
-              "end": 1.246,
+              "start": 1.096,
+              "end": 1.291,
               "approx": true
             },
             {
               "w": "尺",
-              "start": 1.246,
-              "end": 1.441,
+              "start": 1.291,
+              "end": 1.486,
               "approx": true
             },
             {
               "w": "子",
-              "start": 1.441,
-              "end": 1.636,
+              "start": 1.486,
+              "end": 1.681,
               "approx": true
             },
             {
               "w": "量",
-              "start": 1.636,
-              "end": 1.83,
+              "start": 1.681,
+              "end": 1.875,
               "approx": true
             },
             {
               "w": "海",
-              "start": 1.83,
-              "end": 2.025,
+              "start": 1.875,
+              "end": 2.07,
               "approx": true
             },
             {
               "w": "岸",
-              "start": 2.025,
-              "end": 2.22,
+              "start": 2.07,
+              "end": 2.265,
               "approx": true
             },
             {
               "w": "线",
-              "start": 2.22,
-              "end": 2.415,
+              "start": 2.265,
+              "end": 2.46,
               "approx": true
             },
             {
               "w": "，",
-              "start": 2.415,
-              "end": 2.502,
+              "start": 2.46,
+              "end": 2.547,
               "approx": true
             },
             {
               "w": "得",
-              "start": 2.502,
-              "end": 2.697,
+              "start": 2.547,
+              "end": 2.742,
               "approx": true
             },
             {
               "w": "到",
-              "start": 2.697,
-              "end": 2.892,
+              "start": 2.742,
+              "end": 2.937,
               "approx": true
             },
             {
               "w": "一",
-              "start": 2.892,
-              "end": 3.087,
+              "start": 2.937,
+              "end": 3.132,
               "approx": true
             },
             {
               "w": "个",
-              "start": 3.087,
-              "end": 3.282,
+              "start": 3.132,
+              "end": 3.327,
               "approx": true
             },
             {
               "w": "数",
-              "start": 3.282,
-              "end": 3.476,
+              "start": 3.327,
+              "end": 3.521,
               "approx": true
             },
             {
               "w": "。",
-              "start": 3.476,
-              "end": 3.564,
+              "start": 3.521,
+              "end": 3.609,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 2,
+          "cue": 2.6,
           "text": "可尺子漏掉了那么多小弯，真的准吗？",
           "file": "audio/vo/hook-2.mp3",
           "dur": 3.021,
-          "offset": 3.111,
-          "start": 3.111,
+          "offset": 4.434,
+          "start": 4.434,
           "words": [
             {
               "w": "可",
-              "start": 3.111,
-              "end": 3.301,
+              "start": 4.434,
+              "end": 4.624,
               "approx": true
             },
             {
               "w": "尺",
-              "start": 3.301,
-              "end": 3.491,
+              "start": 4.624,
+              "end": 4.814,
               "approx": true
             },
             {
               "w": "子",
-              "start": 3.491,
-              "end": 3.681,
+              "start": 4.814,
+              "end": 5.004,
               "approx": true
             },
             {
               "w": "漏",
-              "start": 3.681,
-              "end": 3.871,
+              "start": 5.004,
+              "end": 5.194,
               "approx": true
             },
             {
               "w": "掉",
-              "start": 3.871,
-              "end": 4.061,
+              "start": 5.194,
+              "end": 5.384,
               "approx": true
             },
             {
               "w": "了",
-              "start": 4.061,
-              "end": 4.251,
+              "start": 5.384,
+              "end": 5.574,
               "approx": true
             },
             {
               "w": "那",
-              "start": 4.251,
-              "end": 4.441,
+              "start": 5.574,
+              "end": 5.764,
               "approx": true
             },
             {
               "w": "么",
-              "start": 4.441,
-              "end": 4.631,
+              "start": 5.764,
+              "end": 5.954,
               "approx": true
             },
             {
               "w": "多",
-              "start": 4.631,
-              "end": 4.821,
+              "start": 5.954,
+              "end": 6.144,
               "approx": true
             },
             {
               "w": "小",
-              "start": 4.821,
-              "end": 5.011,
+              "start": 6.144,
+              "end": 6.334,
               "approx": true
             },
             {
               "w": "弯",
-              "start": 5.011,
-              "end": 5.201,
+              "start": 6.334,
+              "end": 6.524,
               "approx": true
             },
             {
               "w": "，",
-              "start": 5.201,
-              "end": 5.287,
+              "start": 6.524,
+              "end": 6.61,
               "approx": true
             },
             {
               "w": "真",
-              "start": 5.287,
-              "end": 5.477,
+              "start": 6.61,
+              "end": 6.8,
               "approx": true
             },
             {
               "w": "的",
-              "start": 5.477,
-              "end": 5.667,
+              "start": 6.8,
+              "end": 6.99,
               "approx": true
             },
             {
               "w": "准",
-              "start": 5.667,
-              "end": 5.857,
+              "start": 6.99,
+              "end": 7.18,
               "approx": true
             },
             {
               "w": "吗",
-              "start": 5.857,
-              "end": 6.047,
+              "start": 7.18,
+              "end": 7.37,
               "approx": true
             },
             {
               "w": "？",
-              "start": 6.047,
-              "end": 6.132,
+              "start": 7.37,
+              "end": 7.455,
               "approx": true
             }
           ]
@@ -247,9 +247,9 @@ export default {
     },
     {
       "id": "bridge",
-      "start": 7.2,
-      "slot": 7.8,
-      "stretch": 1.279,
+      "start": 8.4,
+      "slot": 8.4,
+      "stretch": 1.379,
       "internal": 5,
       "lines": [
         {
@@ -258,192 +258,192 @@ export default {
           "text": "换一把更短的尺子，贴合更多弯曲。",
           "file": "audio/vo/bridge-1.mp3",
           "dur": 3.279,
-          "offset": 0.384,
-          "start": 7.584,
+          "offset": 0.414,
+          "start": 8.814,
           "words": [
             {
               "w": "换",
-              "start": 7.584,
-              "end": 7.804,
+              "start": 8.814,
+              "end": 9.034,
               "approx": true
             },
             {
               "w": "一",
-              "start": 7.804,
-              "end": 8.024,
+              "start": 9.034,
+              "end": 9.254,
               "approx": true
             },
             {
               "w": "把",
-              "start": 8.024,
-              "end": 8.244,
+              "start": 9.254,
+              "end": 9.474,
               "approx": true
             },
             {
               "w": "更",
-              "start": 8.244,
-              "end": 8.464,
+              "start": 9.474,
+              "end": 9.694,
               "approx": true
             },
             {
               "w": "短",
-              "start": 8.464,
-              "end": 8.684,
+              "start": 9.694,
+              "end": 9.914,
               "approx": true
             },
             {
               "w": "的",
-              "start": 8.684,
-              "end": 8.904,
+              "start": 9.914,
+              "end": 10.134,
               "approx": true
             },
             {
               "w": "尺",
-              "start": 8.904,
-              "end": 9.124,
+              "start": 10.134,
+              "end": 10.354,
               "approx": true
             },
             {
               "w": "子",
-              "start": 9.124,
-              "end": 9.345,
+              "start": 10.354,
+              "end": 10.575,
               "approx": true
             },
             {
               "w": "，",
-              "start": 9.345,
-              "end": 9.444,
+              "start": 10.575,
+              "end": 10.674,
               "approx": true
             },
             {
               "w": "贴",
-              "start": 9.444,
-              "end": 9.664,
+              "start": 10.674,
+              "end": 10.894,
               "approx": true
             },
             {
               "w": "合",
-              "start": 9.664,
-              "end": 9.884,
+              "start": 10.894,
+              "end": 11.114,
               "approx": true
             },
             {
               "w": "更",
-              "start": 9.884,
-              "end": 10.104,
+              "start": 11.114,
+              "end": 11.334,
               "approx": true
             },
             {
               "w": "多",
-              "start": 10.104,
-              "end": 10.324,
+              "start": 11.334,
+              "end": 11.554,
               "approx": true
             },
             {
               "w": "弯",
-              "start": 10.324,
-              "end": 10.544,
+              "start": 11.554,
+              "end": 11.774,
               "approx": true
             },
             {
               "w": "曲",
-              "start": 10.544,
-              "end": 10.764,
+              "start": 11.774,
+              "end": 11.994,
               "approx": true
             },
             {
               "w": "。",
-              "start": 10.764,
-              "end": 10.863,
+              "start": 11.994,
+              "end": 12.093,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 2.5,
+          "cue": 3,
           "text": "量出来的长度，反而更长了。",
           "file": "audio/vo/bridge-2.mp3",
           "dur": 2.694,
-          "offset": 3.197,
-          "start": 10.397,
+          "offset": 4.136,
+          "start": 12.536,
           "words": [
             {
               "w": "量",
-              "start": 10.397,
-              "end": 10.623,
+              "start": 12.536,
+              "end": 12.762,
               "approx": true
             },
             {
               "w": "出",
-              "start": 10.623,
-              "end": 10.85,
-              "approx": true
-            },
-            {
-              "w": "来",
-              "start": 10.85,
-              "end": 11.076,
-              "approx": true
-            },
-            {
-              "w": "的",
-              "start": 11.076,
-              "end": 11.303,
-              "approx": true
-            },
-            {
-              "w": "长",
-              "start": 11.303,
-              "end": 11.529,
-              "approx": true
-            },
-            {
-              "w": "度",
-              "start": 11.529,
-              "end": 11.755,
-              "approx": true
-            },
-            {
-              "w": "，",
-              "start": 11.755,
-              "end": 11.857,
-              "approx": true
-            },
-            {
-              "w": "反",
-              "start": 11.857,
-              "end": 12.084,
-              "approx": true
-            },
-            {
-              "w": "而",
-              "start": 12.084,
-              "end": 12.31,
-              "approx": true
-            },
-            {
-              "w": "更",
-              "start": 12.31,
-              "end": 12.536,
-              "approx": true
-            },
-            {
-              "w": "长",
-              "start": 12.536,
-              "end": 12.763,
-              "approx": true
-            },
-            {
-              "w": "了",
-              "start": 12.763,
+              "start": 12.762,
               "end": 12.989,
               "approx": true
             },
             {
-              "w": "。",
+              "w": "来",
               "start": 12.989,
-              "end": 13.091,
+              "end": 13.215,
+              "approx": true
+            },
+            {
+              "w": "的",
+              "start": 13.215,
+              "end": 13.442,
+              "approx": true
+            },
+            {
+              "w": "长",
+              "start": 13.442,
+              "end": 13.668,
+              "approx": true
+            },
+            {
+              "w": "度",
+              "start": 13.668,
+              "end": 13.894,
+              "approx": true
+            },
+            {
+              "w": "，",
+              "start": 13.894,
+              "end": 13.996,
+              "approx": true
+            },
+            {
+              "w": "反",
+              "start": 13.996,
+              "end": 14.223,
+              "approx": true
+            },
+            {
+              "w": "而",
+              "start": 14.223,
+              "end": 14.449,
+              "approx": true
+            },
+            {
+              "w": "更",
+              "start": 14.449,
+              "end": 14.675,
+              "approx": true
+            },
+            {
+              "w": "长",
+              "start": 14.675,
+              "end": 14.902,
+              "approx": true
+            },
+            {
+              "w": "了",
+              "start": 14.902,
+              "end": 15.128,
+              "approx": true
+            },
+            {
+              "w": "。",
+              "start": 15.128,
+              "end": 15.23,
               "approx": true
             }
           ]
@@ -452,9 +452,9 @@ export default {
     },
     {
       "id": "mechanism",
-      "start": 14.4,
-      "slot": 10.8,
-      "stretch": 1.176,
+      "start": 16.2,
+      "slot": 12.6,
+      "stretch": 1.301,
       "internal": 8,
       "lines": [
         {
@@ -463,269 +463,269 @@ export default {
           "text": "尺子越短，细节越多。",
           "file": "audio/vo/mechanism-1.mp3",
           "dur": 2.44,
-          "offset": 0.353,
-          "start": 14.753,
+          "offset": 0.39,
+          "start": 16.59,
           "words": [
             {
               "w": "尺",
-              "start": 14.753,
-              "end": 15.027,
+              "start": 16.59,
+              "end": 16.864,
               "approx": true
             },
             {
               "w": "子",
-              "start": 15.027,
-              "end": 15.301,
+              "start": 16.864,
+              "end": 17.138,
               "approx": true
             },
             {
               "w": "越",
-              "start": 15.301,
-              "end": 15.575,
+              "start": 17.138,
+              "end": 17.412,
               "approx": true
             },
             {
               "w": "短",
-              "start": 15.575,
-              "end": 15.85,
+              "start": 17.412,
+              "end": 17.687,
               "approx": true
             },
             {
               "w": "，",
-              "start": 15.85,
-              "end": 15.973,
+              "start": 17.687,
+              "end": 17.81,
               "approx": true
             },
             {
               "w": "细",
-              "start": 15.973,
-              "end": 16.247,
+              "start": 17.81,
+              "end": 18.084,
               "approx": true
             },
             {
               "w": "节",
-              "start": 16.247,
-              "end": 16.521,
+              "start": 18.084,
+              "end": 18.358,
               "approx": true
             },
             {
               "w": "越",
-              "start": 16.521,
-              "end": 16.795,
+              "start": 18.358,
+              "end": 18.632,
               "approx": true
             },
             {
               "w": "多",
-              "start": 16.795,
-              "end": 17.07,
+              "start": 18.632,
+              "end": 18.907,
               "approx": true
             },
             {
               "w": "。",
-              "start": 17.07,
-              "end": 17.193,
+              "start": 18.907,
+              "end": 19.03,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 2.5,
+          "cue": 3,
           "text": "每一级细分，都多出新的长度。",
           "file": "audio/vo/mechanism-2.mp3",
           "dur": 2.716,
-          "offset": 2.941,
-          "start": 17.341,
+          "offset": 3.904,
+          "start": 20.104,
           "words": [
             {
               "w": "每",
-              "start": 17.341,
-              "end": 17.552,
+              "start": 20.104,
+              "end": 20.315,
               "approx": true
             },
             {
               "w": "一",
-              "start": 17.552,
-              "end": 17.762,
+              "start": 20.315,
+              "end": 20.525,
               "approx": true
             },
             {
               "w": "级",
-              "start": 17.762,
-              "end": 17.973,
+              "start": 20.525,
+              "end": 20.736,
               "approx": true
             },
             {
               "w": "细",
-              "start": 17.973,
-              "end": 18.183,
+              "start": 20.736,
+              "end": 20.946,
               "approx": true
             },
             {
               "w": "分",
-              "start": 18.183,
-              "end": 18.394,
+              "start": 20.946,
+              "end": 21.157,
               "approx": true
             },
             {
               "w": "，",
-              "start": 18.394,
-              "end": 18.488,
+              "start": 21.157,
+              "end": 21.251,
               "approx": true
             },
             {
               "w": "都",
-              "start": 18.488,
-              "end": 18.699,
+              "start": 21.251,
+              "end": 21.462,
               "approx": true
             },
             {
               "w": "多",
-              "start": 18.699,
-              "end": 18.91,
+              "start": 21.462,
+              "end": 21.673,
               "approx": true
             },
             {
               "w": "出",
-              "start": 18.91,
-              "end": 19.12,
+              "start": 21.673,
+              "end": 21.883,
               "approx": true
             },
             {
               "w": "新",
-              "start": 19.12,
-              "end": 19.331,
+              "start": 21.883,
+              "end": 22.094,
               "approx": true
             },
             {
               "w": "的",
-              "start": 19.331,
-              "end": 19.541,
+              "start": 22.094,
+              "end": 22.304,
               "approx": true
             },
             {
               "w": "长",
-              "start": 19.541,
-              "end": 19.752,
+              "start": 22.304,
+              "end": 22.515,
               "approx": true
             },
             {
               "w": "度",
-              "start": 19.752,
-              "end": 19.962,
+              "start": 22.515,
+              "end": 22.725,
               "approx": true
             },
             {
               "w": "。",
-              "start": 19.962,
-              "end": 20.057,
+              "start": 22.725,
+              "end": 22.82,
               "approx": true
             }
           ]
         },
         {
           "index": 2,
-          "cue": 5,
+          "cue": 6,
           "text": "这样下去，海岸线没有确定的长度。",
           "file": "audio/vo/mechanism-3.mp3",
           "dur": 3.212,
-          "offset": 5.882,
-          "start": 20.282,
+          "offset": 7.809,
+          "start": 24.009,
           "words": [
             {
               "w": "这",
-              "start": 20.282,
-              "end": 20.498,
+              "start": 24.009,
+              "end": 24.225,
               "approx": true
             },
             {
               "w": "样",
-              "start": 20.498,
-              "end": 20.713,
+              "start": 24.225,
+              "end": 24.44,
               "approx": true
             },
             {
               "w": "下",
-              "start": 20.713,
-              "end": 20.929,
+              "start": 24.44,
+              "end": 24.656,
               "approx": true
             },
             {
               "w": "去",
-              "start": 20.929,
-              "end": 21.144,
+              "start": 24.656,
+              "end": 24.871,
               "approx": true
             },
             {
               "w": "，",
-              "start": 21.144,
-              "end": 21.241,
+              "start": 24.871,
+              "end": 24.968,
               "approx": true
             },
             {
               "w": "海",
-              "start": 21.241,
-              "end": 21.457,
+              "start": 24.968,
+              "end": 25.184,
               "approx": true
             },
             {
               "w": "岸",
-              "start": 21.457,
-              "end": 21.672,
+              "start": 25.184,
+              "end": 25.399,
               "approx": true
             },
             {
               "w": "线",
-              "start": 21.672,
-              "end": 21.888,
+              "start": 25.399,
+              "end": 25.615,
               "approx": true
             },
             {
               "w": "没",
-              "start": 21.888,
-              "end": 22.104,
+              "start": 25.615,
+              "end": 25.831,
               "approx": true
             },
             {
               "w": "有",
-              "start": 22.104,
-              "end": 22.319,
+              "start": 25.831,
+              "end": 26.046,
               "approx": true
             },
             {
               "w": "确",
-              "start": 22.319,
-              "end": 22.535,
+              "start": 26.046,
+              "end": 26.262,
               "approx": true
             },
             {
               "w": "定",
-              "start": 22.535,
-              "end": 22.75,
+              "start": 26.262,
+              "end": 26.477,
               "approx": true
             },
             {
               "w": "的",
-              "start": 22.75,
-              "end": 22.966,
+              "start": 26.477,
+              "end": 26.693,
               "approx": true
             },
             {
               "w": "长",
-              "start": 22.966,
-              "end": 23.181,
+              "start": 26.693,
+              "end": 26.908,
               "approx": true
             },
             {
               "w": "度",
-              "start": 23.181,
-              "end": 23.397,
+              "start": 26.908,
+              "end": 27.124,
               "approx": true
             },
             {
               "w": "。",
-              "start": 23.397,
-              "end": 23.494,
+              "start": 27.124,
+              "end": 27.221,
               "approx": true
             }
           ]
@@ -734,9 +734,9 @@ export default {
     },
     {
       "id": "data",
-      "start": 24.6,
-      "slot": 9,
-      "stretch": 1.094,
+      "start": 28.2,
+      "slot": 10.2,
+      "stretch": 1.251,
       "internal": 7,
       "lines": [
         {
@@ -745,222 +745,222 @@ export default {
           "text": "长度和尺子尺寸，在对数坐标下成一条直线。",
           "file": "audio/vo/data-1.mp3",
           "dur": 4.335,
-          "offset": 0.328,
-          "start": 24.928,
+          "offset": 0.375,
+          "start": 28.575,
           "words": [
             {
               "w": "长",
-              "start": 24.928,
-              "end": 25.157,
+              "start": 28.575,
+              "end": 28.804,
               "approx": true
             },
             {
               "w": "度",
-              "start": 25.157,
-              "end": 25.387,
+              "start": 28.804,
+              "end": 29.034,
               "approx": true
             },
             {
               "w": "和",
-              "start": 25.387,
-              "end": 25.616,
+              "start": 29.034,
+              "end": 29.263,
               "approx": true
             },
             {
               "w": "尺",
-              "start": 25.616,
-              "end": 25.845,
+              "start": 29.263,
+              "end": 29.492,
               "approx": true
             },
             {
               "w": "子",
-              "start": 25.845,
-              "end": 26.075,
+              "start": 29.492,
+              "end": 29.722,
               "approx": true
             },
             {
               "w": "尺",
-              "start": 26.075,
-              "end": 26.304,
+              "start": 29.722,
+              "end": 29.951,
               "approx": true
             },
             {
               "w": "寸",
-              "start": 26.304,
-              "end": 26.534,
+              "start": 29.951,
+              "end": 30.181,
               "approx": true
             },
             {
               "w": "，",
-              "start": 26.534,
-              "end": 26.637,
+              "start": 30.181,
+              "end": 30.284,
               "approx": true
             },
             {
               "w": "在",
-              "start": 26.637,
-              "end": 26.866,
+              "start": 30.284,
+              "end": 30.513,
               "approx": true
             },
             {
               "w": "对",
-              "start": 26.866,
-              "end": 27.096,
+              "start": 30.513,
+              "end": 30.743,
               "approx": true
             },
             {
               "w": "数",
-              "start": 27.096,
-              "end": 27.325,
+              "start": 30.743,
+              "end": 30.972,
               "approx": true
             },
             {
               "w": "坐",
-              "start": 27.325,
-              "end": 27.554,
+              "start": 30.972,
+              "end": 31.201,
               "approx": true
             },
             {
               "w": "标",
-              "start": 27.554,
-              "end": 27.784,
+              "start": 31.201,
+              "end": 31.431,
               "approx": true
             },
             {
               "w": "下",
-              "start": 27.784,
-              "end": 28.013,
+              "start": 31.431,
+              "end": 31.66,
               "approx": true
             },
             {
               "w": "成",
-              "start": 28.013,
-              "end": 28.242,
+              "start": 31.66,
+              "end": 31.889,
               "approx": true
             },
             {
               "w": "一",
-              "start": 28.242,
-              "end": 28.472,
+              "start": 31.889,
+              "end": 32.119,
               "approx": true
             },
             {
               "w": "条",
-              "start": 28.472,
-              "end": 28.701,
+              "start": 32.119,
+              "end": 32.348,
               "approx": true
             },
             {
               "w": "直",
-              "start": 28.701,
-              "end": 28.93,
+              "start": 32.348,
+              "end": 32.577,
               "approx": true
             },
             {
               "w": "线",
-              "start": 28.93,
-              "end": 29.16,
+              "start": 32.577,
+              "end": 32.807,
               "approx": true
             },
             {
               "w": "。",
-              "start": 29.16,
-              "end": 29.263,
+              "start": 32.807,
+              "end": 32.91,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 3.5,
+          "cue": 4.6,
           "text": "这条直线的斜率，就是分形维。",
           "file": "audio/vo/data-2.mp3",
           "dur": 2.96,
-          "offset": 3.83,
-          "start": 28.43,
+          "offset": 5.757,
+          "start": 33.957,
           "words": [
             {
               "w": "这",
-              "start": 28.43,
-              "end": 28.659,
+              "start": 33.957,
+              "end": 34.186,
               "approx": true
             },
             {
               "w": "条",
-              "start": 28.659,
-              "end": 28.889,
+              "start": 34.186,
+              "end": 34.416,
               "approx": true
             },
             {
               "w": "直",
-              "start": 28.889,
-              "end": 29.118,
+              "start": 34.416,
+              "end": 34.645,
               "approx": true
             },
             {
               "w": "线",
-              "start": 29.118,
-              "end": 29.348,
+              "start": 34.645,
+              "end": 34.875,
               "approx": true
             },
             {
               "w": "的",
-              "start": 29.348,
-              "end": 29.577,
+              "start": 34.875,
+              "end": 35.104,
               "approx": true
             },
             {
               "w": "斜",
-              "start": 29.577,
-              "end": 29.807,
+              "start": 35.104,
+              "end": 35.334,
               "approx": true
             },
             {
               "w": "率",
-              "start": 29.807,
-              "end": 30.036,
+              "start": 35.334,
+              "end": 35.563,
               "approx": true
             },
             {
               "w": "，",
-              "start": 30.036,
-              "end": 30.139,
+              "start": 35.563,
+              "end": 35.666,
               "approx": true
             },
             {
               "w": "就",
-              "start": 30.139,
-              "end": 30.369,
+              "start": 35.666,
+              "end": 35.896,
               "approx": true
             },
             {
               "w": "是",
-              "start": 30.369,
-              "end": 30.598,
+              "start": 35.896,
+              "end": 36.125,
               "approx": true
             },
             {
               "w": "分",
-              "start": 30.598,
-              "end": 30.828,
+              "start": 36.125,
+              "end": 36.355,
               "approx": true
             },
             {
               "w": "形",
-              "start": 30.828,
-              "end": 31.057,
+              "start": 36.355,
+              "end": 36.584,
               "approx": true
             },
             {
               "w": "维",
-              "start": 31.057,
-              "end": 31.287,
+              "start": 36.584,
+              "end": 36.814,
               "approx": true
             },
             {
               "w": "。",
-              "start": 31.287,
-              "end": 31.39,
+              "start": 36.814,
+              "end": 36.917,
               "approx": true
             }
           ]
@@ -969,9 +969,9 @@ export default {
     },
     {
       "id": "close",
-      "start": 33,
-      "slot": 9.6,
-      "stretch": 1,
+      "start": 37.8,
+      "slot": 10.2,
+      "stretch": 1.075,
       "internal": 8,
       "lines": [
         {
@@ -980,222 +980,222 @@ export default {
           "text": "一九六七年，芒德博罗问：英国海岸线有多长？",
           "file": "audio/vo/close-1.mp3",
           "dur": 4.406,
-          "offset": 0.3,
-          "start": 33.3,
+          "offset": 0.322,
+          "start": 38.122,
           "words": [
             {
               "w": "一",
-              "start": 33.3,
-              "end": 33.528,
+              "start": 38.122,
+              "end": 38.35,
               "approx": true
             },
             {
               "w": "九",
-              "start": 33.528,
-              "end": 33.755,
+              "start": 38.35,
+              "end": 38.577,
               "approx": true
             },
             {
               "w": "六",
-              "start": 33.755,
-              "end": 33.983,
+              "start": 38.577,
+              "end": 38.805,
               "approx": true
             },
             {
               "w": "七",
-              "start": 33.983,
-              "end": 34.211,
+              "start": 38.805,
+              "end": 39.033,
               "approx": true
             },
             {
               "w": "年",
-              "start": 34.211,
-              "end": 34.439,
+              "start": 39.033,
+              "end": 39.261,
               "approx": true
             },
             {
               "w": "，",
-              "start": 34.439,
-              "end": 34.541,
+              "start": 39.261,
+              "end": 39.363,
               "approx": true
             },
             {
               "w": "芒",
-              "start": 34.541,
-              "end": 34.769,
+              "start": 39.363,
+              "end": 39.591,
               "approx": true
             },
             {
               "w": "德",
-              "start": 34.769,
-              "end": 34.996,
+              "start": 39.591,
+              "end": 39.818,
               "approx": true
             },
             {
               "w": "博",
-              "start": 34.996,
-              "end": 35.224,
+              "start": 39.818,
+              "end": 40.046,
               "approx": true
             },
             {
               "w": "罗",
-              "start": 35.224,
-              "end": 35.452,
+              "start": 40.046,
+              "end": 40.274,
               "approx": true
             },
             {
               "w": "问",
-              "start": 35.452,
-              "end": 35.679,
+              "start": 40.274,
+              "end": 40.501,
               "approx": true
             },
             {
               "w": "：",
-              "start": 35.679,
-              "end": 35.782,
+              "start": 40.501,
+              "end": 40.604,
               "approx": true
             },
             {
               "w": "英",
-              "start": 35.782,
-              "end": 36.01,
+              "start": 40.604,
+              "end": 40.832,
               "approx": true
             },
             {
               "w": "国",
-              "start": 36.01,
-              "end": 36.237,
+              "start": 40.832,
+              "end": 41.059,
               "approx": true
             },
             {
               "w": "海",
-              "start": 36.237,
-              "end": 36.465,
+              "start": 41.059,
+              "end": 41.287,
               "approx": true
             },
             {
               "w": "岸",
-              "start": 36.465,
-              "end": 36.693,
+              "start": 41.287,
+              "end": 41.515,
               "approx": true
             },
             {
               "w": "线",
-              "start": 36.693,
-              "end": 36.92,
+              "start": 41.515,
+              "end": 41.742,
               "approx": true
             },
             {
               "w": "有",
-              "start": 36.92,
-              "end": 37.148,
+              "start": 41.742,
+              "end": 41.97,
               "approx": true
             },
             {
               "w": "多",
-              "start": 37.148,
-              "end": 37.376,
+              "start": 41.97,
+              "end": 42.198,
               "approx": true
             },
             {
               "w": "长",
-              "start": 37.376,
-              "end": 37.604,
+              "start": 42.198,
+              "end": 42.426,
               "approx": true
             },
             {
               "w": "？",
-              "start": 37.604,
-              "end": 37.706,
+              "start": 42.426,
+              "end": 42.528,
               "approx": true
             }
           ]
         },
         {
           "index": 1,
-          "cue": 4,
+          "cue": 4.8,
           "text": "这个问题，开启了分形几何。",
           "file": "audio/vo/close-2.mp3",
           "dur": 2.599,
-          "offset": 4,
-          "start": 37,
+          "offset": 5.159,
+          "start": 42.959,
           "words": [
             {
               "w": "这",
-              "start": 37,
-              "end": 37.218,
+              "start": 42.959,
+              "end": 43.177,
               "approx": true
             },
             {
               "w": "个",
-              "start": 37.218,
-              "end": 37.437,
+              "start": 43.177,
+              "end": 43.396,
               "approx": true
             },
             {
               "w": "问",
-              "start": 37.437,
-              "end": 37.655,
+              "start": 43.396,
+              "end": 43.614,
               "approx": true
             },
             {
               "w": "题",
-              "start": 37.655,
-              "end": 37.874,
+              "start": 43.614,
+              "end": 43.833,
               "approx": true
             },
             {
               "w": "，",
-              "start": 37.874,
-              "end": 37.972,
+              "start": 43.833,
+              "end": 43.931,
               "approx": true
             },
             {
               "w": "开",
-              "start": 37.972,
-              "end": 38.19,
+              "start": 43.931,
+              "end": 44.149,
               "approx": true
             },
             {
               "w": "启",
-              "start": 38.19,
-              "end": 38.409,
+              "start": 44.149,
+              "end": 44.368,
               "approx": true
             },
             {
               "w": "了",
-              "start": 38.409,
-              "end": 38.627,
+              "start": 44.368,
+              "end": 44.586,
               "approx": true
             },
             {
               "w": "分",
-              "start": 38.627,
-              "end": 38.846,
+              "start": 44.586,
+              "end": 44.805,
               "approx": true
             },
             {
               "w": "形",
-              "start": 38.846,
-              "end": 39.064,
+              "start": 44.805,
+              "end": 45.023,
               "approx": true
             },
             {
               "w": "几",
-              "start": 39.064,
-              "end": 39.282,
+              "start": 45.023,
+              "end": 45.241,
               "approx": true
             },
             {
               "w": "何",
-              "start": 39.282,
-              "end": 39.501,
+              "start": 45.241,
+              "end": 45.46,
               "approx": true
             },
             {
               "w": "。",
-              "start": 39.501,
-              "end": 39.599,
+              "start": 45.46,
+              "end": 45.558,
               "approx": true
             }
           ]

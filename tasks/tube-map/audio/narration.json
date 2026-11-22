@@ -4,79 +4,79 @@
     {
       "id": "hook-1",
       "text": "这张地铁图，看着挺正常。",
-      "start": 0.465,
+      "start": 0.51,
       "dur": 2.672,
       "words": [
         {
           "w": "这",
-          "start": 0.465,
-          "end": 0.71,
+          "start": 0.51,
+          "end": 0.755,
           "approx": true
         },
         {
           "w": "张",
-          "start": 0.71,
-          "end": 0.955,
+          "start": 0.755,
+          "end": 1,
           "approx": true
         },
         {
           "w": "地",
-          "start": 0.955,
-          "end": 1.2,
+          "start": 1,
+          "end": 1.245,
           "approx": true
         },
         {
           "w": "铁",
-          "start": 1.2,
-          "end": 1.446,
+          "start": 1.245,
+          "end": 1.491,
           "approx": true
         },
         {
           "w": "图",
-          "start": 1.446,
-          "end": 1.691,
+          "start": 1.491,
+          "end": 1.736,
           "approx": true
         },
         {
           "w": "，",
-          "start": 1.691,
-          "end": 1.801,
+          "start": 1.736,
+          "end": 1.846,
           "approx": true
         },
         {
           "w": "看",
-          "start": 1.801,
-          "end": 2.046,
+          "start": 1.846,
+          "end": 2.091,
           "approx": true
         },
         {
           "w": "着",
-          "start": 2.046,
-          "end": 2.291,
+          "start": 2.091,
+          "end": 2.336,
           "approx": true
         },
         {
           "w": "挺",
-          "start": 2.291,
-          "end": 2.536,
+          "start": 2.336,
+          "end": 2.581,
           "approx": true
         },
         {
           "w": "正",
-          "start": 2.536,
-          "end": 2.782,
+          "start": 2.581,
+          "end": 2.827,
           "approx": true
         },
         {
           "w": "常",
-          "start": 2.782,
-          "end": 3.027,
+          "start": 2.827,
+          "end": 3.072,
           "approx": true
         },
         {
           "w": "。",
-          "start": 3.027,
-          "end": 3.137,
+          "start": 3.072,
+          "end": 3.182,
           "approx": true
         }
       ]
@@ -84,97 +84,97 @@
     {
       "id": "hook-2",
       "text": "可市中心这两站，怎么挤成这样？",
-      "start": 3.102,
+      "start": 4.423,
       "dur": 3.004,
       "words": [
         {
           "w": "可",
-          "start": 3.102,
-          "end": 3.318,
+          "start": 4.423,
+          "end": 4.639,
           "approx": true
         },
         {
           "w": "市",
-          "start": 3.318,
-          "end": 3.534,
+          "start": 4.639,
+          "end": 4.855,
           "approx": true
         },
         {
           "w": "中",
-          "start": 3.534,
-          "end": 3.75,
+          "start": 4.855,
+          "end": 5.071,
           "approx": true
         },
         {
           "w": "心",
-          "start": 3.75,
-          "end": 3.966,
+          "start": 5.071,
+          "end": 5.287,
           "approx": true
         },
         {
           "w": "这",
-          "start": 3.966,
-          "end": 4.183,
+          "start": 5.287,
+          "end": 5.504,
           "approx": true
         },
         {
           "w": "两",
-          "start": 4.183,
-          "end": 4.399,
+          "start": 5.504,
+          "end": 5.72,
           "approx": true
         },
         {
           "w": "站",
-          "start": 4.399,
-          "end": 4.615,
+          "start": 5.72,
+          "end": 5.936,
           "approx": true
         },
         {
           "w": "，",
-          "start": 4.615,
-          "end": 4.712,
+          "start": 5.936,
+          "end": 6.033,
           "approx": true
         },
         {
           "w": "怎",
-          "start": 4.712,
-          "end": 4.928,
+          "start": 6.033,
+          "end": 6.249,
           "approx": true
         },
         {
           "w": "么",
-          "start": 4.928,
-          "end": 5.144,
+          "start": 6.249,
+          "end": 6.465,
           "approx": true
         },
         {
           "w": "挤",
-          "start": 5.144,
-          "end": 5.36,
+          "start": 6.465,
+          "end": 6.681,
           "approx": true
         },
         {
           "w": "成",
-          "start": 5.36,
-          "end": 5.577,
+          "start": 6.681,
+          "end": 6.898,
           "approx": true
         },
         {
           "w": "这",
-          "start": 5.577,
-          "end": 5.793,
+          "start": 6.898,
+          "end": 7.114,
           "approx": true
         },
         {
           "w": "样",
-          "start": 5.793,
-          "end": 6.009,
+          "start": 7.114,
+          "end": 7.33,
           "approx": true
         },
         {
           "w": "？",
-          "start": 6.009,
-          "end": 6.106,
+          "start": 7.33,
+          "end": 7.427,
           "approx": true
         }
       ]
@@ -182,91 +182,91 @@
     {
       "id": "bridge-1",
       "text": "再看郊区，两站之间却空荡荡。",
-      "start": 7.586,
+      "start": 8.811,
       "dur": 3.24,
       "words": [
         {
           "w": "再",
-          "start": 7.586,
-          "end": 7.837,
+          "start": 8.811,
+          "end": 9.062,
           "approx": true
         },
         {
           "w": "看",
-          "start": 7.837,
-          "end": 8.088,
+          "start": 9.062,
+          "end": 9.313,
           "approx": true
         },
         {
           "w": "郊",
-          "start": 8.088,
-          "end": 8.339,
+          "start": 9.313,
+          "end": 9.564,
           "approx": true
         },
         {
           "w": "区",
-          "start": 8.339,
-          "end": 8.591,
+          "start": 9.564,
+          "end": 9.816,
           "approx": true
         },
         {
           "w": "，",
-          "start": 8.591,
-          "end": 8.704,
+          "start": 9.816,
+          "end": 9.929,
           "approx": true
         },
         {
           "w": "两",
-          "start": 8.704,
-          "end": 8.955,
+          "start": 9.929,
+          "end": 10.18,
           "approx": true
         },
         {
           "w": "站",
-          "start": 8.955,
-          "end": 9.206,
+          "start": 10.18,
+          "end": 10.431,
           "approx": true
         },
         {
           "w": "之",
-          "start": 9.206,
-          "end": 9.457,
+          "start": 10.431,
+          "end": 10.682,
           "approx": true
         },
         {
           "w": "间",
-          "start": 9.457,
-          "end": 9.708,
+          "start": 10.682,
+          "end": 10.933,
           "approx": true
         },
         {
           "w": "却",
-          "start": 9.708,
-          "end": 9.959,
+          "start": 10.933,
+          "end": 11.184,
           "approx": true
         },
         {
           "w": "空",
-          "start": 9.959,
-          "end": 10.211,
+          "start": 11.184,
+          "end": 11.436,
           "approx": true
         },
         {
           "w": "荡",
-          "start": 10.211,
-          "end": 10.462,
+          "start": 11.436,
+          "end": 11.687,
           "approx": true
         },
         {
           "w": "荡",
-          "start": 10.462,
-          "end": 10.713,
+          "start": 11.687,
+          "end": 11.938,
           "approx": true
         },
         {
           "w": "。",
-          "start": 10.713,
-          "end": 10.826,
+          "start": 11.938,
+          "end": 12.051,
           "approx": true
         }
       ]
@@ -274,109 +274,109 @@
     {
       "id": "bridge-2",
       "text": "同一张图，一边挤一边空，不奇怪吗？",
-      "start": 11.061,
+      "start": 13.197,
       "dur": 3.523,
       "words": [
         {
           "w": "同",
-          "start": 11.061,
-          "end": 11.291,
+          "start": 13.197,
+          "end": 13.427,
           "approx": true
         },
         {
           "w": "一",
-          "start": 11.291,
-          "end": 11.52,
+          "start": 13.427,
+          "end": 13.656,
           "approx": true
         },
         {
           "w": "张",
-          "start": 11.52,
-          "end": 11.75,
+          "start": 13.656,
+          "end": 13.886,
           "approx": true
         },
         {
           "w": "图",
-          "start": 11.75,
-          "end": 11.979,
+          "start": 13.886,
+          "end": 14.115,
           "approx": true
         },
         {
           "w": "，",
-          "start": 11.979,
-          "end": 12.082,
+          "start": 14.115,
+          "end": 14.218,
           "approx": true
         },
         {
           "w": "一",
-          "start": 12.082,
-          "end": 12.312,
+          "start": 14.218,
+          "end": 14.448,
           "approx": true
         },
         {
           "w": "边",
-          "start": 12.312,
-          "end": 12.541,
+          "start": 14.448,
+          "end": 14.677,
           "approx": true
         },
         {
           "w": "挤",
-          "start": 12.541,
-          "end": 12.771,
+          "start": 14.677,
+          "end": 14.907,
           "approx": true
         },
         {
           "w": "一",
-          "start": 12.771,
-          "end": 13,
+          "start": 14.907,
+          "end": 15.136,
           "approx": true
         },
         {
           "w": "边",
-          "start": 13,
-          "end": 13.23,
+          "start": 15.136,
+          "end": 15.366,
           "approx": true
         },
         {
           "w": "空",
-          "start": 13.23,
-          "end": 13.459,
+          "start": 15.366,
+          "end": 15.595,
           "approx": true
         },
         {
           "w": "，",
-          "start": 13.459,
-          "end": 13.563,
+          "start": 15.595,
+          "end": 15.699,
           "approx": true
         },
         {
           "w": "不",
-          "start": 13.563,
-          "end": 13.792,
+          "start": 15.699,
+          "end": 15.928,
           "approx": true
         },
         {
           "w": "奇",
-          "start": 13.792,
-          "end": 14.022,
+          "start": 15.928,
+          "end": 16.158,
           "approx": true
         },
         {
           "w": "怪",
-          "start": 14.022,
-          "end": 14.251,
+          "start": 16.158,
+          "end": 16.387,
           "approx": true
         },
         {
           "w": "吗",
-          "start": 14.251,
-          "end": 14.481,
+          "start": 16.387,
+          "end": 16.617,
           "approx": true
         },
         {
           "w": "？",
-          "start": 14.481,
-          "end": 14.584,
+          "start": 16.617,
+          "end": 16.72,
           "approx": true
         }
       ]
@@ -384,133 +384,133 @@
     {
       "id": "mechanism-1",
       "text": "如果按真实距离画，地铁图就是这样歪歪扭扭。",
-      "start": 15.918,
+      "start": 17.736,
       "dur": 4.185,
       "words": [
         {
           "w": "如",
-          "start": 15.918,
-          "end": 16.128,
+          "start": 17.736,
+          "end": 17.946,
           "approx": true
         },
         {
           "w": "果",
-          "start": 16.128,
-          "end": 16.339,
+          "start": 17.946,
+          "end": 18.157,
           "approx": true
         },
         {
           "w": "按",
-          "start": 16.339,
-          "end": 16.549,
+          "start": 18.157,
+          "end": 18.367,
           "approx": true
         },
         {
           "w": "真",
-          "start": 16.549,
-          "end": 16.759,
+          "start": 18.367,
+          "end": 18.577,
           "approx": true
         },
         {
           "w": "实",
-          "start": 16.759,
-          "end": 16.97,
+          "start": 18.577,
+          "end": 18.788,
           "approx": true
         },
         {
           "w": "距",
-          "start": 16.97,
-          "end": 17.18,
+          "start": 18.788,
+          "end": 18.998,
           "approx": true
         },
         {
           "w": "离",
-          "start": 17.18,
-          "end": 17.39,
+          "start": 18.998,
+          "end": 19.208,
           "approx": true
         },
         {
           "w": "画",
-          "start": 17.39,
-          "end": 17.6,
+          "start": 19.208,
+          "end": 19.418,
           "approx": true
         },
         {
           "w": "，",
-          "start": 17.6,
-          "end": 17.695,
+          "start": 19.418,
+          "end": 19.513,
           "approx": true
         },
         {
           "w": "地",
-          "start": 17.695,
-          "end": 17.905,
+          "start": 19.513,
+          "end": 19.723,
           "approx": true
         },
         {
           "w": "铁",
-          "start": 17.905,
-          "end": 18.116,
+          "start": 19.723,
+          "end": 19.934,
           "approx": true
         },
         {
           "w": "图",
-          "start": 18.116,
-          "end": 18.326,
+          "start": 19.934,
+          "end": 20.144,
           "approx": true
         },
         {
           "w": "就",
-          "start": 18.326,
-          "end": 18.536,
+          "start": 20.144,
+          "end": 20.354,
           "approx": true
         },
         {
           "w": "是",
-          "start": 18.536,
-          "end": 18.747,
+          "start": 20.354,
+          "end": 20.565,
           "approx": true
         },
         {
           "w": "这",
-          "start": 18.747,
-          "end": 18.957,
+          "start": 20.565,
+          "end": 20.775,
           "approx": true
         },
         {
           "w": "样",
-          "start": 18.957,
-          "end": 19.167,
+          "start": 20.775,
+          "end": 20.985,
           "approx": true
         },
         {
           "w": "歪",
-          "start": 19.167,
-          "end": 19.377,
+          "start": 20.985,
+          "end": 21.195,
           "approx": true
         },
         {
           "w": "歪",
-          "start": 19.377,
-          "end": 19.588,
+          "start": 21.195,
+          "end": 21.406,
           "approx": true
         },
         {
           "w": "扭",
-          "start": 19.588,
-          "end": 19.798,
+          "start": 21.406,
+          "end": 21.616,
           "approx": true
         },
         {
           "w": "扭",
-          "start": 19.798,
-          "end": 20.008,
+          "start": 21.616,
+          "end": 21.826,
           "approx": true
         },
         {
           "w": "。",
-          "start": 20.008,
-          "end": 20.103,
+          "start": 21.826,
+          "end": 21.921,
           "approx": true
         }
       ]
@@ -518,97 +518,97 @@
     {
       "id": "mechanism-2",
       "text": "市中心挤成一团，郊区拉得老长。",
-      "start": 19.836,
+      "start": 22.447,
       "dur": 3.272,
       "words": [
         {
           "w": "市",
-          "start": 19.836,
-          "end": 20.071,
+          "start": 22.447,
+          "end": 22.682,
           "approx": true
         },
         {
           "w": "中",
-          "start": 20.071,
-          "end": 20.307,
+          "start": 22.682,
+          "end": 22.918,
           "approx": true
         },
         {
           "w": "心",
-          "start": 20.307,
-          "end": 20.542,
+          "start": 22.918,
+          "end": 23.153,
           "approx": true
         },
         {
           "w": "挤",
-          "start": 20.542,
-          "end": 20.778,
+          "start": 23.153,
+          "end": 23.389,
           "approx": true
         },
         {
           "w": "成",
-          "start": 20.778,
-          "end": 21.013,
+          "start": 23.389,
+          "end": 23.624,
           "approx": true
         },
         {
           "w": "一",
-          "start": 21.013,
-          "end": 21.248,
+          "start": 23.624,
+          "end": 23.859,
           "approx": true
         },
         {
           "w": "团",
-          "start": 21.248,
-          "end": 21.484,
+          "start": 23.859,
+          "end": 24.095,
           "approx": true
         },
         {
           "w": "，",
-          "start": 21.484,
-          "end": 21.59,
+          "start": 24.095,
+          "end": 24.201,
           "approx": true
         },
         {
           "w": "郊",
-          "start": 21.59,
-          "end": 21.825,
+          "start": 24.201,
+          "end": 24.436,
           "approx": true
         },
         {
           "w": "区",
-          "start": 21.825,
-          "end": 22.06,
+          "start": 24.436,
+          "end": 24.671,
           "approx": true
         },
         {
           "w": "拉",
-          "start": 22.06,
-          "end": 22.296,
+          "start": 24.671,
+          "end": 24.907,
           "approx": true
         },
         {
           "w": "得",
-          "start": 22.296,
-          "end": 22.531,
+          "start": 24.907,
+          "end": 25.142,
           "approx": true
         },
         {
           "w": "老",
-          "start": 22.531,
-          "end": 22.767,
+          "start": 25.142,
+          "end": 25.378,
           "approx": true
         },
         {
           "w": "长",
-          "start": 22.767,
-          "end": 23.002,
+          "start": 25.378,
+          "end": 25.613,
           "approx": true
         },
         {
           "w": "。",
-          "start": 23.002,
-          "end": 23.108,
+          "start": 25.613,
+          "end": 25.719,
           "approx": true
         }
       ]
@@ -616,121 +616,121 @@
     {
       "id": "compare-1",
       "text": "于是有人想了个办法：把站点吸到网格上。",
-      "start": 25.552,
+      "start": 27.385,
       "dur": 3.696,
       "words": [
         {
           "w": "于",
-          "start": 25.552,
-          "end": 25.758,
+          "start": 27.385,
+          "end": 27.591,
           "approx": true
         },
         {
           "w": "是",
-          "start": 25.758,
-          "end": 25.965,
+          "start": 27.591,
+          "end": 27.798,
           "approx": true
         },
         {
           "w": "有",
-          "start": 25.965,
-          "end": 26.171,
+          "start": 27.798,
+          "end": 28.004,
           "approx": true
         },
         {
           "w": "人",
-          "start": 26.171,
-          "end": 26.378,
+          "start": 28.004,
+          "end": 28.211,
           "approx": true
         },
         {
           "w": "想",
-          "start": 26.378,
-          "end": 26.584,
+          "start": 28.211,
+          "end": 28.417,
           "approx": true
         },
         {
           "w": "了",
-          "start": 26.584,
-          "end": 26.791,
+          "start": 28.417,
+          "end": 28.624,
           "approx": true
         },
         {
           "w": "个",
-          "start": 26.791,
-          "end": 26.997,
+          "start": 28.624,
+          "end": 28.83,
           "approx": true
         },
         {
           "w": "办",
-          "start": 26.997,
-          "end": 27.204,
+          "start": 28.83,
+          "end": 29.037,
           "approx": true
         },
         {
           "w": "法",
-          "start": 27.204,
-          "end": 27.41,
+          "start": 29.037,
+          "end": 29.243,
           "approx": true
         },
         {
           "w": "：",
-          "start": 27.41,
-          "end": 27.503,
+          "start": 29.243,
+          "end": 29.336,
           "approx": true
         },
         {
           "w": "把",
-          "start": 27.503,
-          "end": 27.71,
+          "start": 29.336,
+          "end": 29.543,
           "approx": true
         },
         {
           "w": "站",
-          "start": 27.71,
-          "end": 27.916,
+          "start": 29.543,
+          "end": 29.749,
           "approx": true
         },
         {
           "w": "点",
-          "start": 27.916,
-          "end": 28.123,
+          "start": 29.749,
+          "end": 29.956,
           "approx": true
         },
         {
           "w": "吸",
-          "start": 28.123,
-          "end": 28.329,
+          "start": 29.956,
+          "end": 30.162,
           "approx": true
         },
         {
           "w": "到",
-          "start": 28.329,
-          "end": 28.536,
+          "start": 30.162,
+          "end": 30.369,
           "approx": true
         },
         {
           "w": "网",
-          "start": 28.536,
-          "end": 28.742,
+          "start": 30.369,
+          "end": 30.575,
           "approx": true
         },
         {
           "w": "格",
-          "start": 28.742,
-          "end": 28.949,
+          "start": 30.575,
+          "end": 30.782,
           "approx": true
         },
         {
           "w": "上",
-          "start": 28.949,
-          "end": 29.155,
+          "start": 30.782,
+          "end": 30.988,
           "approx": true
         },
         {
           "w": "。",
-          "start": 29.155,
-          "end": 29.248,
+          "start": 30.988,
+          "end": 31.081,
           "approx": true
         }
       ]
@@ -738,109 +738,109 @@
     {
       "id": "compare-2",
       "text": "只留横、竖、四十五度，站距拉均匀。",
-      "start": 29.898,
+      "start": 32.78,
       "dur": 4.295,
       "words": [
         {
           "w": "只",
-          "start": 29.898,
-          "end": 30.188,
+          "start": 32.78,
+          "end": 33.07,
           "approx": true
         },
         {
           "w": "留",
-          "start": 30.188,
-          "end": 30.478,
+          "start": 33.07,
+          "end": 33.36,
           "approx": true
         },
         {
           "w": "横",
-          "start": 30.478,
-          "end": 30.769,
+          "start": 33.36,
+          "end": 33.651,
           "approx": true
         },
         {
           "w": "、",
-          "start": 30.769,
-          "end": 30.899,
+          "start": 33.651,
+          "end": 33.781,
           "approx": true
         },
         {
           "w": "竖",
-          "start": 30.899,
-          "end": 31.189,
+          "start": 33.781,
+          "end": 34.071,
           "approx": true
         },
         {
           "w": "、",
-          "start": 31.189,
-          "end": 31.32,
+          "start": 34.071,
+          "end": 34.202,
           "approx": true
         },
         {
           "w": "四",
-          "start": 31.32,
-          "end": 31.61,
+          "start": 34.202,
+          "end": 34.492,
           "approx": true
         },
         {
           "w": "十",
-          "start": 31.61,
-          "end": 31.9,
+          "start": 34.492,
+          "end": 34.782,
           "approx": true
         },
         {
           "w": "五",
-          "start": 31.9,
-          "end": 32.191,
+          "start": 34.782,
+          "end": 35.073,
           "approx": true
         },
         {
           "w": "度",
-          "start": 32.191,
-          "end": 32.481,
+          "start": 35.073,
+          "end": 35.363,
           "approx": true
         },
         {
           "w": "，",
-          "start": 32.481,
-          "end": 32.611,
+          "start": 35.363,
+          "end": 35.493,
           "approx": true
         },
         {
           "w": "站",
-          "start": 32.611,
-          "end": 32.902,
+          "start": 35.493,
+          "end": 35.784,
           "approx": true
         },
         {
           "w": "距",
-          "start": 32.902,
-          "end": 33.192,
+          "start": 35.784,
+          "end": 36.074,
           "approx": true
         },
         {
           "w": "拉",
-          "start": 33.192,
-          "end": 33.482,
+          "start": 36.074,
+          "end": 36.364,
           "approx": true
         },
         {
           "w": "均",
-          "start": 33.482,
-          "end": 33.772,
+          "start": 36.364,
+          "end": 36.654,
           "approx": true
         },
         {
           "w": "匀",
-          "start": 33.772,
-          "end": 34.062,
+          "start": 36.654,
+          "end": 36.944,
           "approx": true
         },
         {
           "w": "。",
-          "start": 34.062,
-          "end": 34.193,
+          "start": 36.944,
+          "end": 37.075,
           "approx": true
         }
       ]
@@ -848,97 +848,97 @@
     {
       "id": "compare-3",
       "text": "连接关系不变，换乘照样找得到。",
-      "start": 34.009,
+      "start": 38.047,
       "dur": 3.045,
       "words": [
         {
           "w": "连",
-          "start": 34.009,
-          "end": 34.228,
+          "start": 38.047,
+          "end": 38.266,
           "approx": true
         },
         {
           "w": "接",
-          "start": 34.228,
-          "end": 34.447,
+          "start": 38.266,
+          "end": 38.485,
           "approx": true
         },
         {
           "w": "关",
-          "start": 34.447,
-          "end": 34.666,
+          "start": 38.485,
+          "end": 38.704,
           "approx": true
         },
         {
           "w": "系",
-          "start": 34.666,
-          "end": 34.885,
+          "start": 38.704,
+          "end": 38.923,
           "approx": true
         },
         {
           "w": "不",
-          "start": 34.885,
-          "end": 35.104,
+          "start": 38.923,
+          "end": 39.142,
           "approx": true
         },
         {
           "w": "变",
-          "start": 35.104,
-          "end": 35.323,
+          "start": 39.142,
+          "end": 39.361,
           "approx": true
         },
         {
           "w": "，",
-          "start": 35.323,
-          "end": 35.422,
+          "start": 39.361,
+          "end": 39.46,
           "approx": true
         },
         {
           "w": "换",
-          "start": 35.422,
-          "end": 35.641,
+          "start": 39.46,
+          "end": 39.679,
           "approx": true
         },
         {
           "w": "乘",
-          "start": 35.641,
-          "end": 35.86,
+          "start": 39.679,
+          "end": 39.898,
           "approx": true
         },
         {
           "w": "照",
-          "start": 35.86,
-          "end": 36.079,
+          "start": 39.898,
+          "end": 40.117,
           "approx": true
         },
         {
           "w": "样",
-          "start": 36.079,
-          "end": 36.298,
+          "start": 40.117,
+          "end": 40.336,
           "approx": true
         },
         {
           "w": "找",
-          "start": 36.298,
-          "end": 36.517,
+          "start": 40.336,
+          "end": 40.555,
           "approx": true
         },
         {
           "w": "得",
-          "start": 36.517,
-          "end": 36.736,
+          "start": 40.555,
+          "end": 40.774,
           "approx": true
         },
         {
           "w": "到",
-          "start": 36.736,
-          "end": 36.955,
+          "start": 40.774,
+          "end": 40.993,
           "approx": true
         },
         {
           "w": "。",
-          "start": 36.955,
-          "end": 37.054,
+          "start": 40.993,
+          "end": 41.092,
           "approx": true
         }
       ]
@@ -946,91 +946,91 @@
     {
       "id": "data-1",
       "text": "乘客只关心坐几站、在哪换乘。",
-      "start": 38.113,
+      "start": 42.338,
       "dur": 3.06,
       "words": [
         {
           "w": "乘",
-          "start": 38.113,
-          "end": 38.35,
+          "start": 42.338,
+          "end": 42.575,
           "approx": true
         },
         {
           "w": "客",
-          "start": 38.35,
-          "end": 38.587,
+          "start": 42.575,
+          "end": 42.812,
           "approx": true
         },
         {
           "w": "只",
-          "start": 38.587,
-          "end": 38.825,
+          "start": 42.812,
+          "end": 43.05,
           "approx": true
         },
         {
           "w": "关",
-          "start": 38.825,
-          "end": 39.062,
+          "start": 43.05,
+          "end": 43.287,
           "approx": true
         },
         {
           "w": "心",
-          "start": 39.062,
-          "end": 39.299,
+          "start": 43.287,
+          "end": 43.524,
           "approx": true
         },
         {
           "w": "坐",
-          "start": 39.299,
-          "end": 39.536,
+          "start": 43.524,
+          "end": 43.761,
           "approx": true
         },
         {
           "w": "几",
-          "start": 39.536,
-          "end": 39.773,
+          "start": 43.761,
+          "end": 43.998,
           "approx": true
         },
         {
           "w": "站",
-          "start": 39.773,
-          "end": 40.011,
+          "start": 43.998,
+          "end": 44.236,
           "approx": true
         },
         {
           "w": "、",
-          "start": 40.011,
-          "end": 40.117,
+          "start": 44.236,
+          "end": 44.342,
           "approx": true
         },
         {
           "w": "在",
-          "start": 40.117,
-          "end": 40.355,
+          "start": 44.342,
+          "end": 44.58,
           "approx": true
         },
         {
           "w": "哪",
-          "start": 40.355,
-          "end": 40.592,
+          "start": 44.58,
+          "end": 44.817,
           "approx": true
         },
         {
           "w": "换",
-          "start": 40.592,
-          "end": 40.829,
+          "start": 44.817,
+          "end": 45.054,
           "approx": true
         },
         {
           "w": "乘",
-          "start": 40.829,
-          "end": 41.066,
+          "start": 45.054,
+          "end": 45.291,
           "approx": true
         },
         {
           "w": "。",
-          "start": 41.066,
-          "end": 41.173,
+          "start": 45.291,
+          "end": 45.398,
           "approx": true
         }
       ]
@@ -1038,73 +1038,73 @@
     {
       "id": "data-2",
       "text": "谁在乎两站实际多远呢？",
-      "start": 40.928,
+      "start": 45.941,
       "dur": 2.056,
       "words": [
         {
           "w": "谁",
-          "start": 40.928,
-          "end": 41.125,
+          "start": 45.941,
+          "end": 46.138,
           "approx": true
         },
         {
           "w": "在",
-          "start": 41.125,
-          "end": 41.321,
+          "start": 46.138,
+          "end": 46.334,
           "approx": true
         },
         {
           "w": "乎",
-          "start": 41.321,
-          "end": 41.518,
+          "start": 46.334,
+          "end": 46.531,
           "approx": true
         },
         {
           "w": "两",
-          "start": 41.518,
-          "end": 41.715,
+          "start": 46.531,
+          "end": 46.728,
           "approx": true
         },
         {
           "w": "站",
-          "start": 41.715,
-          "end": 41.912,
+          "start": 46.728,
+          "end": 46.925,
           "approx": true
         },
         {
           "w": "实",
-          "start": 41.912,
-          "end": 42.108,
+          "start": 46.925,
+          "end": 47.121,
           "approx": true
         },
         {
           "w": "际",
-          "start": 42.108,
-          "end": 42.305,
+          "start": 47.121,
+          "end": 47.318,
           "approx": true
         },
         {
           "w": "多",
-          "start": 42.305,
-          "end": 42.502,
+          "start": 47.318,
+          "end": 47.515,
           "approx": true
         },
         {
           "w": "远",
-          "start": 42.502,
-          "end": 42.699,
+          "start": 47.515,
+          "end": 47.712,
           "approx": true
         },
         {
           "w": "呢",
-          "start": 42.699,
-          "end": 42.895,
+          "start": 47.712,
+          "end": 47.908,
           "approx": true
         },
         {
           "w": "？",
-          "start": 42.895,
-          "end": 42.984,
+          "start": 47.908,
+          "end": 47.997,
           "approx": true
         }
       ]
@@ -1112,139 +1112,139 @@
     {
       "id": "close-1",
       "text": "一九三三年，贝克把电路图的思路搬到了地图上。",
-      "start": 45.421,
+      "start": 50.246,
       "dur": 4.03,
       "words": [
         {
           "w": "一",
-          "start": 45.421,
-          "end": 45.614,
+          "start": 50.246,
+          "end": 50.439,
           "approx": true
         },
         {
           "w": "九",
-          "start": 45.614,
-          "end": 45.807,
+          "start": 50.439,
+          "end": 50.632,
           "approx": true
         },
         {
           "w": "三",
-          "start": 45.807,
-          "end": 45.999,
+          "start": 50.632,
+          "end": 50.824,
           "approx": true
         },
         {
           "w": "三",
-          "start": 45.999,
-          "end": 46.192,
+          "start": 50.824,
+          "end": 51.017,
           "approx": true
         },
         {
           "w": "年",
-          "start": 46.192,
-          "end": 46.385,
+          "start": 51.017,
+          "end": 51.21,
           "approx": true
         },
         {
           "w": "，",
-          "start": 46.385,
-          "end": 46.472,
+          "start": 51.21,
+          "end": 51.297,
           "approx": true
         },
         {
           "w": "贝",
-          "start": 46.472,
-          "end": 46.665,
+          "start": 51.297,
+          "end": 51.49,
           "approx": true
         },
         {
           "w": "克",
-          "start": 46.665,
-          "end": 46.858,
+          "start": 51.49,
+          "end": 51.683,
           "approx": true
         },
         {
           "w": "把",
-          "start": 46.858,
-          "end": 47.05,
+          "start": 51.683,
+          "end": 51.875,
           "approx": true
         },
         {
           "w": "电",
-          "start": 47.05,
-          "end": 47.243,
+          "start": 51.875,
+          "end": 52.068,
           "approx": true
         },
         {
           "w": "路",
-          "start": 47.243,
-          "end": 47.436,
+          "start": 52.068,
+          "end": 52.261,
           "approx": true
         },
         {
           "w": "图",
-          "start": 47.436,
-          "end": 47.629,
+          "start": 52.261,
+          "end": 52.454,
           "approx": true
         },
         {
           "w": "的",
-          "start": 47.629,
-          "end": 47.822,
+          "start": 52.454,
+          "end": 52.647,
           "approx": true
         },
         {
           "w": "思",
-          "start": 47.822,
-          "end": 48.014,
+          "start": 52.647,
+          "end": 52.839,
           "approx": true
         },
         {
           "w": "路",
-          "start": 48.014,
-          "end": 48.207,
+          "start": 52.839,
+          "end": 53.032,
           "approx": true
         },
         {
           "w": "搬",
-          "start": 48.207,
-          "end": 48.4,
+          "start": 53.032,
+          "end": 53.225,
           "approx": true
         },
         {
           "w": "到",
-          "start": 48.4,
-          "end": 48.593,
+          "start": 53.225,
+          "end": 53.418,
           "approx": true
         },
         {
           "w": "了",
-          "start": 48.593,
-          "end": 48.786,
+          "start": 53.418,
+          "end": 53.611,
           "approx": true
         },
         {
           "w": "地",
-          "start": 48.786,
-          "end": 48.979,
+          "start": 53.611,
+          "end": 53.804,
           "approx": true
         },
         {
           "w": "图",
-          "start": 48.979,
-          "end": 49.171,
+          "start": 53.804,
+          "end": 53.996,
           "approx": true
         },
         {
           "w": "上",
-          "start": 49.171,
-          "end": 49.364,
+          "start": 53.996,
+          "end": 54.189,
           "approx": true
         },
         {
           "w": "。",
-          "start": 49.364,
-          "end": 49.451,
+          "start": 54.189,
+          "end": 54.276,
           "approx": true
         }
       ]
@@ -1252,109 +1252,109 @@
     {
       "id": "close-2",
       "text": "从此，地铁图故意画错，反而更好用。",
-      "start": 49.912,
+      "start": 55.747,
       "dur": 3.72,
       "words": [
         {
           "w": "从",
-          "start": 49.912,
-          "end": 50.154,
+          "start": 55.747,
+          "end": 55.989,
           "approx": true
         },
         {
           "w": "此",
-          "start": 50.154,
-          "end": 50.397,
+          "start": 55.989,
+          "end": 56.232,
           "approx": true
         },
         {
           "w": "，",
-          "start": 50.397,
-          "end": 50.506,
+          "start": 56.232,
+          "end": 56.341,
           "approx": true
         },
         {
           "w": "地",
-          "start": 50.506,
-          "end": 50.748,
+          "start": 56.341,
+          "end": 56.583,
           "approx": true
         },
         {
           "w": "铁",
-          "start": 50.748,
-          "end": 50.99,
+          "start": 56.583,
+          "end": 56.825,
           "approx": true
         },
         {
           "w": "图",
-          "start": 50.99,
-          "end": 51.233,
+          "start": 56.825,
+          "end": 57.068,
           "approx": true
         },
         {
           "w": "故",
-          "start": 51.233,
-          "end": 51.475,
+          "start": 57.068,
+          "end": 57.31,
           "approx": true
         },
         {
           "w": "意",
-          "start": 51.475,
-          "end": 51.717,
+          "start": 57.31,
+          "end": 57.552,
           "approx": true
         },
         {
           "w": "画",
-          "start": 51.717,
-          "end": 51.96,
+          "start": 57.552,
+          "end": 57.795,
           "approx": true
         },
         {
           "w": "错",
-          "start": 51.96,
-          "end": 52.202,
+          "start": 57.795,
+          "end": 58.037,
           "approx": true
         },
         {
           "w": "，",
-          "start": 52.202,
-          "end": 52.311,
+          "start": 58.037,
+          "end": 58.146,
           "approx": true
         },
         {
           "w": "反",
-          "start": 52.311,
-          "end": 52.554,
+          "start": 58.146,
+          "end": 58.389,
           "approx": true
         },
         {
           "w": "而",
-          "start": 52.554,
-          "end": 52.796,
+          "start": 58.389,
+          "end": 58.631,
           "approx": true
         },
         {
           "w": "更",
-          "start": 52.796,
-          "end": 53.038,
+          "start": 58.631,
+          "end": 58.873,
           "approx": true
         },
         {
           "w": "好",
-          "start": 53.038,
-          "end": 53.281,
+          "start": 58.873,
+          "end": 59.116,
           "approx": true
         },
         {
           "w": "用",
-          "start": 53.281,
-          "end": 53.523,
+          "start": 59.116,
+          "end": 59.358,
           "approx": true
         },
         {
           "w": "。",
-          "start": 53.523,
-          "end": 53.632,
+          "start": 59.358,
+          "end": 59.467,
           "approx": true
         }
       ]
