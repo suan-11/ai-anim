@@ -5,9 +5,9 @@ export const world=(ctx)=>worldPass(ctx,{motif:'auto',vignette:0.3});
 const F={x:160,y:200,w:1600,h:680};
 export default { title:'第一位是 1 的数字，凭什么这么多', width:1920,height:1080,fps:24,scale:1, style:{name:'paper',grid:{pad:120}}, captions:true,
   timeline:seq([
-    cut(hook,{id:'hook',at:0,dur:4,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape']},relayTo:'bar1'}),
+    cut(hook,{id:'hook',at:0,dur:4,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','light','material']},relayTo:'bar1'}),
     cut(bridge,{id:'bridge',at:4,dur:5,handlesTransition:true,world:'auto',focus:F,state:{diff:['light']},relayTo:'bars'}),
-    cut(mechanism,{id:'mechanism',at:9,dur:8,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','position']},relayTo:'logaxis'}),
-    cut(data,{id:'data',at:17,dur:8,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','light']},relayTo:'bar1'}),
-    cut(close,{id:'close',at:25,dur:9,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape']},relayTo:''}),
+    cut(mechanism,{id:'mechanism',at:9,dur:8,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','position','light']},relayTo:'logaxis'}),
+    cut(data,{id:'data',at:17,dur:8,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','light','material']},relayTo:'bar1'}),
+    cut(close,{id:'close',at:25,dur:9,handlesTransition:true,world:'auto',focus:F,state:{diff:['shape','light']},relayTo:''}),
   ]) };
