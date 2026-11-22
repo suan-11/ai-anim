@@ -52,6 +52,8 @@
  *                                                        （叠句、放慢到 MAX_STRETCH、节拍源缺失都会报警；
  *                                                          --dry-run **不写** timing/narration/旁白轨，
  *                                                          但仍会合成或复用音频来量真实时长；--force 全部重合成）
+ *   node scripts/anim.mjs cues <task> [--scene a,b] [--all-words] [--json]
+ *                                                        词点与切点速查（全换算为段内 f.lt；写场景卡点用它，不用翻 30KB timing.mjs）
  *   node scripts/anim.mjs mix <task> [--music x.mp3] [--out y.mp3] [--vo-only] [--bitrate 192k]
  *                                  [--target streaming|cinema|off|<数字>] [--lra N]
  *                                                        旁白摆到绝对时刻 + 用旁白包络给音乐**闪避** →
@@ -227,6 +229,7 @@ import { run as cmdGpu } from "./cmd/gpu.mjs";
 import { run as cmdClean } from "./cmd/clean.mjs";
 import { run as cmdNote } from "./cmd/note.mjs";
 import { run as cmdSay } from "./cmd/say.mjs";
+import { run as cmdCues } from "./cmd/cues.mjs";
 import { run as cmdMix } from "./cmd/mix.mjs";
 import { run as cmdAnalyze } from "./cmd/analyze.mjs";
 import { run as help } from "./cmd/help.mjs";
@@ -297,6 +300,7 @@ const commands = {
   clean: cmdClean,
   note: cmdNote,
   say: cmdSay,
+  cues: cmdCues,
   mix: cmdMix,
   analyze: cmdAnalyze,
   help,

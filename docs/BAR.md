@@ -38,8 +38,46 @@
 
 ---
 
-## 二、正面标杆（待第三阶段风格帧确认后补入）
+## 二、正面标杆（对齐目标）
 
-> 说明：第一批正面标杆将取自新流程下的讲解片 `tasks/oklab` 风格帧。待用户审看 3 张风格帧并点头后，把图片复制到 `docs/images/bar/`，并在本节逐张写清：
-> 1. 画面好在哪（对应 `CRAFT-RUBRIC` 8 维得分与具体元素）；
-> 2. 对应的代码路径与行号（场景文件、shader / kit / 摄影机写法）。
+> 说明：第一批正面标杆取自新流程下的讲解片 [`tasks/oklab`](../tasks/oklab/task.config.mjs)（`round-29` 主模型独立审查 48 项全 ≥ 4，全片 `layout.guard` 0 告警，`lint-craft` 100/100，5 处切点 `railU`/`zoomBoost` 连续归零）。创作自检与 `CRAFT-RUBRIC` 独立审查时，将候选帧与下方三张正面锚点、以及 §一两张反面锚点做成对比较。
+
+---
+
+### 1. `tasks/oklab` · `hook`（段内 85% · t = 17.71s · 均分 4.50）
+
+![正面标杆：oklab hook](images/bar/pro-oklab-hook.png)
+
+> 8 维得分：**隐喻 5 / 填充 4 / 层级 5 / 深度 4 / 运动 5 / 连续 4 / 风格 4 / 高光 5 = 4.50**（`round-29`）。
+
+| 位置 / 元素 | 好在哪里 | 对应评分维度 | 源码锚点（文件路径与行号） |
+|---|---|---|---|
+| **双红绿渐变带 + 同轴光强凹谷阴影** | 用 GLSL 实时计算 `evalRedGreenSrgb` vs `evalRedGreenLinear`，在 `u=0.5` 处将物理光强塌陷区拉出真实阴影面积；不听旁白也能一眼看懂「编码平均 ≠ 物理光强平均」 | ① 主体与隐喻（5 分） | [`tasks/oklab/scenes/hook.js`](../tasks/oklab/scenes/hook.js#L20-L134)（GLSL 双色带 / 误差带 / 放大样块）；[`_oklab.js`](../tasks/oklab/scenes/_oklab.js#L93-L194)（共享 GLSL 算子） |
+| **`21.4%` vs `50%` 对比数阶 + 右上放大样块** | `72px` 唯一信号橙主数字 `21.4%` 与 `20px` 标注构成 `3.6:1` 字阶（同屏 ≤ 3 档字号）；右侧 64×64 放大样块交替聚焦，信号色只点唯一焦点 | ③ 层级（5 分）/ ⑧ 高光时刻（5 分） | [`tasks/oklab/scenes/hook.js`](../tasks/oklab/scenes/hook.js#L103-L130)（放大样块）、[`L390-L422`](../tasks/oklab/scenes/hook.js#L390-L422)（字阶层级与引导） |
+| **`flat` 暗调摄影棚三层深度 + 左栏实时量柱** | 世界层（`worldPass`）压暗退后，中景凹陷框（`C_INK * 0.76`）稳托实时曲线与左栏对比量柱；底栏 `spectrum-rail` 与 `cameraAt` 全程呼吸，并在切点前以 `zoomRelease` 平滑归零 | ② 填充（4）/ ④ 深度（4）/ ⑤ 运动（5）/ ⑥ 连续（4）/ ⑦ 风格（4） | [`tasks/oklab/scenes/hook.js`](../tasks/oklab/scenes/hook.js#L208-L259)（左栏量柱与参考线）、[`L427-L430`](../tasks/oklab/scenes/hook.js#L427-L430)（`zoomRelease`）；[`_oklab.js`](../tasks/oklab/scenes/_oklab.js#L224-L263)（`drawSpectrumRail` 与 `oklabPost`） |
+
+---
+
+### 2. `tasks/oklab` · `oklab_mech`（段内 85% · t = 69.00s · 均分 4.38）
+
+![正面标杆：oklab oklab_mech](images/bar/pro-oklab-mech.png)
+
+> 8 维得分：**隐喻 5 / 填充 4 / 层级 4 / 深度 5 / 运动 5 / 连续 4 / 风格 4 / 高光 4 = 4.38**（`round-29`）。
+
+| 位置 / 元素 | 好在哪里 | 对应评分维度 | 源码锚点（文件路径与行号） |
+|---|---|---|---|
+| **左侧无框三步数学管线 → 右侧实时 `L(u)` GLSL 色域切片** | Stage 1（`RGB→M1→LMS` 权重格与柱）、Stage 2（`x^(1/3)` 暗部压缩面积）、Stage 3（`M2` 真实 `L/a/b` 条与校准带）无边框直浮暗调摄影棚，与右侧实时随 `L` 变形的 `(a, b)` sRGB 色域切片与边界轮廓构成因果工作台 | ① 主体与隐喻（5 分）/ ④ 深度层次（5 分） | [`tasks/oklab/scenes/oklab_mech.js`](../tasks/oklab/scenes/oklab_mech.js#L30-L193)（GLSL 三步管线与实时色域切片）、[`L270-L310`](../tasks/oklab/scenes/oklab_mech.js#L270-L310)（无框流式接管线） |
+| **词点驱动阶段聚光 + 整帧数字防重影** | 随旁白节点切换 `tone1/tone2/tone3` 聚焦当前步骤；运动模糊下用主帧整型号 `ltFrame` 驱动动态数字 `L = 0.747`，彻底消灭子帧叠字重影，并在切点前主动 `zoomRelease` 归零 | ② 填充（4）/ ③ 层级（4）/ ⑤ 运动（5）/ ⑥ 连续（4）/ ⑧ 高光（4） | [`tasks/oklab/scenes/oklab_mech.js`](../tasks/oklab/scenes/oklab_mech.js#L226-L252)（词点 tone 分层与 `ltFrame`）、[`L582-L610`](../tasks/oklab/scenes/oklab_mech.js#L582-L610)（`L = 0.747` 读数与 `zoomRelease`） |
+
+---
+
+### 3. `tasks/oklab` · `close`（段内 85% · t = 97.31s · 均分 4.75）
+
+![正面标杆：oklab close](images/bar/pro-oklab-close.png)
+
+> 8 维得分：**隐喻 5 / 填充 5 / 层级 5 / 深度 4 / 运动 5 / 连续 5 / 风格 4 / 高光 5 = 4.75**（`round-29`）。
+
+| 位置 / 元素 | 好在哪里 | 对应评分维度 | 源码锚点（文件路径与行号） |
+|---|---|---|---|
+| **三代色带压暗重聚 + 亮度曲线弹簧弹直** | 开场主角 sRGB 与 Linear 退居配角压暗（`dimTone = 0.42`），128px 高 `Oklab (208,168,0)` 居中展开；开场 `hook` 的光强凹陷曲线通过 `spring` 弹直为线性 `L: 0.628→0.747→0.866`，完成全片视觉母题闭环 | ① 主体与隐喻（5 分）/ ⑥ 连续性（5 分）/ ⑧ 高光时刻（5 分） | [`tasks/oklab/scenes/close.js`](../tasks/oklab/scenes/close.js#L25-L117)（GLSL 三代色带与弹直阴影）、[`L194-L216`](../tasks/oklab/scenes/close.js#L194-L216)（`spring` 弹直与几何收束） |
+| **同轴三列底栏验证 + `L=0.581→0.747` 交叉淡化** | 底栏三列与主色带严格对齐 `x=400..1760`（中栏 C2 中心落于 `midX=1080`），对照 CIELAB 偏紫与 Oklab 纯净蓝→白及 `CSS Color 4`；数字切换以 `preSnapA`/`snap` 交叉淡化，片尾 `endFade` 平滑落黑 | ② 填充（5 分）/ ③ 层级（5 分）/ ④ 深度（4）/ ⑤ 运动（5）/ ⑦ 风格（4） | [`tasks/oklab/scenes/close.js`](../tasks/oklab/scenes/close.js#L118-L163)（三列底栏 GLSL）、[`L405-L440`](../tasks/oklab/scenes/close.js#L405-L440)（`L=0.581→0.747` 交叉淡化与三列标注） |

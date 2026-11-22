@@ -81,7 +81,9 @@ const ITEMS = [
   { name: 'unit:judge-tiers', cmd: ['tools/test-judge-tiers.mjs'], note: '1-82 判据分层纯函数：floor/reflex/finish 词表 / 反PPT C1-C7 归类 / 按tier计数 / 汇总格式（离线测）' },
   { name: 'unit:waivers', cmd: ['tools/test-waivers.mjs'], note: '1-80 豁免纪律纯函数：judge+guard+reason 三字段校验 / reason 复用检测 / 同判据≥3次升 house style（离线测）' },
   { name: 'unit:brief-lint', cmd: ['tools/test-brief-lint.mjs'], note: '结构化分镜 lintBrief 纯函数：空占位/形容词黑名单/主角段手写/模板占比/接力物/标注长度（离线测）' },
+  { name: 'unit:cues', cmd: ['tools/test-cues.mjs'], note: 'anim cues 词点与切点速查纯函数（timing 含词/无词/narration 回退）+ CLI 端到端验证' },
   { name: 'unit:craft-signals', cmd: ['tools/test-craft.mjs'], note: '偷懒检测纯函数：CRAFT-FONT/COLOR/RAWTEXT/MONO/TEMPLATE/STATIC-CAM/NOWORLD + pixel EMPTY/FLAT 阈值边界 + light-seconds 夹具（离线测）' },
+  { name: 'unit:harness-checks', cmd: ['tools/test-harness-checks.mjs'], note: '离线跑场双预检纯函数（layout.guard + cut-zoom-jump）+ oklab 零误报端到端验证' },
   { name: 'unit:action-motion', cmd: ['tools/test-action-motion.mjs'], note: '动作模板：实际接触才响应 / 轮廓对应与连续性 / seek-safe / 空间触发文字与裁切恢复' },
   { name: 'harness:action-lab', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_action-lab'], note: '揭示 / 因果 / 变形整段倒序 seek 与数值健全' },
   // ── 纯 JS 单测（不需要 GPU、几秒钟）──

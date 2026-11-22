@@ -64,6 +64,8 @@
 3. **补全片 🛑**：用户点头后做其余段，跑 `anim review` + 独立审查（最多 3 轮）→ 出 `--draft` 交用户。
 4. **定稿**：用户确认后再全渲染。
 
+> 写场景前先跑 `anim cues <任务>` 取段内词点与切点归零线；改完先跑 0.5s `node tools/scene-harness.mjs <任务>`（离线版面 + 切点缩放预检）再开 Chrome；独立审查须由主模型同档派单（`Model: "inherit"`），防返工细则见 [`docs/CRAFT.md`](docs/CRAFT.md) §8。
+
 ---
 
 ## 1. 三条命令先跑起来

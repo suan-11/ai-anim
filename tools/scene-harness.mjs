@@ -63,6 +63,12 @@ import { MusicData, SILENT } from '../src/core/audio.js';
 import { makeNarration, makeNarrationReader } from '../src/core/narration.js';
 import { TextKit } from '../src/core/text.js';
 import { polySpans, circleSpans } from '../src/core/fill.js';
+import { resolveStyle, fitStyleToFrame, gridFor } from '../src/style/index.js';
+import { resolveTypeSize } from '../src/style/tokens.js';
+import { layoutSummary } from '../src/layout.js';
+import {
+  resolveLayoutLimits, evaluateOfflineLayout, mergeEffectivePost, evaluateCutZoomContinuity,
+} from './lib/harness-checks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** 与任务无关的过程性提醒（读不到分析文件、调色板少名字…） */
@@ -534,15 +540,24 @@ const optSig = (o, f) => OPT_KEYS.filter((k) => o[k] !== undefined).map((k) => `
 
 /** 假 `TextKit`：镜像真实现的**可见性语义**（k ≤ 0 的字形根本不画） */
 class FakeTextKit {
-  constructor(owner) { this.__owner = owner; }
+  constructor(owner, tokens = null) { this.__owner = owner; this.tokens = tokens; }
   // Run the real trigger/clip calculation; fake Canvas only records its geometry.
-  withSize(style) { return style; }
+  withSize(style = {}) {
+    if (!style || typeof style !== 'object' || typeof style.size !== 'string') return style;
+    try {
+      const size = resolveTypeSize(style.size, this.tokens);
+      return size === style.size || size === undefined ? style : { ...style, size };
+    } catch {
+      return style;
+    }
+  }
   reveal(text,x,y,opts) { return TextKit.prototype.reveal.call(this,text,x,y,opts); }
   get __rec() { return this.__owner.rec; }
   setFamilies() { return this; }
-  font(style = {}) { return `${style.size ?? 64}px`; }
-  measure(text, style = {}) { return estW(text, style.size ?? 64, style.tracking ?? 0); }
+  font(style = {}) { style = this.withSize(style); return `${style.size ?? 64}px`; }
+  measure(text, style = {}) { style = this.withSize(style); return estW(text, style.size ?? 64, style.tracking ?? 0); }
   layout(text, style = {}) {
+    style = this.withSize(style);
     const clusters = [...String(text)];
     const tracking = style.tracking ?? 0;
     const cum = new Array(clusters.length + 1);
@@ -557,6 +572,7 @@ class FakeTextKit {
   }
   /** 与真 write 同构的可见性判断，再把"这一笔字"记进绘制序列 */
   write(text, x, y, opts = {}) {
+    opts = this.withSize(opts);
     const rec = this.__rec;
     const str = String(text);
     const size = opts.size ?? 64;
@@ -596,6 +612,7 @@ class FakeTextKit {
     return this;
   }
   writeLine(text, x, y, opts = {}) {
+    opts = this.withSize(opts);
     const w = this.measure(text, opts);
     const anchor = opts.anchor ?? 'left';
     // 与引擎同构（`src/core/text.js` 的 `writeLine` 现在就是一层转发到 `write`）：
@@ -604,6 +621,7 @@ class FakeTextKit {
     return w;
   }
   karaoke(text, words, x, y, t, opts = {}) {
+    opts = this.withSize(opts);
     const rec = this.__rec;
     const str = String(text);
     const n = Array.isArray(words) ? words.length : 0;
@@ -681,6 +699,12 @@ class FakeTextKit {
     // 在某一刻跑到画外，那是正常的（sodium/optifine 的成品里就有好几处）。
     rec.stats.boxes.push({ s: str, off, x0: box.x0, x1: box.x1, y0: box.y0 });
     if (off) rec.stats.offFrame.push(box);
+    if (str.trim()) {
+      rec.paint.blocks.push({
+        x: x0, y, size, w: Math.max(0, w), alpha,
+        sample: str.length > 24 ? str.slice(0, 24) : str,
+      });
+    }
   }
 }
 
@@ -703,7 +727,7 @@ class Fake2D {
 
 /** 假 `Layer2D`（文字图层）—— 引擎一景一层，这里也一样 */
 class FakeTextLayer {
-  constructor(owner, W, H, scale) {
+  constructor(owner, W, H, scale, tokens = null) {
     this.__owner = owner;
     this.w = W; this.h = H; this.scale = scale;
     this.canvas = { width: Math.round(W * scale), height: Math.round(H * scale) };
@@ -714,7 +738,7 @@ class FakeTextLayer {
     this.__tag = 'text';
     this.dirty = true;
     this._uploaded = false;
-    this.type = new FakeTextKit(owner);
+    this.type = new FakeTextKit(owner, tokens);
     this.type.ctx = this.ctx;
   }
   get __rec() { return this.__owner.rec; }
@@ -749,7 +773,7 @@ class Rec {
     this.W = W; this.H = H;
     this.raw = []; this.sig = [];
     this.problems = [];
-    this.paint = { full: 0, any: 0, lines: 0, target: null, other: 0 };
+    this.paint = { full: 0, any: 0, lines: 0, target: null, other: 0, blocks: [] };
     this.stats = {
       segs: 0, segsOutside: 0, batches: 0, flushes: 0, circles: 0, fills: 0, bigFill: false, inkClear: false,
       texts: 0, glyphs: 0, textCalls: 0, visibleTexts: 0, invisibleText: 0, uploads: 0, textClears: 0,
@@ -888,7 +912,16 @@ async function loadTaskSpec(name) {
     }
   }
   if (!Array.isArray(timeline) || !timeline.length) throw new Error(`${path.relative(ROOT, cfg)} 的 timeline 是空的`);
-  return { name: /[\\/]/.test(name) ? path.basename(dir) : name, dir, spec, timeline, music, narration, narrationData, cfgTypes };
+  let style = null;
+  try {
+    const W0 = Number(spec.width ?? 1920);
+    const H0 = Number(spec.height ?? 1080);
+    style = fitStyleToFrame(resolveStyle(spec), W0, H0);
+  } catch (e) {
+    NOTES.push(`风格解析失败（按无风格继续）：${errLine(e)}`);
+  }
+  const grid = style ? gridFor(style, Number(spec.width ?? 1920), Number(spec.height ?? 1080)) : null;
+  return { name: /[\\/]/.test(name) ? path.basename(dir) : name, dir, spec, timeline, music, narration, narrationData, cfgTypes, style, grid };
 }
 
 /** 与引擎 load() 同一套：懒加载函数 → 模块 → 类 → 对象 */
@@ -966,10 +999,10 @@ async function main() {
   const comp = new FakeComp(owner);
   const palMissing = new Map();
   const P = watching(
-    makePalette({ ...(spec.styleResolved?.palette ?? {}), ...(spec.palette ?? {}) }),
+    makePalette({ ...(T.style?.palette ?? {}), ...(spec.palette ?? {}) }),
     OPTIONAL_PAL, palMissing, 'P',
   );
-  const newLayer = () => new FakeTextLayer(owner, W, H, scale);
+  const newLayer = () => new FakeTextLayer(owner, W, H, scale, T.style?.tokens ?? null);
   /** 一段自己的共享背景（`cut(shot, { world: … })`）解析结果 */
   const ctxFor = (o) => makeCtx({ T, gl, lines, comp, P, owner, W, H, fps, ...o });
 
@@ -994,6 +1027,7 @@ async function main() {
       scene: null, ownWorld: null, status: 'ok', gpuSkip: null,
       errors: [], warnings: [], samples: [], perms: null, text: null, timesUsed: [],
       textSeen: new Map(), boxSeen: new Map(), sampleW: W, sampleH: H,
+      layoutSamples: [], allLayoutSamples: [], layoutReport: null,
     };
   });
   // 配置档任务：段名 → 模板名（只为了让报告里说清"这段是谁画的"）
@@ -1099,8 +1133,8 @@ async function main() {
       continue;
     }
 
-    for (const lt of times) {
-      const t = pr.start + lt;
+    const prepAt = (ltVal) => {
+      const t = pr.start + ltVal;
       // 引擎在 t 时刻会把所有在播的段按顺序渲一遍：本段之前的那些段的成帧，就是本段的 ctx.under
       const actives = activeAt(t);
       const mine = actives.findIndex((i) => i === pr.item);
@@ -1146,6 +1180,11 @@ async function main() {
         gl.paint = null; owner.rec = null; owner.curProbe = null;
         return { rec, post, err };
       };
+      return { t, idx, isOverlap, run };
+    };
+
+    for (const lt of times) {
+      const { t, idx, isOverlap, run } = prepAt(lt);
 
       run(idx);                       // 热身：让"第一次调用才建的缓存"落定（引擎里 setup 之后第一帧也是这个待遇）
       const variant = run(idx + 7);   // 同 t、不同 idx
@@ -1213,9 +1252,149 @@ async function main() {
             + `（用 shakeSmooth(f.t, amp)，见 docs/history/IMPROVEMENTS-1-3.md）`,
         });
       }
+
+      if (args.times) {
+        pr.allLayoutSamples.push({
+          t, lt,
+          blocks: a.rec.paint.blocks.slice(),
+          paint: a.rec.paint,
+          textLayerDrawn: a.rec.stats.uploads > 0,
+        });
+      }
     }
     glyphVerdict(pr);
     layoutVerdict(pr);
+    if (!args.times) {
+      for (const frac of [0.15, 0.50, 0.85]) {
+        const ltLay = pr.dur * frac;
+        const prep = prepAt(ltLay);
+        const res = prep.run(prep.idx);
+        if (!res.err) {
+          pr.layoutSamples.push({
+            t: prep.t, lt: ltLay,
+            blocks: res.rec.paint.blocks.slice(),
+            paint: res.rec.paint,
+            textLayerDrawn: res.rec.stats.uploads > 0,
+          });
+        }
+      }
+    }
+    const chosenLayout = args.times ? pr.allLayoutSamples : pr.layoutSamples;
+    if (chosenLayout.length) {
+      pr.layoutReport = evaluateOfflineLayout(chosenLayout, {
+        id: pr.id,
+        focus: pr.item.focus ?? pr.scene?.focus ?? null,
+        W, H,
+        limits: resolveLayoutLimits(T.style?.layout),
+        pad: T.style?.grid?.pad ?? 0,
+        allowOverlap: T.style?.layout?.allowOverlap ?? [],
+      });
+      if (pr.layoutReport?.violations?.length) {
+        pr.warnings.push({
+          kind: 'layout-guard',
+          t: pr.layoutReport.t,
+          lt: Math.max(0, pr.layoutReport.t - pr.start),
+          message: `离线版面预检（最挤 ${pr.layoutReport.blocks} 块，${pr.layoutReport.over}/${pr.layoutReport.samples} 采样点超限）：`
+            + pr.layoutReport.violations.map((v) => v.detail).join('；'),
+        });
+      }
+    }
+  }
+
+  /* ── 切点 post.zoom 连续性预检（防切镜时前段未归零导致的单帧缩放回弹） ── */
+  const evalFramePost = (tEval) => {
+    const actives = activeAt(tEval);
+    if (!actives.length) return null;
+    let under2 = null;
+    const activePosts = [];
+    for (let k = 0; k < actives.length; k++) {
+      const actItem = actives[k];
+      const pr2 = probeOf(actItem);
+      if (!pr2 || pr2.status !== 'ok' || typeof pr2.scene?.render !== 'function') return null;
+      const prev2 = actives[k - 1], next2 = actives[k + 1];
+      const tin2 = prev2 ? U.sat((tEval - actItem.start) / Math.max(1e-3, prev2.end - actItem.start)) : 1;
+      const tout2 = next2 ? U.sat((tEval - next2.start) / Math.max(1e-3, actItem.end - next2.start)) : 0;
+      const rt = tag(new RT(gl, gl.pw, gl.ph), k === actives.length - 1 ? 'out' : 'under');
+      const rec = new Rec(W, H);
+      const layer2 = pr2.text ?? newLayer();
+      const world2 = worldFor(pr2);
+      const passedUnder = k > 0 && actItem.handlesTransition !== false ? under2 : null;
+      try {
+        owner.rec = rec; owner.curProbe = pr2; gl.paint = rec.paint;
+        if (world2) world2.render(gl, rt, tEval, 1 / fps);
+        const ov = pr2.scene.render(ctxFor({
+          item: actItem, t: tEval, idx: frameIndexOf(tEval, fps),
+          extras: { out: rt, dt: 1 / fps, tin: tin2, tout: tout2, under: passedUnder },
+          text: layer2, under: passedUnder, world: world2, rec, probe: pr2,
+        }));
+        activePosts.push({ ov, itemPost: actItem.post ?? null });
+      } catch {
+        return null;
+      } finally {
+        gl.paint = null; owner.rec = null; owner.curProbe = null;
+      }
+      under2 = rt;
+    }
+    return mergeEffectivePost({ zoom: 1 }, T.style?.post ?? null, activePosts);
+  };
+
+  const sortedItems = T.timeline.slice().sort((a, b) => a.start - b.start);
+  const selectedSet = args.scenes ? new Set(args.scenes) : null;
+  const cutRecords = [];
+  const frameDt = 1 / Math.max(1, fps);
+  for (let i = 0; i + 1 < sortedItems.length; i++) {
+    const prevItem = sortedItems[i];
+    const nextItem = sortedItems[i + 1];
+    if (!(nextItem.start > prevItem.start + 1e-4)) continue;
+    if (selectedSet && !selectedSet.has(prevItem.id) && !selectedSet.has(nextItem.id)) continue;
+    const prevPr = probeOf(prevItem);
+    const nextPr = probeOf(nextItem);
+    if (!prevPr || !nextPr || prevPr.status !== 'ok' || nextPr.status !== 'ok') continue;
+    const cutStart = nextItem.start;
+    const tBefore = Math.max(prevItem.start, cutStart - frameDt);
+    const tAt = cutStart;
+    const pBefore = evalFramePost(tBefore);
+    const pAt = evalFramePost(tAt);
+    let pushedCutStart = false;
+    if (pBefore && pAt) {
+      cutRecords.push({
+        prevId: prevItem.id, nextId: nextItem.id, prevStart: prevItem.start,
+        cutStart, tBefore, tAt,
+        zoomBefore: Number(pBefore.zoom ?? 1), zoomAt: Number(pAt.zoom ?? 1),
+        kind: 'cut-start',
+      });
+      pushedCutStart = true;
+    }
+    // 若两段存在真交叠，再补查 overlapEnd = prevItem.end 处是否跳变
+    if (prevItem.end > nextItem.start + frameDt && prevItem.end < duration - 1e-4) {
+      const overlapEnd = prevItem.end;
+      const pOvBefore = evalFramePost(overlapEnd - frameDt);
+      const pOvAt = evalFramePost(overlapEnd);
+      if (pOvBefore && pOvAt) {
+        const ovRec = {
+          prevId: prevItem.id, nextId: nextItem.id, prevStart: prevItem.start,
+          cutStart: overlapEnd, tBefore: overlapEnd - frameDt, tAt: overlapEnd,
+          zoomBefore: Number(pOvBefore.zoom ?? 1), zoomAt: Number(pOvAt.zoom ?? 1),
+          kind: 'overlap-end',
+        };
+        const ovHit = evaluateCutZoomContinuity([ovRec], { W, threshold: 0.005 });
+        const startAlreadyHit = pushedCutStart
+          && evaluateCutZoomContinuity([cutRecords[cutRecords.length - 1]], { W, threshold: 0.005 }).length > 0;
+        if (ovHit.length && !startAlreadyHit) cutRecords.push(ovRec);
+      }
+    }
+  }
+  const cutJumps = evaluateCutZoomContinuity(cutRecords, { W, threshold: 0.005 });
+  for (const j of cutJumps) {
+    const prevPr = probes.find((p) => p.id === j.prevId);
+    if (prevPr) {
+      prevPr.warnings.push({
+        kind: 'cut-zoom-jump',
+        t: j.cutStart,
+        lt: j.prevLt,
+        message: j.message,
+      });
+    }
   }
 
   // `--times` 是**段内秒**：给成整片时刻的话，大时刻会一段都落不进去 —— 那正是最容易被误解的一步
@@ -1247,8 +1426,20 @@ async function main() {
     scenes: probes.map((pr) => ({
       id: pr.id, file: pr.file, tpl: pr.tpl ?? null, start: pr.start, end: pr.end, dur: pr.dur,
       status: pr.status, gpuSkipped: pr.gpuSkip, times: pr.timesUsed, samples: pr.samples,
-      determinism: pr.perms, errors: pr.errors, warnings: pr.warnings,
+      determinism: pr.perms,
+      layout: pr.layoutReport ? {
+        blocks: pr.layoutReport.blocks,
+        inFocus: pr.layoutReport.inFocus,
+        offSubject: pr.layoutReport.offSubject,
+        over: pr.layoutReport.over,
+        samples: pr.layoutReport.samples,
+        noFocus: pr.layoutReport.noFocus,
+        violations: pr.layoutReport.violations,
+      } : null,
+      errors: pr.errors, warnings: pr.warnings,
     })),
+    cuts: { checked: cutRecords.length, jumps: cutJumps, records: cutRecords },
+    layoutSummary: layoutSummary(wanted.map((p) => p.layoutReport).filter(Boolean)),
     static: staticFindings,
     notes: NOTES,
     summary: {
@@ -1438,7 +1629,7 @@ function makeCtx({ T, gl, lines, comp, P, owner, W, H, fps, item, t, idx, extras
   const missing = new Map();
   const lt = t - item.start;
   const dur = Math.max(1e-6, item.end - item.start);
-  const layer = text ?? new FakeTextLayer(owner, W, H, gl.scale);
+  const layer = text ?? new FakeTextLayer(owner, W, H, gl.scale, T.style?.tokens ?? null);
   const f = {
     t, dt: extras.dt ?? 1 / fps, lt, p: U.sat(lt / dur),
     start: item.start, end: item.end, fps,
@@ -1466,7 +1657,7 @@ function makeCtx({ T, gl, lines, comp, P, owner, W, H, fps, item, t, idx, extras
     lines, music: T.music, lyrics: null, narration: T.narration,
     params: f.params, W, H, start: item.start, end: item.end, item,
     util: U, rng: U.rng,
-    world: world ?? null, grid: null, style: null, captions: null, fonts: null, hud: null,
+    world: world ?? null, grid: T.grid ?? null, style: T.style ?? null, captions: null, fonts: null, hud: null,
     clear: (c = [0, 0, 0]) => gl.clear(extras.out, c),
     setXform: (o = {}) => {
       xform.x = o.x ?? 0; xform.y = o.y ?? 0;
@@ -1579,6 +1770,26 @@ function printHuman(R, probes, args) {
       for (const l of String(w.message).split('\n').slice(1)) p(`        ${l.trim()}`);
     }
     if (sc.warnings.length > 4) p(`      …还有 ${sc.warnings.length - 4} 条警告`);
+  }
+  p('');
+
+  /* 离线预检：版面 + 切点缩放连续 */
+  const ls = R.layoutSummary;
+  p(`── 离线预检（版面 + 切点缩放） ${'─'.repeat(30)}`);
+  if (ls && ls.judged) {
+    const violIds = ls.violates.map((r) => `${r.id}(${r.blocks}块)`).join(' / ');
+    p(`  ${ls.violates.length ? '⚠' : '✓'} 离线版面：${ls.judged}/${ls.segments} 段已判，峰值 ${ls.peak} 块`
+      + (ls.violates.length ? `，超限 ${ls.violates.length} 段（${violIds}）` : '，0 违规')
+      + (ls.noFocus.length ? `（未声明 focus：${ls.noFocus.join(', ')}）` : ''));
+  } else {
+    p('  · 离线版面：skipped（无非交叠采样或无文字绘制）');
+  }
+  if (R.cuts?.checked) {
+    p(R.cuts.jumps.length
+      ? `  ⚠ 切点缩放连续：已查 ${R.cuts.checked} 处，发现 ${R.cuts.jumps.length} 处单帧跳变（见上方对应段 cut-zoom-jump 警告）`
+      : `  ✓ 切点缩放连续：已查 ${R.cuts.checked} 个切点，0 处单帧跳变（|Δzoom| ≤ 0.005）`);
+  } else {
+    p('  · 切点缩放连续：skipped（无相邻可查切点）');
   }
   p('');
 

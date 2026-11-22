@@ -219,13 +219,19 @@ async function cmdReview() {
   lines.push('');
   lines.push('## 四、审查者派单模板（已填入本轮路径，直接复制派单）');
   lines.push('');
+  lines.push('> **派单模型硬规**：独立审查者须运行在**不低于创作主模型**的档位（在主/规划上下文用 `Model: "inherit"` 派单，禁止降级到轻量执行模型），详见 `docs/CRAFT-RUBRIC.md` §四。');
+  lines.push('');
   lines.push('```text');
   lines.push('你是这支动画片子的独立画面审查者。你的任务是挑毛病，不是夸赞，也不要修改任何代码或文件。');
   lines.push('');
   lines.push('请依次阅读以下文件（使用文件读取工具真实查看每张 PNG 图像，严禁凭空猜测）：');
   lines.push(`1. 评分标准：${path.join(ROOT, 'docs', 'CRAFT-RUBRIC.md').replace(/\\/g, '/')}`);
-  lines.push(`2. 正反标杆：${path.join(ROOT, 'docs', 'BAR.md').replace(/\\/g, '/')} 及其中引用的反面样本 PNG`);
+  lines.push(`2. 正反标杆：${path.join(ROOT, 'docs', 'BAR.md').replace(/\\/g, '/')} 及其中引用的正反面样本 PNG`);
   lines.push(`3. 本轮评审包：${idxPath.replace(/\\/g, '/')}`);
+  if (boardFile) lines.push(`   - [board] ${boardFile.replace(/\\/g, '/')}`);
+  for (const c of cutRows) {
+    lines.push(`   - [cut t=${c.t.toFixed(2)}s ${c.label}] ${c.file.replace(/\\/g, '/')}`);
+  }
   for (const s of segRows) {
     for (const f of s.frames) lines.push(`   - ${f.file.replace(/\\/g, '/')}`);
   }
@@ -234,6 +240,8 @@ async function cmdReview() {
   lines.push('- 默认每项从 3 分起评；给出 4 分或 5 分时，必须在表格末尾点名画面上具体是哪个元素做到了。');
   lines.push('- 每段必须与 docs/BAR.md 的反面样本做一次「更像哪一张」的成对比较。');
   lines.push('- 如果机器读数（lint-craft）报了 CRAFT-EMPTY / CRAFT-FLAT / CRAFT-FONT 等发现，必须在对应维度扣分并写进问题清单。');
+  lines.push('- 切点连续性必检：逐张核验 cuts/*.png 切点前后帧，检查跨段母题/接力物位置与 post.zoom 是否出现单帧回弹跳变（有跳变须在第 6 维「连续性」扣分并列出切点时刻）。');
+  lines.push('- 复审冻结纪律（第 2/3 轮适用）：上一轮已过线且源码未改动的段直接沿用原分，除非本轮发现跨切点连续性回归或被改动段波及；禁止为凑意见对已过线未改段重新挑刺，审查上限 3 轮。');
   lines.push('- 严格按 docs/CRAFT-RUBRIC.md 第三节的格式输出：① 成对比较 ② 逐段评分表 ③ 按时间码排序的几何级修改清单。');
   lines.push('```');
 
