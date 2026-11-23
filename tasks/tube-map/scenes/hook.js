@@ -9,10 +9,11 @@ import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { safeZoom } from '../../_shared/zoom.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('hook', {
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
@@ -22,6 +23,7 @@ export default makeShot('hook', {
     const {zoom,anchor}=safeZoom(W,H,[hub[0]-150,hub[1]-120,300,240],1+2*smoothstep(0,1,zt));
     ctx.setXform({ scale: zoom, anchor });
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 连线（地理坐标 k=0）
     for (let li = 0; li < LINES.length; li++) {
       const ids = LINES[li];

@@ -3,13 +3,15 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('close',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zoom=1.5-0.5*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({scale:zoom,anchor:[W/2,H/2]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     lines.circle(W*0.38,H*0.45,150,3,withAlpha(P.signal,0.95)); // 圆高亮
     // 勒洛（简化三角弧）
     const cx=W*0.64,cy=H*0.45,r=110;

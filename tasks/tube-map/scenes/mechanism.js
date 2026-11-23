@@ -4,15 +4,17 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('mechanism', {
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
     // k 从 1(规整拓扑) → 0(地理真实)，暴露问题
     const k = 1 - smoothstep(0.5, 4.0, lt);
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 淡坐标网格
     for(let gx=160;gx<=W-160;gx+=80) lines.seg(gx,160,gx,H-160,0.5,withAlpha(P.graphite,0.12));
     for(let gy=160;gy<=H-160;gy+=80) lines.seg(160,gy,W-160,gy,0.5,withAlpha(P.graphite,0.12));

@@ -4,9 +4,10 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 import { safeZoom } from '../../_shared/zoom.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const CX=960, CY=520, HOLE=300, LID=290; // 井口边长300，盖边长290（平放卡住）
 export default makeShot('hook',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 0-1.5s 平放；1.5s 起旋转45°（对角线竖直）+ 掉入
@@ -16,6 +17,7 @@ export default makeShot('hook',{
     const {zoom,anchor}=safeZoom(W,H,[CX-HOLE/2-40,CY-HOLE/2-40,HOLE+80,HOLE+220],1+1.6*smoothstep(0,1,zt));
     ctx.setXform({scale:zoom,anchor});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 井口（暗框）
     lines.rect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,3,withAlpha(P.ash,0.9));
     lines.fillRect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,withAlpha(P.graphite,0.18));

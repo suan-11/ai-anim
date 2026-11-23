@@ -3,15 +3,17 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const CX=960,CY=520,R=200;
 export default makeShot('mechanism',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const ang=lt*0.8; // 卡尺旋转角
     const zt=sat((lt-5.0)/0.6); const zoom=1+1.4*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[CX,CY]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 圆
     lines.circle(CX,CY,R,3,withAlpha(P.bone,0.95));
     // 旋转卡尺（两条平行切线，间距=直径）

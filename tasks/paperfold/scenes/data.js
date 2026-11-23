@@ -3,8 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('data',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const MOON=384400, FOLD42=439805; // km
@@ -14,6 +15,7 @@ export default makeShot('data',{
     const zt=sat((lt-3.5)/0.6); const zoom=1+0.6*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[W*0.5,baseY]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     lines.seg(W*0.2,baseY,W*0.8,baseY,1.5,withAlpha(P.graphite,0.6));
     // 地月距离柱（左）
     lines.fillRect(W*0.35-50,baseY-moonH,100,moonH,withAlpha(P.bone,0.85));

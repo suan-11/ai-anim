@@ -3,8 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('hook',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 对折次数 0→3
@@ -15,6 +16,7 @@ export default makeShot('hook',{
     const barX=W*0.62, barBase=H*0.75;
     ctx.setXform({scale:zoom,anchor:[barX,barBase]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 纸层堆叠（左）
     const layers=Math.pow(2,n); const lx=W*0.3, ly=H*0.6;
     for(let i=0;i<Math.min(layers,16);i++){ lines.seg(lx-120,ly-i*3,lx+120,ly-i*3,2,withAlpha(P.bone,0.85)); }

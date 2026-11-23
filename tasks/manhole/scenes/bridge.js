@@ -3,15 +3,17 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const CX=960,CY=520,HOLE=300,R=155;
 export default makeShot('bridge',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const ang=lt*1.2; // 圆旋转
     const zoom=1.3-0.3*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({scale:zoom,anchor:[CX,CY]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 井口方框
     lines.rect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,3,withAlpha(P.ash,0.9));
     // 圆盖（旋转但圆对称看不出转，画一条半径标记显示在转）

@@ -4,9 +4,10 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('compare', {
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
@@ -17,6 +18,7 @@ export default makeShot('compare', {
     const zoom = 1 + 1.2*smoothstep(0,1,zt);
     ctx.setXform({ scale: zoom, anchor: [hub[0],hub[1]] });
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 拓扑网格淡入
     const ga = 0.10*k;
     for(let gx=160;gx<=W-160;gx+=80) lines.seg(gx,160,gx,H-160,0.5,withAlpha(P.graphite,ga));

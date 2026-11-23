@@ -4,8 +4,9 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('data',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 测各级长度
@@ -13,6 +14,7 @@ export default makeShot('data',{
     const zt=sat((lt-3.5)/0.6); const zoom=1+0.6*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[W*0.5,H*0.5]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // log-log 坐标轴
     const ox=W*0.3, oy=H*0.7, aw=W*0.4, ah=H*0.4;
     lines.seg(ox,oy,ox+aw,oy,2,withAlpha(P.bone,0.8));

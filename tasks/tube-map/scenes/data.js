@@ -4,11 +4,12 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const LC = LINE_COLORS.map(hexToLinear);
 // 路径：w1(红) → c1 → hub(换乘蓝) → n1 → n2
 const PATH = ['w1','c1','hub','n1','n2'];
 export default makeShot('data', {
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
@@ -16,6 +17,7 @@ export default makeShot('data', {
     // 逐站点亮进度
     const prog = smoothstep(0.3, 3.5, lt) * (PATH.length-1);
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 全线网压暗
     for (let li=0; li<LINES.length; li++) { const ids=LINES[li];
       for (let i=1;i<ids.length;i++){ const a=pos(byId(ids[i-1]),k,W,H), b=pos(byId(ids[i]),k,W,H); lines.seg(a[0],a[1],b[0],b[1],2,withAlpha(LC[li],0.2)); } }

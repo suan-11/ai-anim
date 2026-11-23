@@ -5,8 +5,9 @@ import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { safeZoom } from '../../_shared/zoom.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('hook',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const fine=coastline(W,H,3); // 真实细海岸
@@ -15,6 +16,7 @@ export default makeShot('hook',{
     const {zoom,anchor}=safeZoom(W,H,[W*0.35,H*0.35,W*0.4,H*0.35],1+2*smoothstep(0,1,zt));
     ctx.setXform({scale:zoom,anchor});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 细海岸（淡）
     for(let i=1;i<fine.length;i++) lines.seg(fine[i-1][0],fine[i-1][1],fine[i][0],fine[i][1],1.5,withAlpha(P.ash,0.4));
     // 大尺子粗量（亮）

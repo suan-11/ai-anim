@@ -4,8 +4,9 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('bridge',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const depth=Math.min(2,Math.floor(smoothstep(0.3,3.5,lt)*2.99));
@@ -14,6 +15,7 @@ export default makeShot('bridge',{
     const zoom=1.3-0.3*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({scale:zoom,anchor:[W/2,H/2]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     for(let i=1;i<coarse.length;i++) lines.seg(coarse[i-1][0],coarse[i-1][1],coarse[i][0],coarse[i][1],1.5,withAlpha(P.graphite,0.3));
     for(let i=1;i<pts.length;i++) lines.seg(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1],2.5,withAlpha(P.bone,0.92));
     lines.flush(ctx.out);

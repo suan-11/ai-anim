@@ -4,9 +4,10 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('close', {
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
@@ -16,6 +17,7 @@ export default makeShot('close', {
     // 电路图叠合度（2-4s 淡入电路意象）
     const circuit = smoothstep(2.0,4.0,lt);
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     for (let li=0; li<LINES.length; li++) { const ids=LINES[li];
       for (let i=1;i<ids.length;i++){ const a=pos(byId(ids[i-1]),1,W,H), b=pos(byId(ids[i]),1,W,H);
         // 电路意象：线变细白 + 节点方框

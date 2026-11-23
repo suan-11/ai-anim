@@ -3,8 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('bridge',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const n=Math.floor(smoothstep(0.3,4.0,lt)*20); // 0→20次
@@ -14,6 +15,7 @@ export default makeShot('bridge',{
     const zt=sat((lt-3.0)/0.6);
     ctx.setXform(this.cam.xform(ctx,W,H,zt));
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     lines.seg(barX-200,barBase,barX+200,barBase,1.5,withAlpha(P.graphite,0.6));
     lines.fillRect(barX-50,barBase-barH,100,barH,withAlpha(P.signal,0.9));
     lines.flush(ctx.out);

@@ -3,8 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('mechanism',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const n=Math.floor(smoothstep(0.3,5.0,lt)*30); // 0→30次
@@ -15,6 +16,7 @@ export default makeShot('mechanism',{
     const zt=sat((lt-5.0)/0.6); const zoom=1+0.8*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[barX,barBase-barH]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     lines.seg(barX-200,barBase,barX+200,barBase,1.5,withAlpha(P.graphite,0.6));
     lines.fillRect(barX-60,barBase-barH,120,barH,withAlpha(P.signal,0.9));
     lines.flush(ctx.out);
