@@ -3,7 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, barLayout } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('close',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zoom=1.5-0.5*smoothstep(0,1,sat(lt/1.0));
@@ -17,6 +19,6 @@ export default makeShot('close',{
     for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+30,{anchor:'center',size:28,color:css(P.ash,0.8)});}
     type.writeLine('1881 · 查账用', W*0.5, 130, {anchor:'center',size:40,color:css(P.bone,smoothstep(2,3.5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

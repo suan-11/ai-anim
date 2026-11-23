@@ -2,8 +2,10 @@
 /** 03 · mechanism —— 【答案峰①】旋转卡尺测圆各方向宽度恒定 + zoom 读数。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const CX=960,CY=520,R=200;
 export default makeShot('mechanism',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const ang=lt*0.8; // 卡尺旋转角
@@ -27,6 +29,6 @@ export default makeShot('mechanism',{
     type.writeLine('宽度 = 直径 · 恒定', CX, CY-R-60, {anchor:'center',size:36,color:css(P.signal,0.9)});
     if(lt>4.5) type.writeLine('定宽图形', CX, H-90, {anchor:'center',size:38,color:css(P.bone,smoothstep(4.5,5.5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

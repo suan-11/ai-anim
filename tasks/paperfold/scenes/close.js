@@ -2,7 +2,9 @@
 /** 05 · close —— zoom out 理论42次 vs 实际≤8次诚实标注。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('close',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zoom=1.4-0.4*smoothstep(0,1,sat(lt/1.0));
@@ -16,6 +18,6 @@ export default makeShot('close',{
     type.writeLine('实际 ≤ 8 次', W*0.5, H*0.4, {anchor:'center',size:36,color:css(P.bone,smoothstep(2,3.5,lt))});
     type.writeLine('理论≠实际', W*0.5, H-90, {anchor:'center',size:34,color:css(P.ash,smoothstep(3,4,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

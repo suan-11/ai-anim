@@ -3,8 +3,10 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
 import { safeZoom } from '../../_shared/zoom.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const CX=960, CY=520, HOLE=300, LID=290; // 井口边长300，盖边长290（平放卡住）
 export default makeShot('hook',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 0-1.5s 平放；1.5s 起旋转45°（对角线竖直）+ 掉入
@@ -27,6 +29,6 @@ export default makeShot('hook',{
     text.clear();
     if(lt>2.0) type.writeLine('会掉', CX, CY-220, {anchor:'center',size:48,color:css(P.signal,smoothstep(2.0,2.6,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

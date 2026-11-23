@@ -3,6 +3,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('bridge', {
   draw(ctx) {
@@ -25,6 +26,6 @@ export default makeShot('bridge', {
     text.clear();
     if(lt>2.0) type.writeLine('这里却这么空', W*0.5, H-100, {anchor:'center',size:40,color:css(P.ash,smoothstep(2.0,2.6,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return { grain:0.012, vignette:0.3 };
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

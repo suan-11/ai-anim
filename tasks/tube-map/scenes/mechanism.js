@@ -3,6 +3,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('mechanism', {
   draw(ctx) {
@@ -24,6 +25,6 @@ export default makeShot('mechanism', {
     text.clear();
     type.writeLine('按真实距离画', W-160, H-90, {anchor:'right',size:32,color:css(P.ash,0.7)});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return { grain:0.012, vignette:0.3 };
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

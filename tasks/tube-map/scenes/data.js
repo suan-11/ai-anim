@@ -3,6 +3,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const LC = LINE_COLORS.map(hexToLinear);
 // 路径：w1(红) → c1 → hub(换乘蓝) → n1 → n2
 const PATH = ['w1','c1','hub','n1','n2'];
@@ -42,6 +43,6 @@ export default makeShot('data', {
     type.writeLine('A → B · 换乘 1 次', W*0.5, 130, {anchor:'center',size:36,color:css(P.bone,0.9)});
     type.writeLine(String(count)+' 站', W*0.5, H-110, {anchor:'center',size:Math.round(56*cz),color:css(P.signal,1)});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return { grain:0.012, vignette:0.3 };
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

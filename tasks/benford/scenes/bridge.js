@@ -3,8 +3,10 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, barLayout } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const SETS=['人口','河流','股价'];
 export default makeShot('bridge',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const bars=barLayout(W,H); const maxH=H-380;
@@ -23,6 +25,6 @@ export default makeShot('bridge',{
     type.writeLine(SETS[setIdx], W*0.5, 130, {anchor:'center',size:40,color:css(P.bone,0.9)});
     if(lt>3) type.writeLine('换数据也一样', W*0.5, H-90, {anchor:'center',size:34,color:css(P.signal,smoothstep(3,3.8,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

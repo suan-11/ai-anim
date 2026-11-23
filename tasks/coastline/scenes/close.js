@@ -3,7 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('close',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zoom=1.6-0.6*smoothstep(0,1,sat(lt/1.0));
@@ -15,6 +17,6 @@ export default makeShot('close',{
     text.clear();
     type.writeLine('1967 · Mandelbrot', W*0.5, H-90, {anchor:'center',size:40,color:css(P.bone,smoothstep(2,3.5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

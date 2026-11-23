@@ -2,8 +2,10 @@
 /** 02 · bridge —— 圆井盖怎么转都不掉（任意方向直径相同）。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const CX=960,CY=520,HOLE=300,R=155;
 export default makeShot('bridge',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const ang=lt*1.2; // 圆旋转
@@ -21,6 +23,6 @@ export default makeShot('bridge',{
     text.clear();
     type.writeLine('怎么转都不掉', CX, CY-R-70, {anchor:'center',size:40,color:css(P.signal,smoothstep(2,3,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

@@ -2,7 +2,9 @@
 /** 03 · mechanism —— 【答案峰①】厚度 0.1mm×2^n 指数爆炸冲天 + zoom。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('mechanism',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const n=Math.floor(smoothstep(0.3,5.0,lt)*30); // 0→30次
@@ -23,6 +25,6 @@ export default makeShot('mechanism',{
     type.writeLine(label, W*0.78, 150, {anchor:'center',size:44,color:css(P.signal,0.95)});
     if(lt>4) type.writeLine('×2 每次', W*0.5, H-70, {anchor:'center',size:38,color:css(P.bone,smoothstep(4,5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

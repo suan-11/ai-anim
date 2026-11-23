@@ -3,7 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, UNIFORM } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('data',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const baseY=H*0.78, maxH=420, bw=30, gap=42;
@@ -35,6 +37,6 @@ export default makeShot('data',{
     }
     if(lt>4) type.writeLine('造假露馅', W*0.5, H*0.16, {anchor:'center',size:42,color:css(P.signal,smoothstep(4,5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

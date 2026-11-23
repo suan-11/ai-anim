@@ -3,6 +3,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('compare', {
   draw(ctx) {
@@ -26,6 +27,6 @@ export default makeShot('compare', {
     text.clear();
     if(k>0.8) type.writeLine('只留 横 · 竖 · 45°', W*0.5, H-90, {anchor:'center',size:38,color:css(P.signal,smoothstep(0.8,1,k))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return { grain:0.012, vignette:0.3 };
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

@@ -2,7 +2,9 @@
 /** 04 · data —— 【答案峰②】42次厚度44万km > 地月38万km + zoom超越点。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('data',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const MOON=384400, FOLD42=439805; // km
@@ -26,6 +28,6 @@ export default makeShot('data',{
     type.writeLine('42次 44万km', W*0.65, baseY+40, {anchor:'center',size:28,color:css(P.ash,0.9)});
     if(grow>0.9) type.writeLine('够到月球', W*0.5, H*0.2, {anchor:'center',size:44,color:css(P.signal,smoothstep(3,4,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

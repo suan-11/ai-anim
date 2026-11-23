@@ -3,7 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('mechanism',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 细分级别 0→4 随时间
@@ -19,6 +21,6 @@ export default makeShot('mechanism',{
     type.writeLine('长度 '+L+' · 级 '+depth, W*0.5, 130, {anchor:'center',size:36,color:css(P.signal,0.9)});
     if(lt>4.5) type.writeLine('越量越长', W*0.5, H-90, {anchor:'center',size:38,color:css(P.bone,smoothstep(4.5,5.5,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

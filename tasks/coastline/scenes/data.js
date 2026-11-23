@@ -3,7 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('data',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 测各级长度
@@ -29,6 +31,6 @@ export default makeShot('data',{
     type.writeLine('log(长度)', ox-60, oy-ah/2, {anchor:'center',size:26,color:css(P.ash,0.8)});
     if(lt>3) type.writeLine('分形维 D', W*0.5, 130, {anchor:'center',size:42,color:css(P.signal,smoothstep(3,4,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

@@ -2,7 +2,9 @@
 /** 01 · hook —— 纸对折几次厚度还很小，zoom punch 读数（铺垫不答）。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('hook',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     // 对折次数 0→3
@@ -26,6 +28,6 @@ export default makeShot('hook',{
     type.writeLine(thickMM.toFixed(1)+' mm', barX, barBase-barH-40, {anchor:'center',size:40,color:css(P.signal,0.95)});
     if(zt>0.5) type.writeLine('才几毫米', W*0.5, H-90, {anchor:'center',size:36,color:css(P.ash,smoothstep(0.5,1,zt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.012,vignette:0.3};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

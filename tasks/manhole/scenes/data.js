@@ -2,6 +2,7 @@
 /** 04 · data —— 【答案峰②】勒洛三角也定宽（非圆反转）+ zoom。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 const CX=960,CY=520,R=200;
 // 勒洛三角：三个顶点（等边三角），三段圆弧（圆心为对顶点，半径=边长）
 function reuleaux(cx,cy,r,rot,n=60){
@@ -17,6 +18,7 @@ function reuleaux(cx,cy,r,rot,n=60){
   return pts;
 }
 export default makeShot('data',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const rot=lt*0.6;
@@ -33,6 +35,6 @@ export default makeShot('data',{
     type.writeLine('它也行', CX, H-90, {anchor:'center',size:42,color:css(P.signal,smoothstep(2.5,3.5,lt))});
     type.writeLine('勒洛三角 · 也定宽', CX, 130, {anchor:'center',size:34,color:css(P.bone,0.85)});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

@@ -8,9 +8,11 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { safeZoom } from '../../_shared/zoom.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('hook', {
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
@@ -45,6 +47,6 @@ export default makeShot('hook', {
     text.clear();
     if (zt > 0.5) type.writeLine('？', hub[0]+70, hub[1]-60, { anchor:'center', size:80, color:css(P.signal, smoothstep(0.5,1,zt)) });
     text.upload(); comp.draw(gl, text, ctx.out, { premult:false });
-    return { grain:0.012, vignette:0.3 };
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });

@@ -3,7 +3,9 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('bridge',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const depth=Math.min(2,Math.floor(smoothstep(0.3,3.5,lt)*2.99));
@@ -20,6 +22,6 @@ export default makeShot('bridge',{
     type.writeLine('长度 '+L, W*0.5, 130, {anchor:'center',size:38,color:css(P.signal,0.9)});
     if(lt>3) type.writeLine('更长了', W*0.5, H-90, {anchor:'center',size:36,color:css(P.bone,smoothstep(3,3.8,lt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    return{grain:0.014,vignette:0.4};
+    return this.cam.post(ctx,{impact:typeof zt!=='undefined'?zt:0,bloomBase:0.1});
   },
 });
