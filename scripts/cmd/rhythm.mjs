@@ -1,9 +1,13 @@
 // @ts-check
+import path from "node:path";
 import { flag, opt } from "../lib/cli/args.mjs";
 import { collectRenderErrors, reportErrors } from "../lib/cli/gates.mjs";
 import { log, warn } from "../lib/cli/log.mjs";
-import { pickTask } from "../lib/cli/paths.mjs";
+import { ROOT, pickTask, taskOut } from "../lib/cli/paths.mjs";
 import { closeSession, getSession, openSession } from "../lib/cli/session.mjs";
+import { printRhythmReport, readTaskRhythm } from "../lib/rhythm.mjs";
+import { attentionStep, attentionSummary, attentionVideoPath, collectAttention, writeAttentionReport } from "../lib/attention.mjs";
+import { evaluateComplexityRepetition } from "../lib/rhythm-complexity.mjs";
 /* ------------------------------------------------------------------ 命令：rhythm（静/动分段，BACKLOG 1-38） */
 
 /**
@@ -24,7 +28,64 @@ import { closeSession, getSession, openSession } from "../lib/cli/session.mjs";
  */
 async function cmdRhythm() {
   const task = pickTask();
+  if (flag('complexity')) {
+    const step = attentionStep(opt('step', undefined));
+    const only = opt('only', undefined);
+    const scale = Number(opt('scale', '0.35'));
+    if (!Number.isFinite(scale) || scale <= 0) throw new Error('渲染倍率须为正数');
+    await openSession({ task, scale, only });
+    try {
+      const session = getSession();
+      const errors = reportErrors(session.info);
+      if (errors.length) { process.exitCode = 1; return; }
+      const report = await collectAttention(session, { task, step });
+      const rerr = await collectRenderErrors({ take: false });
+      if (rerr.count) throw new Error(`复杂度取样遇到 ${rerr.count} 个渲染错误：${rerr.text[0] ?? ''}`);
+      const cr = evaluateComplexityRepetition(report);
+      const att = report.rhythmScore;
+      log(`复杂度 ${cr.complexity.score}/100（分散度 ${cr.complexity.meanDispersion.toFixed(2)} · 热点多样 ${cr.complexity.hotspotDiversity.toFixed(2)} · 信息密度 ${cr.complexity.meanInfoDensity.toFixed(1)}）`);
+      log(`重复度 ${cr.repetition.score}/100（帧重复 ${cr.repetition.frameRepetition.toFixed(2)} · 序列循环 ${cr.repetition.sequenceRepetition.toFixed(2)}）`);
+      if (att && Number.isFinite(att.score)) log(`注意力曲线 ${att.score}/100（${att.status === 'observed' ? '波形通过' : '待复看'}）`);
+      const dir = path.join(ROOT, taskOut(task, 'attention', only ? `only-${only.replace(/[^\w.-]+/g, '_')}` : ''));
+      writeAttentionReport(dir, report, { videoPath: attentionVideoPath(ROOT, opt('video', undefined), only ? null : taskOut(task, `${task}.mp4`)) });
+      const { writeFileSync } = await import('node:fs');
+      writeFileSync(path.join(dir, 'complexity.json'), JSON.stringify({ schema:'anim.rhythm-complexity/1', task, ...cr, attention: att }, null, 2));
+      log(`复杂度/重复度 → ${path.relative(ROOT, path.join(dir, 'complexity.json'))}`);
+    } finally { await closeSession(); }
+    return;
+  }
+  if (flag('attention')) {
+    const step = attentionStep(opt('step', undefined));
+    const only = opt('only', undefined);
+    const videoPath = attentionVideoPath(ROOT, opt('video', undefined), only ? null : taskOut(task, `${task}.mp4`));
+    const scale = Number(opt('scale', '0.35'));
+    if (!Number.isFinite(scale) || scale <= 0) throw new Error('渲染倍率须为正数');
+    await openSession({ task, scale, only });
+    try {
+      const session = getSession();
+      const errors = reportErrors(session.info);
+      if (errors.length) { process.exitCode = 1; return; }
+      const report = await collectAttention(session, { task, step });
+      const rerr = await collectRenderErrors({ take: false });
+      if (rerr.count) throw new Error(`注意力取样遇到 ${rerr.count} 个渲染错误：${rerr.text[0] ?? ''}`);
+      const dir = path.join(ROOT, taskOut(task, 'attention', only ? `only-${only.replace(/[^\w.-]+/g, '_')}` : ''));
+      writeAttentionReport(dir, report, { videoPath });
+      log(attentionSummary(report));
+      log(`注意力曲线 → ${path.relative(ROOT, path.join(dir, 'attention.html'))} · attention.json`);
+    } finally { await closeSession(); }
+    return;
+  }
   const strict = flag('strict');
+  const explicitTable = flag('table') || flag('json');
+  const legacyOptions = ['step', 'scale', 'only'].some((key) => opt(key, undefined) !== undefined);
+  if (!flag('motion') && (explicitTable || !legacyOptions)) {
+    const report = readTaskRhythm(task);
+    if (report || explicitTable) {
+      printRhythmReport(task, report, { strict, json: flag('json') });
+      return;
+    }
+    log('未声明 rhythm.json，使用静/动分段量具。');
+  }
   const step = Math.max(0.1, Number(opt('step', '0.5')));
 
   await openSession({ task, scale: Number(opt('scale', '0')) || undefined, only: opt('only', undefined) });
