@@ -29,6 +29,7 @@ const task = argv.find((a) => !a.startsWith('-'));
 if (!task) { console.error('用法：node tools/lint-beat-align.mjs <任务> [--tol 30] [--json] [--strict]'); process.exit(2); }
 
 const taskDir = path.join(ROOT, 'tasks', task);
+const gridOnly = existsSync(path.join(taskDir, 'rhythm.json'));
 const timingPath = opt('timing', '') || path.join(taskDir, 'audio', 'timing.json');
 if (!existsSync(timingPath)) { console.error('没有 audio/timing.json —— 先跑 anim say'); process.exit(2); }
 
@@ -172,9 +173,10 @@ const ap = track.replace(/\.[^.]+$/, '.analysis.json');
 if (existsSync(ap)) { try { const a = JSON.parse(readFileSync(ap, 'utf8')); est = { bpm: a.bpm, first: a.beats?.[0] }; } catch { /* ignore */ } }
 
 if (flag('json')) {
-  console.log(JSON.stringify({ track: path.relative(ROOT, track), bpm, beat: T, phase, tolMs, ok, total: rows.length, rows, estimate: est }, null, 2));
+  console.log(JSON.stringify({ track: path.relative(ROOT, track), bpm, beat: T, phase, tolMs, ok, total: rows.length, rows, estimate: est,
+    ...(gridOnly ? { gridOnly: true } : {}) }, null, 2));
 } else {
-  console.log('卡点检测 —— ' + path.relative(ROOT, track));
+  console.log((gridOnly ? 'BPM 参考网格 —— ' : '卡点检测 —— ') + path.relative(ROOT, track));
   console.log('  实测 ' + bpm.toFixed(2) + ' BPM（一拍 ' + T.toFixed(4) + 's，首拍 ' + phase.toFixed(3) + 's，起音 ' + ons.length + ' 个）');
   if (est) {
     const drift = Math.abs(est.bpm - bpm) / bpm * 100;
@@ -195,4 +197,4 @@ if (flag('json')) {
     + (maxRes <= tolMs ? '切点本身是齐的' : '存在真实错位') + '）');
 }
 
-if (flag('strict') && ok !== rows.length) process.exitCode = 1;
+if (flag('strict') && ok !== rows.length && !gridOnly) process.exitCode = 1;

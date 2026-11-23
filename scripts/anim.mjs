@@ -7,7 +7,7 @@
  *   node scripts/anim.mjs tasks                          列出任务
  *   node scripts/anim.mjs new <名字>                      新建任务骨架（含 brief.mjs 分镜模板）
  *   node scripts/anim.mjs brief <task> [--json]           校验结构化分镜 tasks/<task>/brief.mjs（禁止空泛形容词/主角段必须手写）
- *   node scripts/anim.mjs review <task> [--only a,b] [--round N] [--samples auto]
+ *   node scripts/anim.mjs review <task> [--only a,b] [--round N] [--samples auto] [--attention]
  *                                                        生成独立评审包 out/<task>/review/round-N/（三帧+board+cuts+lint-craft+空白评分表）
  *   node scripts/anim.mjs shots [名字] [--json]           列出镜头模板（A 档镜头库 src/shots/）与参数；
  *                                                         --json = 机器可读的参数表（字段契约 docs/ENGINE.md §14.9）
@@ -121,7 +121,11 @@
  *                                                        （<0.5 像 PPT、<0.7 有缝；默认只报读数，
  *                                                          --strict 才 gate。判据与豁免见
  *                                                          docs/REFERENCE-onetake.md §2）
- *   node scripts/anim.mjs rhythm <task> [--step 0.5] [--strict]
+ *   node scripts/anim.mjs rhythm <task> [--table] [--json] [--strict]
+ *                                                       节奏事件轨：读 rhythm.json，检查 R1–R5
+ *   node scripts/anim.mjs rhythm <task> --attention [--step 0.25] [--only a,b] [--video file.mp4]
+ *                                                       采集显著性曲线、主体内占比与逐帧热图
+ *   node scripts/anim.mjs rhythm <task> --motion [--step 0.5] [--strict]
  *                                                        静/动分段：降采样渲帧 → 相邻帧差 →
  *                                                        死静帧占比（≥25%）与最长静段（≥1s）
  *                                                        （「停顿才让动作落得下来」；标定样本

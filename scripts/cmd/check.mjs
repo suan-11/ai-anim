@@ -11,6 +11,7 @@ import { closeSession, evaluateSafe, getSession, openSession } from "../lib/cli/
 import { writeContactSheet } from "../lib/cli/sheet.mjs";
 import { blankJsComments as sharedBlankJsComments } from "../lib/js-source.mjs";
 import { describeNarrationError, narrationConfigProblem } from "../lib/narration-error.mjs";
+import { formatRhythmIssue, readTaskRhythm, rhythmReportLines, rhythmStructure } from "../lib/rhythm.mjs";
 import { layoutReport, layoutSummary } from "../../src/layout.js";
 import { build } from "../../src/timeline.js";
 import { decodeDiffSeries, motionStats } from "../../tools/lib/diff-series.mjs";
@@ -367,6 +368,7 @@ function shotDependencyFacts(task) {
  */
 async function cmdCheck() {
   const task = pickTask();
+  const taskRhythm = readTaskRhythm(task);
   log(`检查任务 ${task} …`);
 
   /**
@@ -544,7 +546,9 @@ async function cmdCheck() {
   //
   // 为什么放在 check 里：切点差 60ms 观众说不出哪里怪，只会觉得"没跟着音乐走"。
   // 判据用**从音频自己重建的网格**（不信 analysis.json 的 bpm 估计 —— 实测它对合成床偏 4%）。
-  {
+  if (taskRhythm) {
+    log('  · 拍点：BPM 用作参考网格，离拍切点由事件轨编排');
+  } else {
     const tool = path.join(ROOT, 'tools', 'lint-beat-align.mjs');
     try {
       const { spawnSync } = await import('node:child_process');
@@ -1046,6 +1050,24 @@ async function cmdCheck() {
     if (info.gaps?.length) finding('timeline.gap', info.gaps.length + ' 处空档');
     if (depErrs.length) finding('shot.missing-audio', depErrs.length + ' 条');
     const errs = [...staticErrs, ...depErrs, ...reported];
+    if (taskRhythm) {
+      const report = info.rhythm ?? taskRhythm;
+      for (const line of rhythmReportLines(report)) log('  · ' + line);
+      for (const issue of report.issues) {
+        const detail = formatRhythmIssue(issue);
+        finding('rhythm.events', detail);
+        if (strict) errs.push(detail);
+      }
+      if (!info.only) {
+        const structure = rhythmStructure(info.timeline, { strict });
+        for (const line of structure.lines) log('  · ' + line);
+        for (const { code, message } of structure.issues) {
+          finding(code === 'C4' ? 'rhythm.structure' : 'rhythm.hooks', message);
+          warn(`⚠ ${code} ${message}`);
+          if (strict) errs.push(`[${code}] ${message}`);
+        }
+      }
+    }
     // `--quick` 的判据要在这之前就知道（响度那一档、试渲染那一档都用它）。
     // ⚠ 它只是**冒烟**：每段只采 50% 一个点、只跑单子帧、响度只量前 60 秒 ——
     //   不看多子帧路径、不看入场头 1 秒。结论行里会写清"哪些没跑"。
@@ -1592,7 +1614,7 @@ async function cmdCheck() {
      * 静帧占比（≥25%、最长静段 ≥1s）这一半**需要逐帧渲染**，不在这里跑 ——
      * `anim carry` 顺路看，或将来 `check --rhythm`；先把免费的这半做进来。
      */
-    {
+    if (!taskRhythm || info.only) {
       const { rhythmStats } = await import("../../src/timeline.js");
       const r = rhythmStats(info.timeline ?? []);
       if (r.noRhythm) {

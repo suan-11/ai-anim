@@ -1,0 +1,9 @@
+[
+  { "t_start": 0, "t_end": 5.1, "intensity": 2, "info_density": 2, "resistance": 0.47, "attention_target": "single_anchor", "motion_grammar": "wave_gather", "sound_density": 0.3, "beat_role": "pressure" },
+  { "t_start": 5.1, "t_end": 10.7, "intensity": 3, "info_density": 3, "resistance": 0.8, "attention_target": "single_anchor", "motion_grammar": "wave_sustain", "sound_density": 0.45, "beat_role": "hold" },
+  { "t_start": 10.7, "t_end": 16.9, "intensity": 5, "info_density": 4, "resistance": 0.16, "attention_target": "single_anchor", "motion_grammar": "radial_burst", "sound_density": 0.8, "beat_role": "release" },
+  { "t_start": 16.9, "t_end": 21.5, "intensity": 1, "info_density": 1, "resistance": 0.3, "attention_target": "single_anchor", "motion_grammar": "radial_decay", "sound_density": 0.2, "beat_role": "residue" },
+  { "t_start": 21.5, "t_end": 25.1, "intensity": 3, "info_density": 3, "resistance": 0.76, "attention_target": "single_anchor", "motion_grammar": "radial_gather", "sound_density": 0.5, "beat_role": "pressure" },
+  { "t_start": 25.1, "t_end": 28.4, "intensity": 4, "info_density": 5, "resistance": 0.18, "attention_target": "single_anchor", "motion_grammar": "spectrum_reveal", "sound_density": 0.75, "beat_role": "release" },
+  { "t_start": 28.4, "t_end": 32, "intensity": 1, "info_density": 2, "resistance": 0.32, "attention_target": "single_anchor", "motion_grammar": "spectrum_settle", "sound_density": 0.2, "beat_role": "residue" }
+]

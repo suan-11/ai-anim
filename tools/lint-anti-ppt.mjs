@@ -132,7 +132,8 @@ export function analyzeSegments(segs, opts = {}) {
   if (missRate > maxHookMiss && !lyricFilm) fail('C5', `钩子太少：${misses.length}/${windows} 个 10s 窗口没有强事件（允许 ≤${Math.round(maxHookMiss * 100)}%）：${misses.slice(0, 5).join(' / ')}`);
   info.push(`钩子：${windows - misses.length}/${windows} 个窗口有强事件`);
 
-  return { problems, codes, info, stats: { coverage, cov, missRate, relayCount, worstRun, total } };
+  return { problems, codes, info, stats: { coverage, cov, missRate, relayCount, worstRun, total,
+    breatheMissing, hookWindows: windows, hookMisses: misses } };
 }
 
 /** 成片帧间差的变异系数（匀速漂移 = 一直在动但方差极小）。解码与统计走共享的 diff-series（C4）。 */

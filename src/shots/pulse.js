@@ -11,7 +11,7 @@
 
 
 import { musicOk } from './pick.js';
-import { css } from '../core/util.js';
+import { css, prog } from '../core/util.js';
 
 /** 全部参数 = "什么都不传时的画面"（beat 用的就是这一套）。 */
 const DEFAULTS = {
@@ -33,49 +33,94 @@ export function pulseShot(opts = {}) {
       const { W, H } = gl;
       const t = f.lt;
       const a = f.a;
+      const rhythm = f.rhythm;
 
-      gl.clear(ctx.out, [P.bg[0] * 0.8, P.bg[1] * 0.8, P.bg[2] * 0.8]);
+      const field = [P.bg[0] * 0.8, P.bg[1] * 0.8, P.bg[2] * 0.8];
+      gl.clear(ctx.out, field);
 
-      // 同心圆：每次 kick 扩一圈（用真实的打击事件，不是手写时间）
-      const cx = W * 0.5, cy = H * 0.46;
+      const cx = W * 0.5, cy = H * (rhythm ? 0.42 : 0.46);
       lines.begin();
-      for (let i = 0; i < 8; i++) {
-        const kt = music.nearestBeat(t - (i + 1) * 0.5);
-        const age = t - kt;
-        if (age < 0 || age > 3.2) continue;
-        const r = 60 + age * 340;
-        const fade = Math.exp(-age / 1.2);
-        const hit = music.hit('kick', kt + 0.001, 0.2);
-        lines.circle(cx, cy, r, 1.5 + hit * 8,
-          [P.signal[0] * fade, P.signal[1] * fade, P.signal[2] * fade], 96);
-      }
+      if (rhythm) {
+        const { beat_role: role, intensity, info_density: density, resistance, elapsed, progress } = rhythm;
+        const reach = 60 + intensity * 54;
+        // 阻力越高，扩散花的时间越长。回落与收束都从事件起点直接计算。
+        const release = role === 'release' ? prog(elapsed, 0, 0.85 + 2.4 * resistance, 'outCubic') : 0;
+        const gather = role === 'pressure' ? progress ** (1 + 2 * resistance) : 0;
+        const decay = role === 'residue' ? 1 - prog(progress, 0, 1, 'outQuad') : 1 - progress * 0.45;
+        // The crest travels during the whole event. Its rebound dies at the block boundary.
+        const rebound = Math.sin(progress * Math.PI * 4) * Math.sin(progress * Math.PI);
+        const frontRadius = role === 'release' ? 92 + release * 192 + progress * 94 + 78 * rebound
+          : role === 'residue' ? 378 - 136 * progress ** 1.45 + 68 * rebound
+          : 242 - 125 * (0.25 * progress + 0.75 * gather) + 52 * rebound;
+        const frontWidth = role === 'release' ? 48 + intensity * 12
+          : role === 'residue' ? 108 - 58 * progress : 50 + (12 + intensity * 12) * (0.3 * progress + 0.7 * gather);
+        const frontLight = (0.35 + 0.055 * intensity) * (0.63 + 0.37 * decay);
+        lines.fillCircle(cx, cy, frontRadius + frontWidth * 0.5, P.signal.map((c) => c * frontLight), 2);
+        lines.fillCircle(cx, cy, frontRadius - frontWidth * 0.5, field, 2);
+        lines.circle(cx, cy, frontRadius, 2 + intensity, P.ember, 96);
+        const spacing = (28 + release * reach * 0.088) * (1 - gather * 0.62);
+        for (let i = 1; i <= density + 1; i++) {
+          const radius = 58 + i * spacing + release * reach * 0.17;
+          const light = (0.22 + release * 0.58) * (0.4 + 0.6 * decay) / Math.sqrt(i);
+          lines.circle(cx, cy, radius, 1.5 + intensity * 0.38,
+            [P.signal[0] * light, P.signal[1] * light, P.signal[2] * light], 96);
+        }
 
-      // 中心：跟着低频呼吸的方块
-      const s = 40 + a.low * 90;
-      lines.rect(cx - s, cy - s, s * 2, s * 2, 3, P.bone);
-      lines.circle(cx, cy, s * 0.6 + a.high * 30, 2, P.signal, 40);
+        // The same core expands, winds back and gathers with the crest.
+        const size = role === 'release' ? 52 + 68 * release - 16 * progress + 16 * rebound
+          : role === 'residue' ? 104 - 29 * progress + 13 * rebound
+          : 75 - 23 * gather + 10 * rebound;
+        const angle = role === 'release' ? Math.PI * 0.5 * (release + 2 * progress)
+          : role === 'residue' ? Math.PI * 0.5 * (3 - 0.5 * progress + 0.26 * rebound)
+          : Math.PI * 0.5 * (2.5 - 0.5 * gather);
+        const core = Array.from({ length: 4 }, (_, i) => {
+          const a = angle + Math.PI * (0.25 + i * 0.5);
+          return [cx + Math.cos(a) * size, cy + Math.sin(a) * size];
+        });
+        lines.fillPoly(core, P.signal.map((c) => c * 0.2), 2);
+        lines.polyline(core, 4, P.bone, true);
+        lines.circle(cx, cy, size * 0.35, 3, P.ember, 40);
+      } else {
+        for (let i = 0; i < 8; i++) {
+          const kt = music.nearestBeat(t - (i + 1) * 0.5);
+          const age = t - kt;
+          if (age < 0 || age > 3.2) continue;
+          const r = 60 + age * 340;
+          const fade = Math.exp(-age / 1.2);
+          const hit = music.hit('kick', kt + 0.001, 0.2);
+          lines.circle(cx, cy, r, 1.5 + hit * 8,
+            [P.signal[0] * fade, P.signal[1] * fade, P.signal[2] * fade], 96);
+        }
+        const s = 40 + a.low * 90;
+        lines.rect(cx - s, cy - s, s * 2, s * 2, 3, P.bone);
+        lines.circle(cx, cy, s * 0.6 + a.high * 30, 2, P.signal, 40);
+      }
       lines.flush(ctx.out);
 
       // 文字
       text.clear();
-      type.write(o.title, W * 0.5, H * 0.86, {
-        size: 64, weight: 700, family: 'sans', align: 'center',
-        color: css(P.bone), stagger: 0.06, from: 'up', dist: 40, t,
-      });
-      type.write(`${music.beats.length} 拍 · ${music.kicks.length} kick · ${music.snares.length} snare`, W * 0.5, H * 0.86 + 62, {
-        size: 24, family: 'mono', tracking: 3, align: 'center', color: css(P.signal, 0.85),
+      const titleAlpha = rhythm ? 1 - prog(t, 0.8, 1.65, 'inOutCubic') : 1;
+      if (titleAlpha > 0) {
+        type.write(o.title, W * 0.5, H * 0.86, {
+          size: rhythm ? 42 : 64, weight: 700, family: 'sans', align: 'center',
+          color: css(P.bone, titleAlpha), stagger: 0.06, from: 'up', dist: 40, t,
+        });
+      }
+      const readout = rhythm
+        ? `${rhythm.beat_role.toUpperCase()}  /  ${music.bpm.toFixed(1)} BPM`
+        : `${music.beats.length} 拍 · ${music.kicks.length} kick · ${music.snares.length} snare`;
+      type.write(readout, W * 0.5, H * 0.86 + 62, {
+        size: rhythm ? 20 : 24, family: 'mono', tracking: 3, align: 'center', color: css(P.signal, rhythm ? 0.65 : 0.85),
       });
       text.upload();
       comp.draw(gl, text, ctx.out, { premult: false });
 
       return {
-        bloom: 0.5,
+        bloom: rhythm ? 0.06 + 0.11 * rhythm.intensity : 0.5,
         bloomThreshold: 0.85,
         halation: 0.3,
-        grain: 0.03,
-        zoom: 1 + a.low * 0.02,
-        shake: [a.kick * 4, -a.kick * 3],
-        ca: a.kick * 0.4,
+        grain: rhythm ? 0 : 0.03,
+        ...(rhythm ? { dither: 'off' } : { zoom: 1 + a.low * 0.02, shake: [a.kick * 4, -a.kick * 3], ca: a.kick * 0.4 }),
         vignette: 0.45,
       };
     },

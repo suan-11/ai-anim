@@ -61,6 +61,8 @@ import { frameSeed } from '../src/core/scene.js';
 import { build, isConfigNode } from '../src/timeline.js';
 import { MusicData, SILENT } from '../src/core/audio.js';
 import { makeNarration, makeNarrationReader } from '../src/core/narration.js';
+import { rhythmFrameAt, validateRhythm } from '../src/core/rhythm.js';
+import { readRhythmSource } from '../scripts/lib/rhythm.mjs';
 import { TextKit } from '../src/core/text.js';
 import { polySpans, circleSpans } from '../src/core/fill.js';
 import { resolveStyle, fitStyleToFrame, gridFor } from '../src/style/index.js';
@@ -801,7 +803,7 @@ const CTX_KEYS = new Set([
 /** `Frame` 的字段（`src/core/scene.js` 的 typedef + 引擎实现） */
 const F_KEYS = new Set([
   't', 'dt', 'lt', 'p', 'start', 'end', 'beat', 'bar', 'beatPhase', 'fps', 'idx', 'seed',
-  'preview', 'seeked', 'tin', 'tout', 'under', 'a', 'rgb', 'params', 'narration',
+  'preview', 'seeked', 'tin', 'tout', 'under', 'a', 'rgb', 'params', 'narration', 'rhythm',
 ]);
 /**
  * 调色板里"可以没有"的名字：`src/kit/world.js` 与 `src/kit/elements.js` 都写
@@ -921,7 +923,9 @@ async function loadTaskSpec(name) {
     NOTES.push(`风格解析失败（按无风格继续）：${errLine(e)}`);
   }
   const grid = style ? gridFor(style, Number(spec.width ?? 1920), Number(spec.height ?? 1080)) : null;
-  return { name: /[\\/]/.test(name) ? path.basename(dir) : name, dir, spec, timeline, music, narration, narrationData, cfgTypes, style, grid };
+  const rhythmSource = readRhythmSource(dir);
+  const rhythm = rhythmSource === null ? [] : validateRhythm(rhythmSource).blocks;
+  return { name: /[\\/]/.test(name) ? path.basename(dir) : name, dir, spec, timeline, music, narration, narrationData, cfgTypes, style, grid, rhythm };
 }
 
 /** 与引擎 load() 同一套：懒加载函数 → 模块 → 类 → 对象 */
@@ -1641,6 +1645,7 @@ function makeCtx({ T, gl, lines, comp, P, owner, W, H, fps, item, t, idx, extras
     a: T.music.at ? T.music.at(t) : {},
     params: item.params ?? {},
     narration: T.narration,
+    rhythm: rhythmFrameAt(T.rhythm, t),
   };
   const beat = T.music.beatAt ? T.music.beatAt(t) : t * 2;
   f.beat = beat; f.bar = beat / 4; f.beatPhase = beat - Math.floor(beat);

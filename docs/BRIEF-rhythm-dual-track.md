@@ -3,7 +3,8 @@
 > 来源：用户提示词（2026-11-22）。性质：**引擎能力设计 brief**（不是单片分镜）。
 > 关联：BACKLOG §1.J `1-86`（文案/剧作层叙事节奏与前 3 秒钩子）/ `1-87`（C4/C5 与 anim rhythm 门禁收口）；
 > 现有判据 `tools/lint-anti-ppt.mjs` C4（时长 CoV）/C5（钩子）、`docs/MOTION.md`、`src/core/trans.js`。
-> 状态：**设计待落地**。本文把提示词整理成可执行规格 + 硬规则 + 落地顺序。
+> 状态：v0.1 已实现，运行口径见 §8。
+> 各字段填表、评分和复核方式见 [节奏双轨数据评估标准](RHYTHM-EVALUATION.md)。
 
 ---
 
@@ -108,18 +109,88 @@
 
 ## 6. 待决 / 第二版
 
-- `intensity` / `info_density` 的量纲与阈值（1–5？高低分界？）——手工填表时定。
-- `motion_grammar` / `sound_density` 的枚举词表（对齐 MOTION.md / SFX.md）。
-- 复杂度 / 重复度指标（v0.2）。
-- 注意力曲线从代理指标升级为真实测量（v0.2+）。
+- `intensity`、`info_density`、`resistance` 与声音密度已有[评分及复核口径](RHYTHM-EVALUATION.md)。运动语法的封闭词表仍待定。
+- 复杂度 / 重复度指标（v0.2）：已实现，见 §10。
+- 注意力曲线的画面显著性测量已接线，见 §9。
 - 与 `anim cues`（词点/切点归零线）的关系：cues 给切点坐标，节奏表给块级呼吸——两者如何叠加。
 
 ---
 
 ## 7. 验收（本 brief 落地完成的定义）
 
-- [ ] 2–3 条片子的手工 `rhythm.json` 存在且能表达真实节奏。
-- [ ] `src/core/rhythm.js` 纯函数 + R1–R5 离线单测全绿。
-- [ ] `anim rhythm` / `lint-rhythm` 接入 regress。
-- [ ] 至少一支片的 render(t) 由节奏表驱动（intensity/resistance/info_density 真的影响画面）。
-- [ ] 旧 beat 卡点逻辑降级为网格，BPM 坐标系保留。
+- [x] `beat` 和 `demo` 有手工 `rhythm.json`。
+- [x] `src/core/rhythm.js` 纯函数与 R1–R5 离线单测。
+- [x] `anim rhythm` / `lint-rhythm` 接入 regress。
+- [x] `beat` 的波形、同心圆和频谱由节奏表驱动。
+- [x] 已声明节奏表的任务用 BPM 作参考网格，`beat` 的两处切点取自 `release`。
+
+## 8. v0.1 运行口径
+
+块长 3–8 秒，从 0 秒开始首尾相接。`intensity` 和 `info_density` 取 1–5，密度 ≥4 的块后须接更低密度的块。`release` 前最近一块的阻力须高于 `release`。若还有更早一块，它的阻力须低于最近一块。R5 采用 §3 的至少三类门槛，两份样片均含四类。`motion_grammar` 与 `sound_density` 可选，当前用于描述编排。引擎装载时还会核对全片覆盖时长。
+
+```sh
+node scripts/anim.mjs rhythm beat --strict
+node tools/lint-rhythm.mjs demo --strict --json
+node scripts/anim.mjs rhythm beat --motion
+node tools/lint-cut-beats.mjs beat
+node tools/regress-all.mjs --ci
+```
+
+无节奏表的任务执行 `anim rhythm` 时仍使用静动量具。`--table` 可显式检查有无节奏表。`check` 汇报事件轨及全片 C4/C5，`--strict` 将命中视为失败。`review` 将读数写入评审包，`--only` 时仅附全片事件表读数。
+
+场景读取 `f.rhythm`，其中 `elapsed` 和 `progress` 按事件块计算。块区间左闭右开。`--only` 平移片段后仍从原片时间取事件。`f.beat`、`f.beatPhase` 与 `music.timeOfBeat()` 可继续读网格。样片 `beat` 用强度调幅度和辉光、阻力调扩散耗时、密度调可见几何数量。其两次释放在 10.7s 和 25.1s。`demo` 标注现有片头、图表、甩镜和收尾，用于检查节奏表能否描述已有画面。
+
+## 9. v0.2 注意力曲线
+
+```sh
+node scripts/anim.mjs rhythm beat --attention --video out/beat/rhythm-visual-hook.mp4
+node scripts/anim.mjs rhythm beat --attention --only pulse --step 0.5
+node scripts/anim.mjs review beat --attention
+```
+
+`rhythm --attention` 输出 `out/<任务>/attention/attention.html` 和 `attention.json`，选段报告写入该目录的 `only-*` 子目录。默认每 0.25 秒取一帧，并在镜头、节奏块边界加采。报表可拖动时间轴对照缩略帧、热图、显著中心和节奏事件。`review --attention` 将同一份报告放入评审包，步长可通过 `--attention-step` 指定。
+
+曲线可切换到热点的横纵坐标，镜头切换处断线。节奏块读数按采样点汇总平均集中度、平均主体内显著性占比和热点落框次数，并链接到每块占比最低的采样帧。JSON 的 `blocks` 字段提供同一组读数。热点落框次数以有有效主体框与显著性信号的帧为分母。
+
+报告可直接播放。`--video` 指向与报告同起点、同时长的样片，播放时视频、游标和热图共用时间轴。全片报告也会查找默认成片 `out/<任务>/<任务>.mp4`。视频不可用时，报告依采样时间连续播放内嵌帧。
+
+输入为渲染后的显示空间像素。读数结合局部明暗与色差、向前回看 0.15 秒的变化量。镜头切换或交叠边界仅使用空间信号。集中度表示约 10% 面积内最显著区域占全画面显著性总量的比例。中心取该区域内显著性加权位置。主体内占比使用既有 `focus` 矩形，覆盖面积同时显示，方便判断大框造成的偏高读数。无主体声明、交叠帧或平坦画面以空读数显示。
+
+这是可重复计算的画面显著性估计。观众实际注视和语义理解需另行采集。R4 保留为作者声明校验，曲线只提供评审读数。热图颜色按当前帧归一化，跨时刻比较使用曲线和 JSON 数值。
+
+报告的「注意力节奏」展示实测曲线与目标曲线，按加权残差方差计分，并单独检查前 3 秒和各次释放后的回落。计分、逐项判读和完播率验证见 [节奏评估标准](RHYTHM-EVALUATION.md)。
+
+---
+
+## 10. v0.2 复杂度 / 重复度评分
+
+```sh
+node scripts/anim.mjs rhythm <任务> --complexity --step 0.5
+```
+
+复用注意力曲线的采样帧（`collectAttention`），离线纯函数计算（`scripts/lib/rhythm-complexity.mjs`），输出 `out/<任务>/attention/complexity.json`。与注意力曲线（§9，加权方差 0-100）同一次采样三指标一起出。
+
+### 复杂度 complexity（0-100，高=多锚点/多变）
+- **显著分散度**（0.5 权）：`1 - concentration`。concentration 是 10% 面积峰值占全画面显著性比例——高=单锚点=简单，低=分散=复杂。
+- **热点多样性**（0.3 权）：相邻采样热点位移均值（归一化坐标 /0.3）。视线被多处牵引=复杂。
+- **信息密度**（0.2 权）：节奏块 `info_density` 均值 /5。
+
+### 重复度 repetition（0-100，高=单调重复）
+- **帧重复**（0.6 权）：相邻帧 strength/concentration/hotspot 变化越小越重复（`1 - change`）。
+- **序列循环**（0.4 权）：节奏块 intensity+info_density 序列**去线性趋势后**的自相关峰值。单调递增/递减不算循环（去趋势），只有波动循环才算重复。
+
+### 读数判读
+- 复杂度高 + 重复度低 = 信息丰富且多变（理想科普片应适中，过高=杂乱）。
+- 复杂度低 + 重复度高 = 单调（PPT 味，需加变化）。
+- 注意力曲线独立计分（§9），三指标互补：复杂度看「画面多丰富」，重复度看「多单调」，注意力看「视线引导是否按节奏起伏」。
+
+### 校准样本（2026-11-23，step 0.5）
+| 片 | 复杂度 | 重复度 | 解读 |
+|---|---|---|---|
+| benford | 43 | 56 | 多柱分散最复杂，帧静态重复高 |
+| paperfold | 37 | 52 | 指数柱变化稍多 |
+| coastline | 27 | 57 | 单海岸线集中，帧重复最高 |
+| manhole | 26 | 56 | 单圆最简 |
+| tube-map | 26 | 54 | 线网集中 |
+
+> 科普片帧重复普遍偏高（0.86-0.95）因画面以静态图表为主——这是题材特性，非缺陷；靠 zoom punch + 运镜 + 旁白节奏制造事件起伏（注意力曲线衡量）。序列循环全 0 因节奏表无循环模式（一次性叙事）。

@@ -9,6 +9,11 @@
 /** @type {Record<string, () => Promise<any>>} */
 // 注意：glob 必须用「以 / 开头的绝对路径」写法，相对路径会被当成模块说明符而匹配不到任何文件。
 const configs = import.meta.glob('/tasks/*/task.config.mjs');
+const rhythmSources = import.meta.glob('/tasks/*/rhythm.json', { query: '?raw', import: 'default' });
+
+export async function loadTaskRhythm(name) {
+  return await rhythmSources[`/tasks/${name}/rhythm.json`]?.() ?? null;
+}
 
 import { makeNarration } from './core/narration.js';
 import { resolveStyle } from './style/index.js';

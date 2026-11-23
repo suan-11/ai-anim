@@ -36,6 +36,7 @@ if (!existsSync(dir)) {
   console.error('✗ 没有任务 ' + task);
   process.exit(2);
 }
+const gridOnly = existsSync(path.join(dir, 'rhythm.json'));
 
 const mod = await import(new URL('../tasks/' + task + '/task.config.mjs', import.meta.url).href);
 const cfg = mod.default ?? mod.config;
@@ -92,13 +93,14 @@ const mean = rows.reduce((a, r) => a + Math.abs(value(r)), 0) / rows.length;
 if (flag('json')) {
   console.log(JSON.stringify({
     task, audio: pick, bpm: A.bpm, ref, tolMs,
+    ...(gridOnly ? { gridOnly: true } : {}),
     cuts: rows.length, bad: bad.length, meanAbsMs: Math.round(mean * 10) / 10,
     rows,
   }, null, 2));
 } else {
   console.log('拍表 ' + pick + ' · bpm ' + A.bpm + ' · ' + beats.length + ' 拍 / ' + bars.length + ' 小节 · 切点 ' + rows.length + ' 个');
   if (bad.length) {
-    console.log('✗ ' + bad.length + '/' + rows.length + ' 个切点偏离' + (ref === 'bar' ? '小节' : '拍') + '超过 ±' + tolMs + 'ms（最差 ' + Math.abs(value(worst[0])) + 'ms）：');
+    console.log((gridOnly ? '· BPM 参考网格：' : '✗ ') + bad.length + '/' + rows.length + ' 个切点偏离' + (ref === 'bar' ? '小节' : '拍') + '超过 ±' + tolMs + 'ms（最差 ' + Math.abs(value(worst[0])) + 'ms）：');
     for (const r of worst) {
       console.log('   ' + r.t.toFixed(2) + 's  离拍 ' + r.dMs + 'ms' + (r.dBarMs == null ? '' : '  离小节 ' + r.dBarMs + 'ms'));
     }
@@ -106,4 +108,4 @@ if (flag('json')) {
     console.log('✓ ' + rows.length + '/' + rows.length + ' 个切点都在 ±' + tolMs + 'ms 内（平均 |偏差| ' + mean.toFixed(1) + 'ms）');
   }
 }
-if (bad.length) process.exitCode = 1;
+if (bad.length && !gridOnly) process.exitCode = 1;

@@ -1,8 +1,31 @@
 const HOOK_END = 3;
 const WINDOW = 0.5;
 const VARIANCE_SCALE = 0.25;
-const MIN_WAVE_CHANGE = 0.08;
 const EPSILON = 1e-8;
+
+/** 双形态目标曲线（docs/BENCHMARK-WEIGHTED.md，33支B站标杆播放量加权）：
+ * bit   = 深谷叙事型（比特新语系代码动画，与我们引擎同构；缺省）：
+ *         均值≈0.48、落差≈0.45、波幅≈0.07、下蹲4-8s、59%时间<0.5。
+ * aigen = 高位保持型（AI生成科普）：均值≈0.65、hi65≈59%、几乎无深谷、浅蹲1-2s。
+ * 两档的 hook/角色包络/验收线都不同——不能混用一条曲线。 */
+export const ATTENTION_PROFILES = {
+  bit: {
+    hook: (t) => t < 1 ? 0.45 + t * 0.15 : 0.60 - (t - 1) * 0.025,   // 1s峰0.60 → 3s 0.55
+    pressure: (u) => 0.52 - 0.22 * u,                                 // 深蹲 0.52→0.30
+    hold: (u) => 0.38 + 0.05 * Math.sin(u * Math.PI),                 // 低位期待 0.38±0.05
+    release: (u) => 0.35 + 0.35 * Math.min(1, u * 1.6),               // 冲峰 0.35→0.70
+    residue: (u, isFinal) => isFinal ? 0.48 - 0.08 * u + 0.04 * Math.sin(u * Math.PI) : 0.55 - 0.15 * u,
+    hookPeakMin: 0.50, hookChangeMin: 0.08, waveChangeMin: 0.08,
+  },
+  aigen: {
+    hook: (t) => t < 1 ? 0.40 + t * 0.30 : 0.70 - (t - 1) * 0.025,   // 1s峰0.70 → 3s 0.65
+    pressure: (u) => 0.58 - 0.06 * u,                                 // 浅蹲 0.58→0.52
+    hold: (u) => 0.55 + 0.04 * Math.sin(u * Math.PI),                 // 中高位微起伏
+    release: (u) => 0.55 + 0.17 * Math.min(1, u * 1.6),               // 0.55→0.72
+    residue: (u, isFinal) => isFinal ? 0.62 - 0.06 * u + 0.03 * Math.sin(u * Math.PI) : 0.65 - 0.07 * u,
+    hookPeakMin: 0.60, hookChangeMin: 0.10, waveChangeMin: 0.06,
+  },
+};
 
 function visualAttention(row) {
   if (!Number.isFinite(row.strength) || row.strength < 0) return null;
@@ -13,19 +36,16 @@ function visualAttention(row) {
 }
 
 function expectedAttention(t, { start, end, role }, ctx = {}) {
+  const profile = ATTENTION_PROFILES[ctx.profile] ?? ATTENTION_PROFILES.bit;
   // 前3秒陡升段：快速拉到中高位（让观众知道值得看），峰在~1s 后缓落建立
-  if (t < HOOK_END) return t < 1 ? 0.40 + t * 0.42 : 0.82 - (t - 1) * 0.10;
+  if (t < HOOK_END) return profile.hook(t);
   const u = (t - start) / (end - start);
   const isFinal = ctx.isFinalBlock; // 结尾块：余韵缓降不归零
   switch (role) {
-    // pressure：主动下蹲（压弹簧），从中位降到中低位，阻力最高
-    case 'pressure': return 0.58 - 0.26 * u;
-    // hold：停低/中位制造期待，轻微起伏
-    case 'hold': return 0.40 + 0.04 * Math.sin(u * Math.PI);
-    // release：冲峰值（全片高点），起于蓄势末的低点猛升
-    case 'release': return 0.42 + 0.46 * Math.min(1, u * 1.6);
-    // residue：峰值后回落中位再缓降，不归零；结尾块留小回扣
-    case 'residue': return isFinal ? 0.52 - 0.10 * u + 0.05 * Math.sin(u * Math.PI) : 0.62 - 0.20 * u;
+    case 'pressure': return profile.pressure(u);
+    case 'hold': return profile.hold(u);
+    case 'release': return profile.release(u);
+    case 'residue': return profile.residue(u, isFinal);
   }
   return null;
 }
@@ -58,16 +78,16 @@ function highest(windows) {
   return windows.reduce((peak, row) => !peak || row.value > peak.value ? row : peak, null);
 }
 
-function readHook(rows) {
+function readHook(rows, profile) {
   const windows = windowReadings(rows, 0, HOOK_END);
   if (windows.length < 4) return { status: 'unmeasured' };
   const peak = highest(windows);
   const change = peak.value - Math.min(...windows.map((row) => row.value));
-  return { status: peak.value >= 0.55 && change >= 0.12 ? 'observed' : 'review',
+  return { status: peak.value >= profile.hookPeakMin && change >= profile.hookChangeMin ? 'observed' : 'review',
     peakTime: peak.time, peak: peak.value, change };
 }
 
-function readWaves(events, buckets) {
+function readWaves(events, buckets, profile) {
   const waves = [];
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
@@ -84,15 +104,17 @@ function readWaves(events, buckets) {
     if (!build) issues.push('missing_build');
     if (!recovery) issues.push('missing_recovery');
     if (!peak || (build && lead === null) || (recovery && tail === null)) issues.push('missing_signal');
-    if (rise !== null && rise < MIN_WAVE_CHANGE) issues.push('weak_rise');
-    if (fall !== null && fall < MIN_WAVE_CHANGE) issues.push('weak_fall');
+    if (rise !== null && rise < profile.waveChangeMin) issues.push('weak_rise');
+    if (fall !== null && fall < profile.waveChangeMin) issues.push('weak_fall');
     waves.push({ start: event.start, end: event.end, peakTime: peak?.time ?? null, rise, fall, issues });
   }
   return waves;
 }
 
-/** Score the shape of a full-film attention curve by the time-weighted variance of its residuals. */
-export function evaluateAttentionRhythm({ duration, events, samples, sourceOffset = 0, only = null }) {
+/** Score the shape of a full-film attention curve by the time-weighted variance of its residuals.
+ * profile: 'bit'（缺省，深谷叙事）| 'aigen'（高位保持），见 ATTENTION_PROFILES。 */
+export function evaluateAttentionRhythm({ duration, events, samples, sourceOffset = 0, only = null, profile = 'bit' }) {
+  const prof = ATTENTION_PROFILES[profile] ?? ATTENTION_PROFILES.bit;
   if (sourceOffset || only?.length) return { status: 'unmeasured', reason: 'partial' };
   if (!Number.isFinite(duration) || duration < HOOK_END || !events?.length || !samples?.length) {
     return { status: 'unmeasured', reason: 'missing_timeline' };
@@ -110,7 +132,7 @@ export function evaluateAttentionRhythm({ duration, events, samples, sourceOffse
     while (eventIndex < events.length - 1 && t + EPSILON >= events[eventIndex].end) eventIndex++;
     const end = Math.min(samples[i + 1]?.t ?? duration, duration);
     const observed = visualAttention(sample);
-    const target = expectedAttention(t, events[eventIndex], { isFinalBlock: eventIndex === events.length - 1 });
+    const target = expectedAttention(t, events[eventIndex], { isFinalBlock: eventIndex === events.length - 1, profile });
     const row = { t, end, observed, target };
     if (end <= t) return { t, observed, target };
     // The opening seconds count twice. Boundary samples retain only their actual time span.
@@ -129,10 +151,11 @@ export function evaluateAttentionRhythm({ duration, events, samples, sourceOffse
 
   const variance = Math.max(0, sumSquares / weight);
   const score = Math.round(100 * Math.max(0, 1 - Math.sqrt(variance) / VARIANCE_SCALE));
-  const hook = readHook(buckets.flat().filter((row) => row.t < HOOK_END));
-  const waves = readWaves(events, buckets);
+  const hook = readHook(buckets.flat().filter((row) => row.t < HOOK_END), prof);
+  const waves = readWaves(events, buckets, prof);
   const body = waves.length && waves.every((wave) => !wave.issues.length) ? 'observed' : 'review';
   return { status: hook.status === 'observed' && body === 'observed' && Math.abs(mean) <= 0.12 ? 'observed' : 'review',
+    profile: ATTENTION_PROFILES[profile] ? profile : 'bit',
     score, variance, bias: mean, hook, body, waves, series };
 }
 

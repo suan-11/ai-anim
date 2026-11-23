@@ -52,7 +52,7 @@ export async function collectAttention(session, { task, step }) {
     }
   }
   const report = { schema: 'anim.attention/1', task, duration, step, motionLag: MOTION_LAG,
-    sourceOffset, only: session.info.only ?? null, events, samples };
+    sourceOffset, only: session.info.only ?? null, profile: session.info.attentionProfile ?? 'bit', events, samples };
   return { ...report, rhythmScore: evaluateAttentionRhythm(report) };
 }
 

@@ -5,20 +5,20 @@
 import { makeCameraProfile } from '../../src/core/trans.js';
 import { sat, smoothstep } from '../../src/core/util.js';
 
-// 节奏角色 → 显著性目标（落差明显）
+// 节奏角色 → 显著性目标（bit 深谷档：落差明显，谷要够深）
 function rhythmShape(r) {
   if (!r) return { expo:1, bloom:0.12, vig:0.32, zoom:1, shake:1 };
   const u = r.progress ?? 0;
   switch (r.beat_role) {
-    case 'pressure': // 主动下蹲：压暗+收紧+暗角加重（蓄力）
-      return { expo: 0.78 - 0.18*u, bloom: 0.05, vig: 0.45 + 0.15*u, zoom: 0.96 - 0.04*u, shake: 0.5 };
-    case 'hold': // 期待：中低位微起伏
-      return { expo: 0.85 + 0.05*Math.sin(u*Math.PI), bloom: 0.08, vig: 0.42, zoom: 0.98, shake: 0.7 };
-    case 'release': // 爆发：猛提亮+泛光炸+推近+震屏（冲峰）
+    case 'pressure': // 主动下蹲：压暗+收紧+暗角加重（蓄力，谷深 0.30 目标）
+      return { expo: 0.70 - 0.22*u, bloom: 0.03, vig: 0.52 + 0.18*u, zoom: 0.94 - 0.05*u, shake: 0.35 };
+    case 'hold': // 期待：低位近静（微呼吸），别给多余变化
+      return { expo: 0.68 + 0.04*Math.sin(u*Math.PI), bloom: 0.04, vig: 0.55, zoom: 0.95, shake: 0.4 };
+    case 'release': // 爆发：猛提亮+泛光炸+推近+震屏（冲峰 0.70 目标）
       const burst = Math.min(1, u*1.6);
-      return { expo: 1.0 + 0.45*burst, bloom: 0.15 + 0.55*burst, vig: 0.25 - 0.1*burst, zoom: 1.0 + 0.12*burst, shake: 1 + 2.5*burst };
+      return { expo: 1.0 + 0.5*burst, bloom: 0.15 + 0.6*burst, vig: 0.22 - 0.1*burst, zoom: 1.0 + 0.14*burst, shake: 1 + 2.8*burst };
     case 'residue': // 回落：回中位缓降
-      return { expo: 1.1 - 0.25*u, bloom: 0.4 - 0.3*u, vig: 0.3 + 0.1*u, zoom: 1.05 - 0.07*u, shake: 1.2 - 0.6*u };
+      return { expo: 1.05 - 0.3*u, bloom: 0.35 - 0.28*u, vig: 0.32 + 0.12*u, zoom: 1.04 - 0.08*u, shake: 1.0 - 0.5*u };
     default: return { expo:1, bloom:0.12, vig:0.32, zoom:1, shake:1 };
   }
 }
