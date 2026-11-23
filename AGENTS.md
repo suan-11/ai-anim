@@ -452,7 +452,9 @@ music.timeOfBeat(16)         // 第 16 拍时刻（定切点）；beatAt / neare
 music.hit('kick', t, 0.12)   // 衰减脉冲（撞击/闪白）；hits('kick', t-2, t) 取一段
 ```
 
-**切镜头要对齐节拍**：用 `cut(scene, { dur: { beat: 16 } })` 或 `cut(scene, { at: music.timeOfBeat(16), dur: 8 })`，而不是手写秒数。`at` 和 `dur` 都接受 `{ beat: n }` / `{ bar: n }`（配置档节点上的 `at` / `dur` 同理，见 §3.2）。
+有 `tasks/<任务>/rhythm.json` 时，用事件轨决定关键动作与切点，拍号供定位与读数。`render(ctx)` 从 `f.rhythm` 读当前事件，`anim rhythm <任务> --strict` 校验节奏表。接线与样片见 [节奏双轨 brief](docs/BRIEF-rhythm-dual-track.md) §8。
+
+按拍编排的时间线可用 `cut(scene, { dur: { beat: 16 } })` 或 `cut(scene, { at: music.timeOfBeat(16), dur: 8 })`。`at` 和 `dur` 都接受 `{ beat: n }` / `{ bar: n }`（配置档节点上的 `at` / `dur` 同理，见 §3.2）。
 
 ### 6.5 有人讲解的片子（旁白/口播）
 
@@ -651,7 +653,7 @@ node scripts/anim.mjs check <任务>
 
 1. `check <任务>`：无报错、无空档、每段不全黑、**背景守门通过**（过曝 / 单多子帧不一致 / 段内亮度不均 / 交叠段没铺底 都会报）。
 2. `still` 抽查**每一段**中间帧，并**真的用 Read 看了图**（`--only` 时 `-t` 是段内时间）。
-3. 有音乐的片子：切点对齐在拍上（`dur: { beat: n }`）。
+3. 有音乐的片子：节奏双轨任务按事件轨验收，按拍编排的任务查切点落拍（见 §6）。
 4. `video` 出片成功（它自己 ffprobe 复核帧数）；再确认就 `verify` + `qa`。
 5. 段间没有黑隙，最后一段有淡出或明确收尾。
 6. 对外发声的片子：`tasks/<任务>/FACTS.md` 逐句标出处，并列出「刻意没写的东西及原因」。
@@ -660,8 +662,8 @@ node scripts/anim.mjs check <任务>
 9. 有旁白且开字幕：`captions: true` + `lint-narration-dup` **零命中** + 没有「压进字幕保留带」警告；软字幕用 `subs`，**别再烧一遍 `.ass`**。
 10. **一屏一个主体**：`check` 的版面守门无 `⚠`，且场景声明了 `focus`（不声明 = 判据没跑）；`--strict` 才把 warn 当门。
 11. **画面上每个数字都要有出处**：显示位里出现的字面量数字，要么 `FACTS.md` 有出处，要么写 `— figure —`；自查 `lint-fabricated-numbers`（不进退出码，得人看）。
-11.5 卡点（有旁白表）：`check` 的「卡点」行要是 `✓ N/N 个切点都在 ±30ms 内`；对不上就改段长或把 `BPM` 设成实测值。
-11.5b **纯音乐片子**单独量：`tools/lint-cut-beats.mjs <任务>`；歌词片再加 `tools/lint-lyric-sync.mjs`（拍点对齐只是**下界**）。
+11.5 节奏双轨查 `anim rhythm <任务> --strict` 和 `check` 的 C4/C5 读数。有旁白表的按拍任务查 `check` 的 ±30ms 卡点行。
+11.5b 纯音乐片用 `tools/lint-cut-beats.mjs <任务>` 查切点离拍距离（双轨任务只报读数）；歌词片再加 `tools/lint-lyric-sync.mjs`。
 11.55 **颜色在一个色系里**：`tools/lint-color-family.mjs`（主色系 ≥55% / 前二 ≥85% / 底字对比 ≥0.25）；连着发布两支再 `--compare` 判撞色系。
 11.56 **别让它变成 PPT**：每段声明 `state.diff` 与 `relayTo`，跑 `tools/lint-anti-ppt.mjs`（状态差 / 接力物 / 淡出转场 / 时长 CoV / 钩子 / 匀速漂移）。
 11.6 **每一秒都有东西看**：`check` 的事件密度（最长静止 ≤3.5s、稀薄窗口 ≤25%）；补**大面积持续运动**，别补 2px 游标。

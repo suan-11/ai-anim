@@ -118,6 +118,8 @@
 | 1-86 | **脚本/文案层的叙事节奏与前 3 秒钩子评价标准** | 现有标准偏视觉与剪辑节奏，纯文案层面只有 `brief.logline ≤ 30 字`（`scripts/lib/brief-lint.mjs`）与去 AI 味（[RULES.md](RULES.md) C1）。**接着做**：定义前 3 秒信息差/悬念抓手、中段留存转折、信息递进坡度与话术钩子反例，扩充 `brief.mjs` 字段与校验规则或新增独立叙事 rubric 接入 `anim review`。**完成判据**：文档化标准 + 离线校验单测进 CI + 在 1 支样片上验证 | 2026-11-22 评价标准盘点 |
 | 1-87 | **节奏与过程钩子门禁收口** | `tools/lint-anti-ppt.mjs` 的 C4 呼吸窗 / C5 每 10s 过程钩子与 `anim rhythm` 静/动停顿目前仍需单独运行，尚未统一汇聚到 `anim check` / `anim review` 报告。**接着做**：评估按默认只报读数 / `--strict` 当门并依 `tools/lib/judge-tiers.mjs` 分层接入，保持存量任务退出码不变。**完成判据**：汇总读数落盘 + 离线回归全绿 | 2026-11-22 评价标准盘点 |
 
+节奏双轨任务的 R1–R5 与 C4/C5 已接入 `check` / `review`。实测静动读数可用 `anim rhythm <任务> --motion`。详见 [节奏双轨 brief](BRIEF-rhythm-dual-track.md) §8。
+
 ---
 
 ## 2. 内容 / 片子
