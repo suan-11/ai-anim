@@ -5,7 +5,9 @@ import { BENFORD, UNIFORM, barLayout, MAX_BAR_H, BAR_SCALE } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { shakeSmooth } from '../../../src/core/cam.js';
 import { safeZoom } from '../../_shared/zoom.js';
+import { makeCinematic } from '../../_shared/cinematic.js';
 export default makeShot('hook',{
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const k=smoothstep(1.5,2.3,lt);
@@ -15,7 +17,8 @@ export default makeShot('hook',{
     const topY=b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE;
     const bbox=[b0.x-b0.bw/2, topY, (b8.x+b8.bw/2)-(b0.x-b0.bw/2), b0.baseY-topY];
     const {zoom,anchor}=safeZoom(W,H,bbox,1+1.0*smoothstep(0,1,zt));
-    ctx.setXform({scale:zoom,anchor});
+    const cx=this.cam.xform(ctx,W,H,zt);
+    ctx.setXform({scale:zoom*cx.scale,anchor,rot:cx.rot,p:cx.p,q:cx.q,x:cx.x,y:cx.y});
     lines.begin();
     // 柱间淡竖纹（填充背景降空格）
     for(let x=160;x<W-160;x+=48) lines.seg(x,180,x,H-160,0.5,withAlpha(P.graphite,0.08));
@@ -38,7 +41,6 @@ export default makeShot('hook',{
     if(labelA>0.05) for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+34,{anchor:'center',size:26,color:css(P.ash,0.85*labelA)});}
     if(zt>0.5){ const [shx,shy]=shakeSmooth(f.t,3); type.writeLine('？', b0.x+100, b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE-50, {anchor:'center',size:88,color:css(P.signal,smoothstep(0.5,1,zt))}); }
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
-    const [shx,shy]=shakeSmooth(f.t,zt>0.5?3:0.8);
-    return{grain:0.012,vignette:0.3,shake:[shx,shy]};
+    return this.cam.post(ctx,{impact:zt,bloomBase:0.1});
   },
 });
