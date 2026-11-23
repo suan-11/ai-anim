@@ -3,13 +3,14 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { coastline, pathLen } from './_geo.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { safeZoom } from '../../_shared/zoom.js';
 export default makeShot('hook',{
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const fine=coastline(W,H,3); // 真实细海岸
     const coarse=coastline(W,H,0); // 大尺子粗量
-    const zt=sat((lt-1.5)/0.6); const zoom=1+2*smoothstep(0,1,zt);
-    const anchor=[W*0.55,H*0.6];
+    const zt=sat((lt-1.5)/0.6);
+    const {zoom,anchor}=safeZoom(W,H,[W*0.35,H*0.35,W*0.4,H*0.35],1+2*smoothstep(0,1,zt));
     ctx.setXform({scale:zoom,anchor});
     lines.begin();
     // 细海岸（淡）
@@ -21,7 +22,7 @@ export default makeShot('hook',{
     lines.flush(ctx.out);
     text.clear();
     const L1=Math.round(pathLen(coarse));
-    type.writeLine('长度 '+L1, W*0.5, 130, {anchor:'center',size:36,color:css(P.bone,0.85)});
+    type.writeLine('长度 '+L1, W*0.5, 210, {anchor:'center',size:36,color:css(P.bone,0.85)});
     if(zt>0.5) type.writeLine('量准了？', anchor[0]+90, anchor[1]-70, {anchor:'center',size:40,color:css(P.signal,smoothstep(0.5,1,zt))});
     text.upload(); comp.draw(gl,text,ctx.out,{premult:false});
     return{grain:0.014,vignette:0.4};

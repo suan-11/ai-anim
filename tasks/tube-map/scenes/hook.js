@@ -7,6 +7,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { STATIONS, LINES, LINE_COLORS, byId, pos } from './_net.js';
 import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
+import { safeZoom } from '../../_shared/zoom.js';
 
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('hook', {
@@ -15,11 +16,9 @@ export default makeShot('hook', {
     const lt=f.lt/(ctx.params?.stretch??1);
     // zoom punch：1.5s 起快速推近市中心（spring 回弹），目标放大 3×
     const zt = sat((lt - 1.5) / 0.6);
-    const zoom = 1 + 2 * smoothstep(0, 1, zt);   // 1→3
-    // 市中心枢纽屏幕位置（k=0 地理）
     const hub = pos(byId('hub'), 0, W, H);
-    // setXform 以枢纽为中心缩放
-    ctx.setXform({ scale: zoom, anchor: [hub[0], hub[1]] });
+    const {zoom,anchor}=safeZoom(W,H,[hub[0]-150,hub[1]-120,300,240],1+2*smoothstep(0,1,zt));
+    ctx.setXform({ scale: zoom, anchor });
     lines.begin();
     // 连线（地理坐标 k=0）
     for (let li = 0; li < LINES.length; li++) {

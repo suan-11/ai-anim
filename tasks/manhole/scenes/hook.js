@@ -2,6 +2,7 @@
 /** 01 · hook —— 方井盖旋转竖起对角线掉进井口 + zoom punch。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css, TAU } from '../../../src/core/util.js';
+import { safeZoom } from '../../_shared/zoom.js';
 const CX=960, CY=520, HOLE=300, LID=290; // 井口边长300，盖边长290（平放卡住）
 export default makeShot('hook',{
   draw(ctx){
@@ -9,8 +10,9 @@ export default makeShot('hook',{
     // 0-1.5s 平放；1.5s 起旋转45°（对角线竖直）+ 掉入
     const rot=smoothstep(1.5,2.3,lt)*Math.PI/4;
     const drop=smoothstep(2.0,2.8,lt)*180; // 掉入位移
-    const zt=sat((lt-2.3)/0.6); const zoom=1+1.6*smoothstep(0,1,zt);
-    ctx.setXform({scale:zoom,anchor:[CX,CY]});
+    const zt=sat((lt-2.3)/0.6);
+    const {zoom,anchor}=safeZoom(W,H,[CX-HOLE/2-40,CY-HOLE/2-40,HOLE+80,HOLE+220],1+1.6*smoothstep(0,1,zt));
+    ctx.setXform({scale:zoom,anchor});
     lines.begin();
     // 井口（暗框）
     lines.rect(CX-HOLE/2,CY-HOLE/2,HOLE,HOLE,3,withAlpha(P.ash,0.9));
