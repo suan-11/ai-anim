@@ -4,8 +4,9 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, UNIFORM } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('data',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const baseY=H*0.78, maxH=420, bw=30, gap=42;
@@ -13,6 +14,7 @@ export default makeShot('data',{
     const zt=sat((lt-4.0)/0.6); const zoom=1+0.35*smoothstep(0,1,zt);
     ctx.setXform({scale:zoom,anchor:[W*0.5,baseY-maxH*0.4]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 基线
     lines.seg(lx-4.5*gap,baseY,lx+4.5*gap,baseY,1.5,withAlpha(P.graphite,0.5));
     lines.seg(rx-4.5*gap,baseY,rx+4.5*gap,baseY,1.5,withAlpha(P.graphite,0.5));

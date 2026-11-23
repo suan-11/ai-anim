@@ -4,14 +4,16 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, barLayout } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('close',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const zoom=1.5-0.5*smoothstep(0,1,sat(lt/1.0));
     ctx.setXform({scale:zoom,anchor:[W/2,H/2]});
     const bars=barLayout(W,H); const maxH=H-380;
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     lines.seg(140,bars[0].baseY,W-140,bars[0].baseY,1.5,withAlpha(P.graphite,0.6));
     for(let i=0;i<9;i++){const h=BENFORD[i]*maxH*2.6;const b=bars[i];lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,i===0?withAlpha(P.signal,0.85):withAlpha(P.bone,0.92));}
     lines.flush(ctx.out);

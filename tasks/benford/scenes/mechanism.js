@@ -4,8 +4,9 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, barLayout } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
+import { makeDataField, drawDataField } from '../../_shared/datafield.js';
 export default makeShot('mechanism',{
-  setup(){ this.cam=makeCinematic(); },
+  setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const bars=barLayout(W,H); const maxH=H-380;
@@ -17,6 +18,7 @@ export default makeShot('mechanism',{
     const x1=axL, x2=axL+(axR-axL)*(Math.log10(2)*k+(1-k)*0.1);
     ctx.setXform({scale:zoom,anchor:[(x1+x2)/2,axY]});
     lines.begin();
+    drawDataField(ctx,this.field,f.t,0.3);
     // 数轴
     lines.seg(axL,axY,axR,axY,2,withAlpha(P.bone,0.8));
     for(let d=1;d<=10;d++){
