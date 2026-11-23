@@ -4,15 +4,18 @@ import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, UNIFORM, barLayout, MAX_BAR_H, BAR_SCALE } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { shakeSmooth } from '../../../src/core/cam.js';
+import { safeZoom } from '../../_shared/zoom.js';
 export default makeShot('hook',{
   draw(ctx){
     const{f,lines,text,type,comp,gl,W,H,P}=ctx; const lt=f.lt/(ctx.params?.stretch??1);
     const k=smoothstep(1.5,2.3,lt);
     const bars=barLayout(W,H);
-    const zt=sat((lt-2.3)/0.6); const zoom=1+1.0*smoothstep(0,1,zt);
-    const b0=bars[0];
-    // zoom 锚点对柱群中心（1号柱中部），温和放大不裁切
-    ctx.setXform({scale:zoom,anchor:[b0.x+80,b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE*0.45]});
+    const zt=sat((lt-2.3)/0.6);
+    const b0=bars[0], b8=bars[8];
+    const topY=b0.baseY-MAX_BAR_H*BENFORD[0]*BAR_SCALE;
+    const bbox=[b0.x-b0.bw/2, topY, (b8.x+b8.bw/2)-(b0.x-b0.bw/2), b0.baseY-topY];
+    const {zoom,anchor}=safeZoom(W,H,bbox,1+1.0*smoothstep(0,1,zt));
+    ctx.setXform({scale:zoom,anchor});
     lines.begin();
     // 柱间淡竖纹（填充背景降空格）
     for(let x=160;x<W-160;x+=48) lines.seg(x,180,x,H-160,0.5,withAlpha(P.graphite,0.08));
