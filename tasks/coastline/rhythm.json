@@ -57,13 +57,13 @@
   {
     "t_start": 22,
     "t_end": 28,
-    "intensity": 2,
+    "intensity": 3,
     "info_density": 2,
-    "resistance": 0.4,
+    "resistance": 0.65,
     "attention_target": "single_anchor",
-    "motion_grammar": "cinematic",
+    "motion_grammar": "build_to_peak",
     "sound_density": 0.4,
-    "beat_role": "residue"
+    "beat_role": "hold"
   },
   {
     "t_start": 28,
