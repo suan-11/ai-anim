@@ -5,6 +5,7 @@ import { BENFORD, barLayout } from './_data.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
 import { makeDataField, drawDataField } from '../../_shared/datafield.js';
+import { burstIntensity, drawBurst } from '../../_shared/burst.js';
 export default makeShot('mechanism',{
   setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
@@ -31,6 +32,7 @@ export default makeShot('mechanism',{
     // 下方九柱（本福特）
     lines.seg(140,bars[0].baseY,W-140,bars[0].baseY,1.5,withAlpha(P.graphite,0.6));
     for(let i=0;i<9;i++){ const h=BENFORD[i]*maxH*2.6; const b=bars[i]; lines.fillRect(b.x-b.bw/2,b.baseY-h,b.bw,h,i===0?withAlpha(P.signal,0.9):withAlpha(P.bone,0.92)); }
+    drawBurst(ctx, burstIntensity(f), W*0.5, H*0.5);
     lines.flush(ctx.out);
     text.clear();
     for(let i=0;i<9;i++){const b=bars[i];type.writeLine(String(b.d),b.x,b.baseY+30,{anchor:'center',size:28,color:css(P.ash,0.8)});}

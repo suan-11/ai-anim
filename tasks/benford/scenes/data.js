@@ -2,9 +2,10 @@
 /** 04 · data —— 【答案峰②】造假vs真实对照+偏差连接带+数值弹出（重构填充+亮度层级）。 */
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { BENFORD, UNIFORM } from './_data.js';
-import { sat, smoothstep, css } from '../../../src/core/util.js';
+import { sat, smoothstep, css, spring } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
 import { makeDataField, drawDataField } from '../../_shared/datafield.js';
+import { burstIntensity, drawBurst } from '../../_shared/burst.js';
 export default makeShot('data',{
   setup(){ this.cam=makeCinematic(); this.field=makeDataField(11,45); },
   draw(ctx){
@@ -18,16 +19,21 @@ export default makeShot('data',{
     // 基线
     lines.seg(lx-4.5*gap,baseY,lx+4.5*gap,baseY,1.5,withAlpha(P.graphite,0.5));
     lines.seg(rx-4.5*gap,baseY,rx+4.5*gap,baseY,1.5,withAlpha(P.graphite,0.5));
-    // 左造假（均匀，亮度0.6）右真实（本福特，亮度0.95）
+    // 柱弹入生长（release 驱动，spring 回弹 → 集中+剧变显著性）
+    const grow=spring(Math.max(0,lt-0.3), 1, 120, 14); // 0→1 弹入过冲
+    const gcl=Math.min(1.15,Math.max(0,grow));
     for(let i=0;i<9;i++){
-      const hu=UNIFORM[i]*maxH*2.2, hb=BENFORD[i]*maxH*2.2;
+      const stag=sat(gcl - i*0.04); // 逐柱错峰
+      const hu=UNIFORM[i]*maxH*2.2*stag, hb=BENFORD[i]*maxH*2.2*stag;
       const xu=lx-4*gap+i*gap, xb=rx-4*gap+i*gap;
       lines.fillRect(xu-bw/2,baseY-hu,bw,hu,i===0?withAlpha(P.signal,0.7):withAlpha(P.bone,0.6));
       lines.fillRect(xb-bw/2,baseY-hb,bw,hb,i===0?withAlpha(P.signal,0.95):withAlpha(P.bone,0.92));
-      // 偏差连接带（左柱顶→右柱顶，1号最粗信号橙）
+      // 1号真实柱顶发光脉冲（release 峰）
+      if(i===0&&stag>0.8){ const pu=0.5+0.5*Math.sin(f.t*8); lines.circle(xb,baseY-hb,10+6*pu,2.5,withAlpha(P.signal,0.8*pu)); }
       const ca=i===0?withAlpha(P.signal,0.8):withAlpha(P.graphite,0.3);
       lines.seg(xu,baseY-hu,xb,baseY-hb,i===0?3:1,ca);
     }
+    drawBurst(ctx, burstIntensity(f), W*0.5, H*0.5);
     lines.flush(ctx.out);
     text.clear();
     type.writeLine('造假', lx, baseY+50, {anchor:'center',size:30,color:css(P.ash,0.9)});
