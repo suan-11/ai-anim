@@ -6,6 +6,7 @@ import { sat, smoothstep, css, hexToLinear } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
 const LC = LINE_COLORS.map(hexToLinear);
 export default makeShot('mechanism', {
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);

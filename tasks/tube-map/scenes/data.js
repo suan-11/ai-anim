@@ -8,6 +8,7 @@ const LC = LINE_COLORS.map(hexToLinear);
 // 路径：w1(红) → c1 → hub(换乘蓝) → n1 → n2
 const PATH = ['w1','c1','hub','n1','n2'];
 export default makeShot('data', {
+  setup(){ this.cam=makeCinematic(); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const lt=f.lt/(ctx.params?.stretch??1);
