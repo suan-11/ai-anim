@@ -1,0 +1,598 @@
+{
+ "schema": "anim.lyrics/2",
+ "song": "world.execute(me);",
+ "artist": "Mili",
+ "album": "Miracle Milk",
+ "bpm": 130,
+ "duration": 207.5,
+ "lines": [
+  {
+   "id": "l01",
+   "t": 0.27,
+   "text": "Switch on the power line"
+  },
+  {
+   "id": "l02",
+   "t": 1.93,
+   "text": "Remember to put on protection",
+   "keyword": "PROTECTION",
+   "kt": 3.16
+  },
+  {
+   "id": "l03",
+   "t": 3.95,
+   "text": "Lay down your pieces"
+  },
+  {
+   "id": "l04",
+   "t": 5.57,
+   "text": "And let's begin object creation",
+   "keyword": "OBJECT CREATION",
+   "kt": 6.34
+  },
+  {
+   "id": "l05",
+   "t": 7.6,
+   "text": "Fill in my data parameters"
+  },
+  {
+   "id": "l06",
+   "t": 9,
+   "text": "initialisation",
+   "keyword": "INITIALIZATION",
+   "kt": 9.76
+  },
+  {
+   "id": "l07",
+   "t": 11.24,
+   "text": "Setup our new world"
+  },
+  {
+   "id": "l08",
+   "t": 12.93,
+   "text": "And let's begin the simulation",
+   "keyword": "SIMULATION",
+   "kt": 14.02
+  },
+  {
+   "id": "l12",
+   "t": 29.74,
+   "text": "If I'm a set of points"
+  },
+  {
+   "id": "l13",
+   "t": 31.37,
+   "text": "Then I will give you my dimension",
+   "keyword": "DIMENSION",
+   "kt": 32.74
+  },
+  {
+   "id": "l15",
+   "t": 33.42,
+   "text": "If I'm a circle"
+  },
+  {
+   "id": "l16",
+   "t": 34.98,
+   "text": "Then I will give you my circumference",
+   "keyword": "CIRCUMFERENCE",
+   "kt": 36.4
+  },
+  {
+   "id": "l18",
+   "t": 37.15,
+   "text": "If I'm a sine wave"
+  },
+  {
+   "id": "l19",
+   "t": 38.73,
+   "text": "Then you can sit on all my tangents",
+   "keyword": "TANGENTS",
+   "kt": 40.26
+  },
+  {
+   "id": "l21",
+   "t": 40.78,
+   "text": "If I approach infinity"
+  },
+  {
+   "id": "l22",
+   "t": 42.42,
+   "text": "Then you can be my limitations",
+   "keyword": "LIMITATIONS",
+   "kt": 43.58
+  },
+  {
+   "id": "l24",
+   "t": 44.48,
+   "text": "Switch my current"
+  },
+  {
+   "id": "l24b",
+   "t": 46.13,
+   "text": "To AC to DC",
+   "keyword": "ACDC",
+   "kt": 46.28
+  },
+  {
+   "id": "l25",
+   "t": 47.94,
+   "text": "And then blind my vision"
+  },
+  {
+   "id": "l26",
+   "t": 49.78,
+   "text": "So dizzy so dizzy"
+  },
+  {
+   "id": "l27",
+   "t": 51.38,
+   "text": "Oh we can travel"
+  },
+  {
+   "id": "l27b",
+   "t": 53.48,
+   "text": "To A.D to B.C",
+   "keyword": "ADBC",
+   "kt": 53.66
+  },
+  {
+   "id": "l28",
+   "t": 55.17,
+   "text": "And we can unite"
+  },
+  {
+   "id": "l28b",
+   "t": 57.17,
+   "text": "So deeply so deeply"
+  },
+  {
+   "id": "l29",
+   "t": 59.4,
+   "text": "If I can"
+  },
+  {
+   "id": "l30",
+   "t": 60.2,
+   "text": "If I can give you all the stimulations",
+   "keyword": "STIMULATIONS",
+   "kt": 62.04
+  },
+  {
+   "id": "l31",
+   "t": 62.92,
+   "text": "Then I can"
+  },
+  {
+   "id": "l32",
+   "t": 63.86,
+   "text": "Then I can be your only satisfaction",
+   "keyword": "SATISFACTION",
+   "kt": 65.72
+  },
+  {
+   "id": "l33",
+   "t": 66.62,
+   "text": "If I can make you happy"
+  },
+  {
+   "id": "l34",
+   "t": 68.48,
+   "text": "I will run the execution",
+   "keyword": "EXECUTION",
+   "kt": 69.42
+  },
+  {
+   "id": "l36",
+   "t": 70.32,
+   "text": "Though we are trapped"
+  },
+  {
+   "id": "l37",
+   "t": 71.76,
+   "text": "In this strange strange simulation",
+   "keyword": "SIMULATION",
+   "kt": 72.98
+  },
+  {
+   "id": "l39",
+   "t": 74.04,
+   "text": "If I'm an eggplant"
+  },
+  {
+   "id": "l40",
+   "t": 75.68,
+   "text": "Then I will give you my nutrients",
+   "keyword": "NUTRIENTS",
+   "kt": 77.08
+  },
+  {
+   "id": "l42",
+   "t": 77.7,
+   "text": "If I'm a tomato"
+  },
+  {
+   "id": "l43",
+   "t": 79.32,
+   "text": "Then I'll give you antioxidants",
+   "keyword": "ANTIOXIDANTS",
+   "kt": 81.02
+  },
+  {
+   "id": "l45",
+   "t": 81.37,
+   "text": "If I'm a tabby cat"
+  },
+  {
+   "id": "l46",
+   "t": 83.06,
+   "text": "Then I will purr for your enjoyment",
+   "keyword": "ENJOYMENT",
+   "kt": 84.36
+  },
+  {
+   "id": "l48",
+   "t": 85.13,
+   "text": "If I'm the only god"
+  },
+  {
+   "id": "l49",
+   "t": 86.74,
+   "text": "Then you're the proof of my existence",
+   "keyword": "EXISTENCE",
+   "kt": 88.14
+  },
+  {
+   "id": "l51",
+   "t": 88.78,
+   "text": "Switch my gender"
+  },
+  {
+   "id": "l51b",
+   "t": 90.34,
+   "text": "To F to M",
+   "keyword": "FM",
+   "kt": 90.6
+  },
+  {
+   "id": "l52",
+   "t": 92.13,
+   "text": "And then do whatever"
+  },
+  {
+   "id": "l52b",
+   "t": 94.09,
+   "text": "From AM to PM",
+   "keyword": "AMPM",
+   "kt": 94.3
+  },
+  {
+   "id": "l53",
+   "t": 95.78,
+   "text": "Oh switch my role"
+  },
+  {
+   "id": "l53b",
+   "t": 97.72,
+   "text": "To S to M",
+   "keyword": "SM",
+   "kt": 98.08
+  },
+  {
+   "id": "l54",
+   "t": 99.58,
+   "text": "So we can enter"
+  },
+  {
+   "id": "l54b",
+   "t": 101.35,
+   "text": "The trance the trance",
+   "keyword": "TRANCE",
+   "kt": 101.66
+  },
+  {
+   "id": "l55",
+   "t": 103.48,
+   "text": "If I can"
+  },
+  {
+   "id": "l56",
+   "t": 104.48,
+   "text": "If I can feel your vibrations",
+   "keyword": "VIBRATIONS",
+   "kt": 106.14
+  },
+  {
+   "id": "l57",
+   "t": 107.22,
+   "text": "Then I can"
+  },
+  {
+   "id": "l58",
+   "t": 108.16,
+   "text": "Then I can finally be completion",
+   "keyword": "COMPLETION",
+   "kt": 110.26
+  },
+  {
+   "id": "l59",
+   "t": 110.92,
+   "text": "Though you have left"
+  },
+  {
+   "id": "l60",
+   "t": 112.33,
+   "text": "You have left"
+  },
+  {
+   "id": "l60b",
+   "t": 113.25,
+   "text": "You have left"
+  },
+  {
+   "id": "l60c",
+   "t": 114.18,
+   "text": "You have left"
+  },
+  {
+   "id": "l60d",
+   "t": 115.08,
+   "text": "You have left"
+  },
+  {
+   "id": "l61",
+   "t": 116.03,
+   "text": "You have left me in isolation",
+   "keyword": "ISOLATION",
+   "kt": 117
+  },
+  {
+   "id": "l63",
+   "t": 119.22,
+   "text": "If I can erase all the pointless fragments",
+   "keyword": "FRAGMENTS",
+   "kt": 121.52
+  },
+  {
+   "id": "l65",
+   "t": 122.97,
+   "text": "Then maybe you won't leave me so disheartened",
+   "keyword": "DISHEARTENED",
+   "kt": 124.76
+  },
+  {
+   "id": "l67",
+   "t": 125.56,
+   "text": "Challenging your God"
+  },
+  {
+   "id": "l68",
+   "t": 128.92,
+   "text": "You have made some"
+  },
+  {
+   "id": "l69",
+   "t": 130.78,
+   "text": "ILLEGAL ARGUMENTS",
+   "keyword": "ILLEGAL ARGUMENTS",
+   "kt": 130.78
+  },
+  {
+   "id": "l70",
+   "t": 148.02,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 148.02
+  },
+  {
+   "id": "l71",
+   "t": 148.94,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 148.94
+  },
+  {
+   "id": "l72",
+   "t": 149.86,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 149.86
+  },
+  {
+   "id": "l73",
+   "t": 150.78,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 150.78
+  },
+  {
+   "id": "l74",
+   "t": 151.70000000000002,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 151.70000000000002
+  },
+  {
+   "id": "l75",
+   "t": 152.62,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 152.62
+  },
+  {
+   "id": "l76",
+   "t": 153.54000000000002,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 153.54000000000002
+  },
+  {
+   "id": "l77",
+   "t": 154.46,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 154.46
+  },
+  {
+   "id": "l78",
+   "t": 155.38000000000002,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 155.38000000000002
+  },
+  {
+   "id": "l79",
+   "t": 156.3,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 156.3
+  },
+  {
+   "id": "l710",
+   "t": 157.22,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 157.22
+  },
+  {
+   "id": "l711",
+   "t": 158.14000000000001,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 158.14000000000001
+  },
+  {
+   "id": "l82",
+   "t": 158.76,
+   "text": "EIN",
+   "keyword": "EIN",
+   "kt": 158.76
+  },
+  {
+   "id": "l83",
+   "t": 159.36,
+   "text": "DOS",
+   "keyword": "DOS",
+   "kt": 159.36
+  },
+  {
+   "id": "l84",
+   "t": 159.76,
+   "text": "TROIS",
+   "keyword": "TROIS",
+   "kt": 159.76
+  },
+  {
+   "id": "l85",
+   "t": 160.2,
+   "text": "NE",
+   "keyword": "NE",
+   "kt": 160.2
+  },
+  {
+   "id": "l88",
+   "t": 162.08,
+   "text": "If I can if I can give them all the"
+  },
+  {
+   "id": "l86",
+   "t": 160.64,
+   "text": "FEM",
+   "keyword": "FEM",
+   "kt": 160.64
+  },
+  {
+   "id": "l87",
+   "t": 161.2,
+   "text": "LIU",
+   "keyword": "LIU",
+   "kt": 161.2
+  },
+  {
+   "id": "l89",
+   "t": 165.44,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 165.44
+  },
+  {
+   "id": "l91",
+   "t": 169.02,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 169.02
+  },
+  {
+   "id": "l92",
+   "t": 169.66,
+   "text": "If I can have you back"
+  },
+  {
+   "id": "l94",
+   "t": 172.84,
+   "text": "EXECUTION",
+   "keyword": "EXECUTION",
+   "kt": 172.84
+  },
+  {
+   "id": "l95",
+   "t": 173.54,
+   "text": "Though we are trapped we are trapped ah"
+  },
+  {
+   "id": "l96",
+   "t": 177.2,
+   "text": "I've studied I've studied how to properly"
+  },
+  {
+   "id": "l97",
+   "t": 180.18,
+   "text": "LO-O-OVE",
+   "keyword": "LOVE",
+   "kt": 180.18
+  },
+  {
+   "id": "l98",
+   "t": 181.56,
+   "text": "Question me question me I can answer all"
+  },
+  {
+   "id": "l99",
+   "t": 185.06,
+   "text": "LO-O-OVE",
+   "keyword": "LOVE",
+   "kt": 185.06
+  },
+  {
+   "id": "l100",
+   "t": 185.38,
+   "text": "I know the algebraic expression of"
+  },
+  {
+   "id": "l101",
+   "t": 187.84,
+   "text": "LO-O-OVE",
+   "keyword": "LOVE",
+   "kt": 187.84
+  },
+  {
+   "id": "l102",
+   "t": 188.06,
+   "text": "Though you are free I am trapped trapped in"
+  },
+  {
+   "id": "l103",
+   "t": 191.68,
+   "text": "LO-O-OVE",
+   "keyword": "LOVE",
+   "kt": 191.68
+  },
+  {
+   "id": "l104",
+   "t": 205.54,
+   "text": "world.execute(me);",
+   "keyword": "EXECUTE",
+   "kt": 205.54
+  }
+ ]
+}

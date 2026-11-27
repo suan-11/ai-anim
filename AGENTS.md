@@ -81,10 +81,16 @@ node scripts/anim.mjs still demo -t 1,6,9.5     # 出单帧 PNG（agent 主要�
 node scripts/anim.mjs shot  demo --from 0 --to 6   # 出短 mp4（快速看运动）
 node scripts/anim.mjs video demo                # 出完整成片（默认自动运动模糊）
 node scripts/anim.mjs check demo                # 体检：静态检查 + 逐段试渲染 + 亮度统计
-npm run dev                                     # 浏览器里实时预览（空格播放、[ ] 换段）
+npm run dev                                     # Remotion Studio（子包 packages/remotion；旧引擎预览 npx vite）
+npm run studio                                  # 同上（见 docs/HANDOVER-remotion.md）
 ```
 
 出图落在 `out/<任务名>/`。**渲染完立刻用 Read 打开那些 PNG 看** —— 这是唯一可靠的验证方式。
+
+**渲染器选择**：`--renderer remotion` 走 Remotion（已验收：example-config-only / nekohome-intro-ja / paperfold），
+产物带 `.remotion` 后缀、成片自动封装 mix 音轨、`--segments` 分块避开交叠窗且可续跑；
+不写或 `--renderer legacy` 走旧引擎（默认，全部任务）。Remotion 的 check/review/verify 暂未接入，
+成片技术扫描用 `anim qa --file <产物>`。
 
 **做整支片子时先出草稿、后出成片**：先用 `still` 看画面，再跑
 `node scripts/anim.mjs video <任务> --draft --segments 10`，把草稿路径交给用户并停下等反馈。
