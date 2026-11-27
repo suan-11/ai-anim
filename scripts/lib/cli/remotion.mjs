@@ -267,7 +267,7 @@ function sourceFingerprint(task) {
   return [engineSig(ROOT), taskSig(ROOT, task), sigOf(ROOT, files)];
 }
 
-async function renderParts(output, { task, id, ranges, fps, scale, crf, force, progress, verify, render }) {
+async function renderParts(output, { task, id, ranges, fps, scale, crf, force, progress, verify, render, publish }) {
   const sources = sourceFingerprint(task).join(':');
   const browser = localBrowser();
   const browserInfo = browser && existsSync(browser) ? [browser, statSync(browser).mtimeMs] : [browser ?? 'auto'];
@@ -296,20 +296,25 @@ async function renderParts(output, { task, id, ranges, fps, scale, crf, force, p
     progress(completed);
   }
 
-  await renderFile(output, async (pending) => {
-    const list = path.join(path.dirname(pending), 'concat.txt');
-    const escape = (file) => file.split(path.sep).join('/').replaceAll("'", "'\\''");
-    try {
-      writeFileSync(list, files.map(({ part, frames }) => `file '${escape(part)}'\nduration ${(frames / fps).toFixed(9)}`).join('\n') + '\n');
-      await runFfmpeg(['-y', '-loglevel', 'error', '-copyts', '-f', 'concat', '-safe', '0', '-i', list,
-        '-c', 'copy', '-movflags', '+faststart', pending]);
-      const issues = await verify(pending, completed, true);
+  await renderFile(output, (pending) => publish(
+    pending,
+    async (target) => {
+      const list = path.join(path.dirname(pending), 'concat.txt');
+      const escape = (file) => file.split(path.sep).join('/').replaceAll("'", "'\\''");
+      try {
+        writeFileSync(list, files.map(({ part, frames }) => `file '${escape(part)}'\nduration ${(frames / fps).toFixed(9)}`).join('\n') + '\n');
+        await runFfmpeg(['-y', '-loglevel', 'error', '-copyts', '-f', 'concat', '-safe', '0', '-i', list,
+          '-c', 'copy', '-movflags', '+faststart', target]);
+      } finally {
+        rmSync(list, { force: true });
+      }
+    },
+    async (target) => {
+      const issues = await verify(target, completed, true);
       if (issues.length) throw new Error(issues.join('\n'));
       if (sourceFingerprint(task).join(':') !== sources) throw new Error('渲染期间源文件改动，成片未发布');
-    } finally {
-      rmSync(list, { force: true });
-    }
-  });
+    },
+  ));
 }
 
 export async function runRemotion(command, args) {
@@ -414,6 +419,19 @@ export async function runRemotion(command, args) {
     return;
   }
 
+  let audioTrack = null;
+  let audioMuxArgs = null;
+  if (!short && meta.audio && !options.has('noaudio')) {
+    const { resolveAudioTracks } = await import('./audio.mjs');
+    const tracks = resolveAudioTracks(task);
+    if (tracks.packaging) {
+      audioTrack = tracks.packaging;
+      ({ audioMuxArgs } = await import('./media.mjs'));
+    } else {
+      warn('· 任务声明了音频但找不到 mix 轨 —— 成片无声。检查 tasks/' + task + '/audio/');
+    }
+  }
+
   log(`Remotion ${draft ? '草稿 ' : ''}${from}→${to}s，${size.join('×')} @${fps}fps，共 ${total} 帧`);
   progress(0);
   const render = (pending, start, end, onFrame) => runCli([
@@ -425,39 +443,40 @@ export async function runRemotion(command, args) {
     const issues = await checkVideoFile(file, count, { what: 'Remotion 出片', count: true, fps, width: size[0], height: size[1] });
     return issues.length || !timestamps ? issues : checkTimestamps(file, fps, count, { all: true });
   };
+  // 音轨在暂存目录内封装完再原子发布到 output，失败时不破坏旧成片、也不留 .silent.mp4。
+  const publish = async (pending, produceSilent, verifySilent) => {
+    if (!audioTrack) {
+      await produceSilent(pending);
+      await verifySilent(pending);
+      return;
+    }
+    const silent = path.join(path.dirname(pending), 'silent.mp4');
+    try {
+      await produceSilent(silent);
+      await verifySilent(silent);
+      await runFfmpeg(audioMuxArgs(silent, audioTrack, from, pending));
+    } finally {
+      rmSync(silent, { force: true });
+    }
+  };
   if (segmentSeconds !== undefined) {
     // config-only 硬切用 nativeChunkRanges；task-eval 任务有交叠 → 避开转场窗
     const ranges = meta.eval === 'config-only'
       ? nativeChunkRanges(first, last, segmentSize, segments)
       : overlapAwareChunkRanges(first, last, segmentSize, segments);
-    await renderParts(output, { task, id, ranges, fps, scale, crf, force: options.has('force'), progress, verify, render });
+    await renderParts(output, { task, id, ranges, fps, scale, crf, force: options.has('force'), progress, verify, render, publish });
   } else {
-    await renderFile(output, async (pending) => {
-      await render(pending, first, last, progress);
-      const issues = await verify(pending, total);
-      if (issues.length) throw new Error(issues.join('\n'));
-    });
+    await renderFile(output, (pending) => publish(
+      pending,
+      (target) => render(target, first, last, progress),
+      async (target) => {
+        const issues = await verify(target, total);
+        if (issues.length) throw new Error(issues.join('\n'));
+      },
+    ));
   }
-  // 音轨封装：与旧引擎 video 同口径（mix 轨，audioMuxArgs：apad+shortest 防 AAC priming 切尾）
-  const short2 = command === 'shot';
-  if (!short2 && meta.audio && !options.has('noaudio')) {
-    const { resolveAudioTracks } = await import('./audio.mjs');
-    const tracks = resolveAudioTracks(task);
-    if (tracks.packaging) {
-      const { audioMuxArgs } = await import('./media.mjs');
-      const silent = output;
-      const withAudio = output.replace(/\.mp4$/, '.audio.mp4');
-      await renderFile(withAudio, async (pending) => {
-        await runFfmpeg(audioMuxArgs(silent, tracks.packaging, from, pending));
-      });
-      // 发布带音轨版为正式名，静音版保留为 .silent.mp4 供排查
-      const silentKeep = output.replace(/\.mp4$/, '.silent.mp4');
-      renameSync(silent, silentKeep);
-      renameSync(withAudio, output);
-      log(`音轨：${path.basename(tracks.packaging)}（mix）→ ${path.relative(ROOT, output)}`);
-    } else {
-      warn('· 任务声明了音频但找不到 mix 轨 —— 成片无声。检查 tasks/' + task + '/audio/');
-    }
+  if (audioTrack) {
+    log(`音轨：${path.basename(audioTrack)}（mix）→ ${path.relative(ROOT, output)}`);
   }
   progress(total);
   log(`成片 → ${path.relative(ROOT, output).split(path.sep).join('/')}`);

@@ -80,7 +80,6 @@
     "shots/SegmentTransitions.tsx",
     "shots/KaraokeCaption.tsx",
     "shots/PostFx.tsx",
-    "remotion.config.ts",
-    "shots/SegmentTransitions.tsx"
+    "remotion.config.ts"
   ]
 }

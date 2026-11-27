@@ -5,5 +5,6 @@ export class MusicData {
   beatAt(t: number): number;
   bpm: number;
   beats: number[];
+  downbeats?: number[];
 }
 export const SILENT: MusicData;

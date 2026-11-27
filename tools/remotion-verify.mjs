@@ -33,7 +33,8 @@ const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-select_stream
   '-show_entries', 'stream=nb_frames,r_frame_rate,width,height', '-of', 'json', video], { encoding: 'utf8' }));
 const st = probe.streams[0];
 const total = Number(st.nb_frames);
-const fps = eval(st.r_frame_rate);
+const [num, den = 1] = String(st.r_frame_rate).split('/').map(Number);
+const fps = den ? num / den : Number(st.r_frame_rate);
 const W = st.width, H = st.height;
 
 // 默认抽 5 帧：首/25%/中/75%/末

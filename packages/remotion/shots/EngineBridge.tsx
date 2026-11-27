@@ -90,13 +90,19 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
         const styleResolved = resolveStyle(spec);
         const palette = makePalette({ ...(styleResolved?.palette ?? {}), ...(spec.palette ?? {}) });
 
+        // 音乐：优先预计算 analysis（与 CLI still 同口径），否则调用方给的 music，再否则 SILENT
+        const musicObj = analysis?.beats ? new MusicData(analysis, {}) : (music ?? null);
+
         // 时间线：与 src/tasks.js 同一条选路（配置档/seq 走 build，已展开数组原样）
         let timeline = spec.timeline;
         const laidOut = Array.isArray(timeline) && !timeline.some(isConfigNode);
         if (!laidOut) {
           const nd = narrationData ?? (spec.narration && typeof spec.narration !== 'string'
             ? makeNarration(spec.narration, { duration: spec.duration }) : null);
-          timeline = build(timeline, { narration: nd });
+          timeline = build(timeline, {
+            ...(musicObj ? { beats: musicObj.beats, downbeats: musicObj.downbeats, bpm: musicObj.bpm } : {}),
+            narration: nd,
+          });
         }
 
         const canvas = document.createElement('canvas');
@@ -104,9 +110,6 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
         const engine = new Engine(canvas, { width, height, scale: 1, fps, palette });
         // HUD 默认开（engine.js:133 this.hud=true）——离屏导出必须关，否则画面带调试读数。
         engine.hud = false;
-
-        // 音乐：优先预计算 analysis（与 CLI still 同口径），否则调用方给的 music，再否则 SILENT
-        const musicObj = analysis?.beats ? new MusicData(analysis, {}) : (music ?? null);
 
         await engine.load({
           timeline,
@@ -167,10 +170,11 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
     if (!ready || !st.engine || !cv) return;
     const t = frame / fps;
     const engine = st.engine;
+    const prevErrors = engine.renderErrors?.length ?? 0;
     engine.render(t, { samples, shutter, seeked: true, preview: false });
-    if (engine.renderErrors?.length) {
+    if ((engine.renderErrors?.length ?? 0) > prevErrors) {
       const e = engine.renderErrors[engine.renderErrors.length - 1];
-      console.error(`[EngineBridge] render error @t=${t}: ${e.message}`);
+      throw new Error(`[EngineBridge] render error @t=${t.toFixed(3)}s (${e.id ?? 'scene'}): ${e.message}`);
     }
     const buf = engine.readPixels(); // Uint8Array RGBA，行序自下而上，已 sRGB 编码
     const ctx = cv.getContext('2d');

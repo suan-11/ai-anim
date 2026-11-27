@@ -6,12 +6,12 @@
 本文件列出仓库里**随附的第三方内容**（目前只有字体）及其许可，以及那些**容易被误会成第三方素材、
 但其实是本仓库自己生成的东西**。目标是：任何人 clone 下来，都能自己确认「哪些东西是谁的、按什么条件用」。
 
-> 一句话结论：**第三方的只有「字体」「几条单音音效」「一个 MIT 的 skill 目录」和 npm 依赖清单。**
+> 一句话结论：**第三方的只有「字体」「几条单音音效与可商用铺底采样」「一个 MIT 的 skill 目录」和 npm 依赖清单。**
 > 具体的三类例外：
-> ① 字体（OFL-1.1，§1）；② `assets/sfx/` 里几条 SoundDino 单音（免费可商用，§3）；
+> ① 字体（OFL-1.1，§1）；② `assets/sfx/` 里几条 SoundDino 单音与 `assets/fl-samples/` 可商用铺底采样（§3）；
 > ③ `skills/motion-design/`（MIT，§2.3）。
 > npm 依赖（含 **Remotion License**，不是 MIT，§2.2）不随仓库分发源码副本，`npm install` 时取得。
-> 没有第三方图片、没有第三方音乐、没有第三方视频、没有第三方 3D 模型，
+> 没有第三方图片、没有商业版权音乐、没有第三方视频、没有第三方 3D 模型，
 > 也没有随仓库分发的浏览器或 ffmpeg；`world.execute(me);` 的原曲**已从历史剥离**（§3 末）。
 
 ---
@@ -172,17 +172,18 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 关于旁白：旁白是**按任务在本地合成**的产物。公开发布时，相关任务的语音轨**留在作者本地、不进仓库**，
 仓库里只保留生成它们的脚本与文本。因此**仓库不包含任何第三方语音素材**。
 
-**仓库里有两类例外，都在这里点名：**
+**仓库里有三类例外，都在这里点名：**
 
 | 内容 | 来源 | 许可 | 记账位置 |
 |---|---|---|---|
 | `assets/sfx/*.mp3`（切点音效） | [SoundDino](https://sounddino.com) 单个音效 | 站点 FAQ 声明**免费、可商用、无需署名** | `assets/sfx/catalog.json` 与 `assets/sfx/sfx.manifest.json`（id / title / source / license / sha1 逐条记） |
+| `assets/fl-samples/*.wav` 及由 `scripts/make-sample-bed.mjs` 生成的 `tasks/{benford,coastline,manhole,paperfold,tube-map}/audio/bed.mp3` | 维护者提供的 FL Studio 铺底采样 | 维护者确认**可商用** | 同目录 |
 | `public/nuomi21/`、`tasks/nekohome-intro-ja/assets/avatars/`、`assets/logos/` | 本仓库自己的角色立绘与品牌字标（自绘 / 自摄） | 与仓库同（MIT，见 `LICENSE`） | —— |
 
 具体地说：
 
 - **没有第三方位图素材** —— 除上表那几张自有立绘/字标，被版本管理收录的图像只有 `docs/images/` 下引擎渲染输出的 `.webp`。
-- **没有第三方音乐、采样包**；音效只有 `assets/sfx/` 里那几条 SoundDino 单音，used-by 见 `docs/SFX.md`。
+- **没有商业版权曲目**；外部音频素材仅限上表 `assets/sfx/` 的 SoundDino 单音（used-by 见 `docs/SFX.md`）与 `assets/fl-samples/` 的可商用铺底采样。
 - **没有第三方 logo**，没有产品截图，没有游戏截图。
 - ⚠ **`tasks/world-execute-me/audio/track.mp3` 不随仓库分发**：那是 Mili《world.execute(me);》的原曲，
   版权属原作者/唱片方，仓库里已从**历史中剥离**并写入 `.gitignore`；本地需要时自行取得后放回该路径。
