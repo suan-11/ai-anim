@@ -4,7 +4,8 @@ import { seq, cut } from '../../src/timeline.js'; import { worldPass } from '../
 import timing from './audio/timing.mjs';
 import hook from './scenes/hook.js'; import bridge from './scenes/bridge.js'; import mechanism from './scenes/mechanism.js'; import compare from './scenes/compare.js'; import data from './scenes/data.js'; import close from './scenes/close.js';
 export const world=(ctx)=>worldPass(ctx,{motif:'auto',vignette:0.3});
-const F={x:160,y:200,w:1600,h:680}; const S=(i)=>timing.scenes[i];
+// focus 框包住线网主体（pad=160 → 站点落在 [160,1760]×[160,920]）+ 标注余量。
+const F={x:140,y:150,w:1640,h:800}; const S=(i)=>timing.scenes[i];
 export default { title:'地铁图是「错」的，但这样才对', width:1920,height:1080,fps:24,scale:1, style:{name:'paper',grid:{pad:120}}, captions:true,
   narration:'./audio/narration.json', audio:{music:'./audio/bed.mp3',vo:'./audio/tube-map-vo.mp3',mix:'./audio/tube-map-mix.mp3'},
   timeline:seq([
