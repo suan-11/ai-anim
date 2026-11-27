@@ -103,6 +103,10 @@ const ITEMS = [
   // 清单里 43 条，漂移方向只有少跑，而少跑没有任何输出会提醒你。
   { name: 'unit:ci-coverage', cmd: ['tools/test-ci-coverage.mjs'], note: 'CI 覆盖守门：verify.yml 必须调 regress-all --ci（不许手抄）/ 组内每项要么被收要么写 ciWhy / 收的项数不低于下限（7 项）' },
   { name: 'unit:timeline-guard', cmd: ['tools/test-timeline-guard.mjs'], note: 'P0-2 伪时间线必须抛错 + 配置档展开（40 项）' },
+  { name: 'unit:remotion-timeline', cmd: ['tools/test-remotion-timeline.mjs'], note: 'Remotion 样片帧数与切点、绝对边界取整、未支持排程的报错' },
+  { name: 'unit:remotion-task-eval', cmd: ['tools/test-remotion-task-eval.mjs'], note: 'Remotion 阶段 2A 任务解析对照：834 帧 / _info-lab 变体合并 / nekohome-intro-ja 六段切点与音轨字幕' },
+  { name: 'unit:remotion-audio-fixture', cmd: ['tools/test-remotion-audio-fixture.mjs'], needs: ['ffmpeg'], note: 'Remotion 阶段 2C CI 夹具：合成短音频 / 段边界 / 缺失素材报告 / 字幕±1帧' },
+  { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、帧区间、分块边界、产物命名与参数报错' },
   { name: 'unit:easing-warn', cmd: ['tools/test-easing-warn.mjs'], note: 'P2-3 缓动名写错要警告（7 项）' },
   { name: 'unit:narration', cmd: ['tools/test-narration.mjs'], note: 'P1-5 旁白表 + C 档词级时间戳（44 项）' },
   { name: 'unit:karaoke', cmd: ['tools/test-karaoke.mjs'], note: 'C 档 karaoke 的秒/下标混用 bug（80 项）' },

@@ -231,7 +231,7 @@ async function probeVideo(file, opts = {}) {
  * 产物守门：检查一个刚写出来的 mp4 是否**真的**是完整的。
  * @param {string} file
  * @param {number} expect 期望帧数
- * @param {{ what?: string, count?: boolean, fps?: number }} [opts]
+ * @param {{ what?: string, count?: boolean, fps?: number, width?: number, height?: number }} [opts]
  * @returns {Promise<string[]>} 问题列表（空 = 通过）
  */
 async function checkVideoFile(file, expect, opts = {}) {
@@ -246,6 +246,9 @@ async function checkVideoFile(file, expect, opts = {}) {
   }
   if (opts.fps && p.fps && Math.abs(p.fps - opts.fps) > 0.01) {
     bad.push(`${what}：帧率 ${p.fps} ≠ 期望 ${opts.fps}`);
+  }
+  if (opts.width && opts.height && (p.width !== opts.width || p.height !== opts.height)) {
+    bad.push(`${what}：尺寸 ${p.width}×${p.height} ≠ 期望 ${opts.width}×${opts.height}`);
   }
   return bad;
 }
@@ -287,9 +290,13 @@ function audioMuxArgs(stitched, audioFile, from, out) {
  * 不是均匀铺开的（接缝处有半帧级空隙）。这种片子**帧数没错、能播、但节奏是歪的**，
  * 只有量时间戳才发现得了。
  *
+ * @param {string} file
+ * @param {number} fps
+ * @param {number} expectFrames
+ * @param {{ all?: boolean }} [opts]
  * @returns {Promise<string[]>} 问题列表（空 = 通过）
  */
-async function checkTimestamps(file, fps, expectFrames) {
+async function checkTimestamps(file, fps, expectFrames, opts = {}) {
   const bad = [];
   // ⚠ 用 **packet** 而不是 frame：`ffprobe -show_frames` 是按**解码顺序**输出的，
   //   有 B 帧时前几个的 pts_time 不是单调的（实测第一项会是 0.016667 而不是 0），
@@ -301,9 +308,15 @@ async function checkTimestamps(file, fps, expectFrames) {
   const r = await capture(ffprobeCmd(), [
     '-v', 'error', '-select_streams', 'v:0',
     '-show_entries', 'packet=pts_time', '-of', 'default=nw=1',
-    '-read_intervals', `%+#${Math.min(240, expectFrames)}`, file,
+    ...(opts.all ? [] : ['-read_intervals', `%+#${Math.min(240, expectFrames)}`]), file,
   ]);
   if (r.code !== 0) return [`读不出 ${path.basename(file)} 的时间戳：${r.err.trim().split('\n')[0]}`];
+  if (opts.all) {
+    const pts = Array.from(r.out.matchAll(/^pts_time=([\d.-]+)\s*$/gm), (match) => Number(match[1])).sort((a, b) => a - b);
+    if (pts.length !== expectFrames) return [`读到 ${pts.length} 个视频 PTS，期望 ${expectFrames} 个`];
+    const index = pts.findIndex((time, i) => Math.abs(time - i / fps) > 0.02 / fps);
+    return index < 0 ? [] : [`第 ${index} 帧 PTS = ${pts[index]}s，期望 ${index / fps}s`];
+  }
   // 取 `pts_time=` 后面的数，去重、再按**显示顺序**排（B 帧会让 packet 顺序非单调）。
   //
   // ⚠⚠ 去重是**必须**的：`-read_intervals %+#N` 在 N 超过文件剩余帧数时不会截断，

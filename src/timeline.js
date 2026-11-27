@@ -91,10 +91,9 @@ const TIMELINE_KEYS = new Set([
 function configToCut(node, where) {
   const { type, id, dur, at, overlap, params, post, maxSamples, handlesTransition, note, world, worldPass, focus, carry, transition, transitionOpts, state, relayTo, ...rest } = node;
   const tparams = { ...rest, ...(params ?? {}) };
-  if (id != null) tparams.id = id;          // ⚠ 不能写成 tparams.id = id：undefined 会盖掉模板默认段名
   let scene;
   try {
-    scene = shot(type, tparams);
+    scene = shot(type, id == null ? tparams : { ...tparams, id });
   } catch (err) {
     const msg = err && err.message ? err.message : String(err);
     throw new Error(`${where} 这一段（type: ${JSON.stringify(type)}）取不到镜头模板：\n  ${msg}`);
@@ -104,6 +103,7 @@ function configToCut(node, where) {
     kind: 'cut',
     scene,
     id: id ?? scene.id,
+    template: { type, params: tparams },
     dur,
     at,
     overlap,
@@ -207,8 +207,9 @@ export function at(a, b, scene, opts = {}) {
  * @param {any} plan
  * @param {{ beats?: number[], downbeats?: number[], bpm?: number, duration?: number,
  *           narration?: ReturnType<import('./core/narration.js').makeNarration> }} [music]
+ * @param {{ onConfigSegment?: (segment: any, template: { type: string, params: Record<string, any> }) => void }} [opts]
  */
-export function build(plan, music = {}) {
+export function build(plan, music = {}, opts = {}) {
   /** @type {any[]} */
   const out = [];
   const used = new Map();
@@ -279,9 +280,10 @@ export function build(plan, music = {}) {
     if (node.kind !== 'cut') assertNode(node, where);
     // 配置档（B 档）：`{ type: 'chart', values: […], dur: 5 }` —— 在这里展开成 cut 的形状，
     // 后面的排版逻辑（start/dur/overlap/id 去重）与手写场景走**同一条路**。
-    if (isConfigNode(node)) sawConfig = true;
+    const configNode = isConfigNode(node);
+    if (configNode) sawConfig = true;
     else if (!node.kind && node.scene && typeof node.start === 'number' && typeof node.end === 'number') sawLaidOut = true;
-    const c = isConfigNode(node) ? configToCut(node, where) : node;
+    const c = configNode ? configToCut(node, where) : node;
     const start = resolveTime(c.at, Math.max(0, cursor - (c.overlap ?? 0)));
     // dur 也支持 { beat: 8 } / { bar: 2 }：用拍网格算，镜头长度天然对齐音乐
     // 以及 { vo: 'line-id' }：直接取某句旁白的时长（`docs/NARRATION.md` A 档）——
@@ -289,7 +291,7 @@ export function build(plan, music = {}) {
     const dur = resolveDur(c.dur, music, 4);
     let id = c.id || 'scene';
     if (used.has(id)) { const n = used.get(id) + 1; used.set(id, n); id = `${id}_${n}`; } else used.set(id, 1);
-    out.push({
+    const segment = {
       id,
       scene: c.scene,
       start,
@@ -320,7 +322,9 @@ export function build(plan, music = {}) {
       // 否则 tools/lint-anti-ppt.mjs 永远读到 undefined（= 声明了也当没声明）。
       state: c.state ?? null,
       relayTo: c.relayTo ?? null,
-    });
+    };
+    out.push(segment);
+    if (configNode) opts.onConfigSegment?.(segment, c.template);
     return start + dur;
   };
 
