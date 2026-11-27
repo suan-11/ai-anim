@@ -29,7 +29,7 @@
 
 1. **✅ v7 草稿已渲**（20:36，qa 通过）。重渲命令（改稿后用）：
    ```sh
-   TMPDIR='C:\Users\haoxu\Downloads\NekoHome\ai-anim\out\_tmp' TEMP=同 TMP=同 \
+   TMPDIR="$PWD/out/_tmp" TEMP=同 TMP=同 \
    node scripts/anim.mjs video world-execute-me --renderer remotion --draft --segments 15 --samples 1
    ```
    ⚠ TMPDIR 必须用 Windows 反斜杠路径指向 out/_tmp，否则 ffmpeg 写系统 temp 被拒。

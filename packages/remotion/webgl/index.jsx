@@ -1,12 +1,12 @@
 import React from 'react';
 import {Composition, Sequence, registerRoot} from 'remotion';
-import {MusicData} from '../../src/core/audio.js';
-import {resolveStyle} from '../../src/style/index.js';
-import {build} from '../../src/timeline.js';
-import task, {world} from '../../tasks/paperfold/task.config.mjs';
-import narration from '../../tasks/paperfold/audio/narration.json';
-import musicAnalysis from '../../tasks/paperfold/audio/bed.analysis.json';
-import rhythm from '../../tasks/paperfold/rhythm.json';
+import {MusicData} from '../../../src/core/audio.js';
+import {resolveStyle} from '../../../src/style/index.js';
+import {build} from '../../../src/timeline.js';
+import task, {world} from '../../../tasks/paperfold/task.config.mjs';
+import narration from '../../../tasks/paperfold/audio/narration.json';
+import musicAnalysis from '../../../tasks/paperfold/audio/bed.analysis.json';
+import rhythm from '../../../tasks/paperfold/rhythm.json';
 import {LegacyCanvas} from './LegacyCanvas.jsx';
 
 const {width, height, fps} = task;

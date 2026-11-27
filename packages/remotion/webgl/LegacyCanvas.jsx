@@ -1,7 +1,7 @@
 import React, {useLayoutEffect, useRef} from 'react';
 import {staticFile, useCurrentFrame, useDelayRender, useVideoConfig} from 'remotion';
-import {Engine} from '../../src/core/engine.js';
-import {makePalette} from '../../src/core/palette.js';
+import {Engine} from '../../../src/core/engine.js';
+import {makePalette} from '../../../src/core/palette.js';
 
 let fontsReady;
 

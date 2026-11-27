@@ -9,23 +9,54 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "lib": ["ES2020", "DOM"],
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/engine/cjk": ["stubs/cjk.d.ts"],
-      "@/engine/narration": ["stubs/narration.d.ts"],
-      "@/engine/timeline": ["stubs/timeline.d.ts"],
-      "@/engine/util": ["stubs/util.d.ts"],
-      "@/engine/style": ["stubs/style.d.ts"],
-      "@/engine/engine": ["stubs/engine.d.ts"],
-      "@/engine/palette": ["stubs/palette.d.ts"],
-      "@/engine/audio": ["stubs/audio.d.ts"],
-      "@/rm/timeline": ["stubs/timeline-mjs.d.ts"],
-      "@/rm/task-eval": ["stubs/task-eval.d.ts"],
-      "@/tasks/example-config-only": ["stubs/task-config.d.ts"],
-      "@/tasks/nekohome-intro-ja": ["stubs/ja-config.d.ts"],
-      "@/tasks/paperfold": ["stubs/paperfold-config.d.ts"],
-      "@/tasks/world-execute-me": ["stubs/wem-config.d.ts"]
+      "@/engine/cjk": [
+        "stubs/cjk.d.ts"
+      ],
+      "@/engine/narration": [
+        "stubs/narration.d.ts"
+      ],
+      "@/engine/timeline": [
+        "stubs/timeline.d.ts"
+      ],
+      "@/engine/util": [
+        "stubs/util.d.ts"
+      ],
+      "@/engine/style": [
+        "stubs/style.d.ts"
+      ],
+      "@/engine/engine": [
+        "stubs/engine.d.ts"
+      ],
+      "@/engine/palette": [
+        "stubs/palette.d.ts"
+      ],
+      "@/engine/audio": [
+        "stubs/audio.d.ts"
+      ],
+      "@/rm/timeline": [
+        "stubs/timeline-mjs.d.ts"
+      ],
+      "@/rm/task-eval": [
+        "stubs/task-eval.d.ts"
+      ],
+      "@/tasks/example-config-only": [
+        "stubs/task-config.d.ts"
+      ],
+      "@/tasks/nekohome-intro-ja": [
+        "stubs/ja-config.d.ts"
+      ],
+      "@/tasks/paperfold": [
+        "stubs/paperfold-config.d.ts"
+      ],
+      "@/tasks/world-execute-me": [
+        "stubs/wem-config.d.ts"
+      ]
     }
   },
   "files": [
@@ -49,6 +80,7 @@
     "shots/SegmentTransitions.tsx",
     "shots/KaraokeCaption.tsx",
     "shots/PostFx.tsx",
-    "remotion.config.ts"
+    "remotion.config.ts",
+    "shots/SegmentTransitions.tsx"
   ]
 }

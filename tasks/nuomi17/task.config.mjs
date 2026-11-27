@@ -1,5 +1,5 @@
 // 小糯米 · 流量实验版：《我把主人打包了》
-// 人设来源：C:\Users\haoxu\Downloads\NekoHome\xiaonuomi\档案.md
+// 人设来源：本机 xiaonuomi/档案.md（不入仓库）
 // 猎奇/反差向短切片：可爱猫娘 + 深夜打包人类 + 猫星快递。纯代码动画，无真实伤害。
 export default {
   title: '我把主人打包了',

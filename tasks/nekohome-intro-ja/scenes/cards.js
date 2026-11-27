@@ -432,7 +432,7 @@ export const phraseCards = {
   },
 };
 
-/** 镜4.5 成员墙：**九位成员 + 真头像**（素材 C:\Users\haoxu\Downloads\头像）。 */
+/** 镜4.5 成员墙：**九位成员 + 真头像**（素材取自本机头像目录，不入仓库）。 */
 const MEMBERS = [
   ['萧影1029', '成员', 'xiaoying.jpg', true],
   ['小糯米', '橘白猫娘 · 傲娇', 'nuomi.jpg', true],

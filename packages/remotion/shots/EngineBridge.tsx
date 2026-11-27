@@ -52,13 +52,21 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
   const stateRef = React.useRef<BridgeState>({ engine: null, error: null, ready: false });
   const [handle] = React.useState(() => delayRender('engine-init'));
 
-  const cacheKey = React.useMemo(() => taskMod?.default?.title ?? 'task', [taskMod]);
+  // ⚠ 键里必须带尺寸/帧率：engine 是按 canvas 尺寸建的，同任务不同尺寸复用会画错分辨率。
+  const cacheKey = React.useMemo(
+    () => `${taskMod?.default?.title ?? 'task'}@${width}x${height}@${fps}@${samples === 'auto' ? 'auto' : 'fixed'}`,
+    [taskMod, width, height, fps, samples],
+  );
   // 引擎就绪状态必须进 React state：ref 变化不触发重渲染，canvas 会一直不挂载（首帧全黑）。
   const [ready, setReady] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
+    // delayRender 必须成对释放：init 没跑完就卸载（切 Composition / Studio 改 props）时
+    // 原来会漏掉 continueRender，Remotion 一路等到 120s 超时。
+    let settled = false;
+    const settle = () => { if (!settled) { settled = true; continueRender(handle); } };
     const init = async () => {
       try {
         // 命中缓存则复用（Studio 里拖帧 / 重挂载不重建上下文）
@@ -66,7 +74,7 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
         if (cached) {
           cached.refs++;
           stateRef.current = { engine: cached.engine, error: null, ready: true };
-          continueRender(handle);
+          settle();
           setReady(true);
           return;
         }
@@ -122,12 +130,12 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
 
         engineCache.set(cacheKey, { engine, refs: 1 });
         stateRef.current = { engine, error: null, ready: true };
-        continueRender(handle);
+        settle();
         setReady(true);
       } catch (err: any) {
         if (!cancelled) {
           stateRef.current = { engine: null, error: String(err?.message ?? err), ready: false };
-          continueRender(handle);
+          settle();
           setInitError(String(err?.message ?? err));
         }
       }
@@ -135,6 +143,8 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
     init();
     return () => {
       cancelled = true;
+      // 初始化还没落地就被卸载：这里补释放，并把半成品引擎收掉。
+      settle();
       const cached = engineCache.get(cacheKey);
       if (cached) {
         cached.refs--;

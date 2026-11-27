@@ -107,6 +107,7 @@ const ITEMS = [
   { name: 'unit:remotion-task-eval', cmd: ['tools/test-remotion-task-eval.mjs'], note: 'Remotion 阶段 2A 任务解析对照：834 帧 / _info-lab 变体合并 / nekohome-intro-ja 六段切点与音轨字幕' },
   { name: 'unit:remotion-audio-fixture', cmd: ['tools/test-remotion-audio-fixture.mjs'], needs: ['ffmpeg'], note: 'Remotion 阶段 2C CI 夹具：合成短音频 / 段边界 / 缺失素材报告 / 字幕±1帧' },
   { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、帧区间、分块边界、产物命名与参数报错' },
+  { name: 'unit:remotion-transitions', cmd: ['tools/test-remotion-transitions.mjs'], note: 'Remotion 转场排程：补时长后段起点不漂、总时长不变、none 缝与交叠缝' },
   { name: 'unit:easing-warn', cmd: ['tools/test-easing-warn.mjs'], note: 'P2-3 缓动名写错要警告（7 项）' },
   { name: 'unit:narration', cmd: ['tools/test-narration.mjs'], note: 'P1-5 旁白表 + C 档词级时间戳（44 项）' },
   { name: 'unit:karaoke', cmd: ['tools/test-karaoke.mjs'], note: 'C 档 karaoke 的秒/下标混用 bug（80 项）' },

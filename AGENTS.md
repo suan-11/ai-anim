@@ -81,8 +81,8 @@ node scripts/anim.mjs still demo -t 1,6,9.5     # 出单帧 PNG（agent 主要�
 node scripts/anim.mjs shot  demo --from 0 --to 6   # 出短 mp4（快速看运动）
 node scripts/anim.mjs video demo                # 出完整成片（默认自动运动模糊）
 node scripts/anim.mjs check demo                # 体检：静态检查 + 逐段试渲染 + 亮度统计
-npm run dev                                     # Remotion Studio（子包 packages/remotion；旧引擎预览 npx vite）
-npm run studio                                  # 同上（见 docs/HANDOVER-remotion.md）
+npm run dev                                     # 旧引擎 Vite 预览（不变）
+npm run studio                                  # Remotion Studio（子包 packages/remotion，见 docs/HANDOVER-remotion.md）
 ```
 
 出图落在 `out/<任务名>/`。**渲染完立刻用 Read 打开那些 PNG 看** —— 这是唯一可靠的验证方式。

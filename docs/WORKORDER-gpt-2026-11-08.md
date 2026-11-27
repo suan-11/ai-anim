@@ -3,7 +3,7 @@
 > 这份文件是**指令**，不是建议。执行者按阶段顺序做，**每个阶段跑完自己的门（gate）才算完成**；
 > 门不绿就停在原地，把原始输出贴回来，不要「顺手修一下」继续往下走。
 >
-> 仓库：`C:/Users/haoxu/Downloads/NekoHome/ai-anim`（分支 `master`，起点 `2081e81`）
+> 仓库：`<仓库根>`（分支 `master`，起点 `2081e81`）
 > 依据：`docs/history/PLAN-2026-11-08.md` §3（A 线）；状态基线见 `docs/HANDOVER.md`。
 
 ## 0. 铁律（违反任何一条，这一轮作废）
@@ -19,7 +19,7 @@
 ## 1. 开工前的环境自检 + 基线快照（必须先做）
 
 ```sh
-cd C:/Users/haoxu/Downloads/NekoHome/ai-anim
+cd <仓库根>
 node -v                                   # 期望 v20+
 ffmpeg -version | head -1                 # 没有就记下来，A5 要用
 git status --short                        # 期望为空（干净）

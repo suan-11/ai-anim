@@ -7,6 +7,7 @@
 import React from 'react';
 import { useCurrentFrame, useVideoConfig, interpolate, staticFile } from 'remotion';
 import { useAudioData, visualizeAudio } from '@remotion/media-utils';
+import { resolveMedia } from '../media-assets';
 
 export type AudioBarsProps = {
   /** public/ 下的音频路径或 URL */
@@ -29,7 +30,7 @@ export const AudioBars: React.FC<AudioBarsProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const audioData = useAudioData(src.startsWith('http') ? src : staticFile(src));
+  const audioData = useAudioData(resolveMedia(src, staticFile));
   if (!audioData) return null;
 
   const samples = visualizeAudio({
@@ -65,7 +66,7 @@ export type AudioPulseProps = {
 export const AudioPulse: React.FC<AudioPulseProps> = ({ src, baseScale = 1, amount = 0.03, children }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const audioData = useAudioData(src.startsWith('http') ? src : staticFile(src));
+  const audioData = useAudioData(resolveMedia(src, staticFile));
   if (!audioData) return <>{children}</>;
 
   const samples = visualizeAudio({

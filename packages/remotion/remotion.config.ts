@@ -11,6 +11,9 @@ Config.setVideoImageFormat('jpeg');
 Config.setOverwriteOutput(true);
 Config.setConcurrency(4);
 Config.setEntryPoint('./index.ts');
+// ⚠ CLI 以子包为 cwd 起进程，Remotion 默认把 <cwd>/public 当静态目录 —— 那目录不存在，
+// 于是 staticFile('fonts/fonts.css') 全 404、文字拍成方框。这里显式指回仓库根的 public/。
+Config.setPublicDir(path.resolve(ROOT, 'public'));
 // world-execute-me 桥：release 段多子帧（自适应最高 216）× 4 并发在 CPU 光栅上
 // 单帧可超默认 30s（f230 实测超时）。放宽到 120s；正常帧不受影响。
 Config.setDelayRenderTimeoutInMilliseconds(120000);

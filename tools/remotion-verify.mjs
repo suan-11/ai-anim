@@ -43,7 +43,8 @@ const frames = framesIdx >= 0
 
 const tmp = path.join(ROOT, 'out', '_remotion-migration', '.tmp', 'verify');
 mkdirSync(tmp, { recursive: true });
-const entry = path.join(ROOT, 'rm', 'index.ts');
+const RM_PKG = path.join(ROOT, 'packages', 'remotion');
+const entry = path.join(RM_PKG, 'index.ts');
 const browser = process.env.ANIM_REMOTION_BROWSER_EXECUTABLE
   ?? [process.env.ProgramW6432, process.env.ProgramFiles].filter(Boolean)
     .map((r) => path.join(r, 'Google/Chrome/Application/chrome.exe')).find(existsSync);
@@ -59,7 +60,7 @@ for (const f of frames) {
   const cliArgs = [entry, comp, rendered, `--frame=${f}`, '--image-format=png', '--log=error'];
   if (browser) cliArgs.push(`--browser-executable=${browser}`);
   const r = spawnSync(process.execPath, [path.join(ROOT, 'node_modules', '@remotion', 'cli', 'remotion-cli.js'), 'still', ...cliArgs],
-    { cwd: ROOT, encoding: 'utf8', env: { ...process.env, TEMP: tmp, TMP: tmp, TMPDIR: tmp } });
+    { cwd: RM_PKG, encoding: 'utf8', env: { ...process.env, TEMP: tmp, TMP: tmp, TMPDIR: tmp } });
   if (r.status !== 0) { console.log(`  f${f}: RENDER FAIL\n${r.stderr?.slice(0, 200)}`); fail++; continue; }
   // 3) 灰度逐像素差
   execFileSync('ffmpeg', ['-v', 'error', '-i', extracted, '-vf', 'format=gray', '-f', 'rawvideo', '-y', path.join(tmp, 'a.raw')]);
