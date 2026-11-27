@@ -4,7 +4,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { codeLine, keywordBurst, scanlines, makeParticles, drawParticles, glitchTear, TERM } from './_kit.js';
+import { keywordBurst, makeParticles, drawParticles, glitchTear, TERM } from './_kit.js';
 
 const CODE_LINES = [
   'public class GodDrinksJava {',
@@ -33,12 +33,19 @@ export default makeShot('hook', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
-    gl.clear(ctx.out, TERM.bg);
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.04);
-    for (let x = 100; x < W - 100; x += 80) lines.seg(x, 80, x, H - 80, 0.3, withAlpha(TERM.grid, 0.08));
-    for (let y = 80; y < H - 80; y += 80) lines.seg(100, y, W - 100, y, 0.3, withAlpha(TERM.grid, 0.08));
+    const editor = smoothstep(0, 0.6, t);
+    const editorX = W * 0.12, editorY = H * 0.15;
+    const editorW = W * 0.45, editorH = H * 0.38;
+    lines.fillRect(editorX, editorY, editorW, editorH, withAlpha([0.01, 0.035, 0.03], editor * 0.58));
+    lines.rect(editorX, editorY, editorW, editorH, 2, withAlpha(TERM.green, editor * 0.28));
+    lines.fillRect(editorX, editorY, editorW, 32, withAlpha(TERM.green, editor * 0.08));
+    const compiled = LINE_T.filter((at) => t >= at).length;
+    for (let i = 0; i < CODE_LINES.length; i++) {
+      lines.fillRect(editorX + 18 + i * 18, editorY + editorH - 26, 12, 8,
+        withAlpha(i < compiled ? TERM.green : TERM.grid, editor * (i < compiled ? 0.72 : 0.45)));
+    }
 
     // 右侧 HEAP 状态面板：与左侧代码执行同步（me/you/world 分配 + tick 计数）
     const hpA = smoothstep(3.6, 3.95, t);
@@ -62,7 +69,6 @@ export default makeShot('hook', {
 
     // 代码逐行打出：每行起点 = 歌词句唱点
     const codeX = W * 0.18, codeY0 = H * 0.22;
-    let cy = codeY0;
     for (let i = 0; i < CODE_LINES.length; i++) {
       const lt = t - LINE_T[i];
       if (lt < 0) break;
@@ -70,11 +76,11 @@ export default makeShot('hook', {
       const chars = Math.min(fullText.length, Math.floor(lt * 40));
       const partial = fullText.slice(0, chars);
       const isHighlight = i === 7 && t > 14.02;
-      const col = i === 7 ? TERM.amber : TERM.green;
-      cy += codeLine(ctx, partial, codeX, cy, { size: 22, color: col, alpha: 0.9, lineNo: i + 1, highlight: isHighlight });
+      const cy = codeY0 + i * 33;
+      if (isHighlight) lines.fillRect(codeX + 43, cy - 18, 410, 26, withAlpha(TERM.amber, 0.13));
       if (chars < fullText.length && cursorOn) {
         const cw = type.measure(partial, { size: 22, family: 'mono' });
-        lines.fillRect(codeX + 22 * 2.4 + cw + 2, cy - 22 * 1.5 - 16, 10, 20, withAlpha(TERM.green, 0.8));
+        lines.fillRect(codeX + 22 * 2.4 + cw + 2, cy - 16, 10, 20, withAlpha(TERM.green, 0.8));
       }
     }
 
@@ -102,6 +108,7 @@ export default makeShot('hook', {
 
     lines.flush(ctx.out);
     text.clear();
+    type.write('GodDrinksJava.java', editorX + 18, editorY + 22, { size: 16, family: 'mono', color: css(TERM.green, editor * 0.72), align: 'left' });
     let ty = codeY0;
     for (let i = 0; i < CODE_LINES.length; i++) {
       const lt2 = t - LINE_T[i];

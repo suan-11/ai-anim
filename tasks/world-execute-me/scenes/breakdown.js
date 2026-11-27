@@ -4,7 +4,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { scanlines, glitchTear, glitchColor, TERM } from './_kit.js';
+import { flashIntoRecursion, glitchTear, glitchColor, TERM } from './_kit.js';
 
 // 六语计数：每个数字用**对应语言的文字**写（Genius 官方歌词 "Ein, dos, trois, 네, fem, 六"）。
 // 1=德语 Eins(ein) 2=西语 Dos 3=法语 Trois 4=韩语 넷(ne) 5=瑞典语 Fem 6=中文 六(liu)
@@ -24,10 +24,8 @@ export default makeShot('breakdown', {
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
-    gl.clear(ctx.out, TERM.bg);
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.06);
 
     // EXECUTION ×12：148.02 起每 0.92s
     const EXEC_T = Array.from({ length: 12 }, (_, i) => 148.02 + i * 0.92);
@@ -35,8 +33,8 @@ export default makeShot('breakdown', {
     const lastExec = execCount > 0 ? EXEC_T[execCount - 1] : null;
     const execEl = lastExec != null ? t - lastExec : Infinity;
 
-    if (t >= 145 && t < 158.6) {
-      const wallA = smoothstep(145, 147.5, t);
+    if (t >= 145 && t < 159.02) {
+      const wallA = smoothstep(145, 146.4, t) * (1 - smoothstep(158.48, 159.02, t));
       const intensity = Math.exp(-execEl / 0.15);
       if (intensity > 0.02) lines.fillRect(0, 0, W, H, withAlpha(TERM.red, intensity * 0.28));   // 每记满屏红闪
       const cols = 4, rows = 3, cw = W / cols, ch = H / rows;
@@ -44,7 +42,8 @@ export default makeShot('breakdown', {
         const cx2 = (i % cols) * cw + cw / 2;
         const cy2 = Math.floor(i / cols) * ch + ch / 2;
         const lit = i < execCount;
-        const cellA = wallA * (lit ? 0.9 : 0.18);
+        const cellA = wallA * (lit ? 0.9 : 0.38);
+        lines.fillRect(cx2 - cw * 0.42, cy2 - ch * 0.36, cw * 0.84, ch * 0.72, withAlpha(lit ? TERM.red : TERM.grid, cellA * 0.13));
         lines.rect(cx2 - cw * 0.42, cy2 - ch * 0.36, cw * 0.84, ch * 0.72, lit ? 2 : 1, withAlpha(lit ? TERM.red : TERM.grid, cellA * 0.6));
       }
       if (intensity > 0.02) {
@@ -64,23 +63,17 @@ export default makeShot('breakdown', {
       lines.fillRect(0, 0, W, H, withAlpha(lang.col, la * 0.22));
     }
 
-    // 白闪：LIU 之后 161.7 才炸（给 六 留 0.5s 展示），→ chorus3
-    if (t >= 161.7 && t < 162.4) {
-      const wf = Math.exp(-(t - 161.7) / 0.25);
-      lines.fillRect(0, 0, W, H, withAlpha([1, 1, 1], Math.max(wf, 0.55) * 0.85));
-    }
-
     lines.flush(ctx.out);
     text.clear();
     // EXECUTION 墙文字（4×3 网格，随计数点亮，填满画面）
-    if (t >= 145 && t < 158.6) {
-      const wallA = smoothstep(145, 147.5, t);
+    if (t >= 145 && t < 159.02) {
+      const wallA = smoothstep(145, 146.4, t) * (1 - smoothstep(158.48, 159.02, t));
       const cols = 4, rows = 3, cw = W / cols, ch = H / rows;
       for (let i = 0; i < 12; i++) {
         const cx2 = (i % cols) * cw + cw / 2;
         const cy2 = Math.floor(i / cols) * ch + ch / 2;
         const lit = i < execCount;
-        const cellA = wallA * (lit ? 0.9 : 0.18);
+        const cellA = wallA * (lit ? 0.9 : 0.38);
         type.write('EXECUTION', cx2, cy2 - 8, { size: 26, weight: 800, family: 'mono', color: css(lit ? TERM.red : TERM.grid, cellA), align: 'center' });
         type.write(String(i + 1).padStart(2, '0'), cx2, cy2 + 26, { size: 18, family: 'mono', color: css(lit ? TERM.amber : TERM.dim, cellA * 0.8), align: 'center' });
       }
@@ -104,6 +97,7 @@ export default makeShot('breakdown', {
       type.write(lang.word + ' · ' + lang.lang, W * 0.5, H * 0.6, { size: 40, weight: 600, family: 'mono', color: css(TERM.white, la * 0.85), align: 'center' });
     }
     text.upload(); comp.draw(gl, text, ctx.out, { premult: false });
+    flashIntoRecursion(ctx);
     let impact = lastExec != null ? Math.exp(-execEl / 0.12) * 0.7 : 0;
     if (langIdx >= 0) impact = Math.max(impact, Math.exp(-(t - LANG_T[langIdx]) / 0.1) * 0.8);
     return this.cam.post(ctx, { impact, bloomBase: 0.15 });

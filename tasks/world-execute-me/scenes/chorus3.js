@@ -5,42 +5,48 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { keywordBurst, scanlines, glitchTear, glitchColor, TERM } from './_kit.js';
+import { keywordBurst, flashIntoRecursion, glitchTear, glitchColor, TERM } from './_kit.js';
 
 export default makeShot('chorus3', {
   setup() { this.cam = makeCinematic(); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
-    const lt = t - 161.4;
-    gl.clear(ctx.out, TERM.bg);
+    const lt = t - 161.7;
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.05);
     const cx = W * 0.5, cy = H * 0.48;
 
     // recursive execution 调用栈：162.08 起，更大更快铺满画面
-    if (lt < 6) {
-      const depth = Math.min(8, Math.floor(lt / 0.5));
-      const fadeOut = 1 - smoothstep(4.5, 6, lt);
+    if (t < 172.84) {
+      const folds = smoothstep(167.6, 170.65, t);
+      const depth = Math.min(8, Math.floor(lt / 0.43));
       for (let i = 0; i <= depth; i++) {
-        const inset = i * 42;
-        const a = smoothstep(i * 0.5, i * 0.5 + 0.3, lt) * fadeOut;
-        const rw = 1160 - inset * 2, rh = 640 - inset * 2;
-        if (rw < 60 || rh < 40) break;
-        lines.rect(cx - rw / 2, cy - rh / 2, rw, rh, 2, withAlpha(i === depth ? TERM.red : TERM.green, a * 0.7));
-        type.write('execution('.repeat(Math.min(i + 1, 4)) + (i >= 3 ? '…' : '') + ')'.repeat(Math.min(i + 1, 4)), cx - rw / 2 + 16, cy - rh / 2 + 26, { size: 18, family: 'mono', color: css(i === depth ? TERM.red : TERM.green, a * 0.8), align: 'left' });
+        const releaseAt = 169.02 + (depth - i) * 0.15;
+        const a = smoothstep(i * 0.43, i * 0.43 + 0.3, lt) * (1 - smoothstep(releaseAt, releaseAt + 2.15, t));
+        const inset = i * 30;
+        const rw = (1380 - inset * 2) * (1 - folds * 0.7);
+        const rh = (690 - inset * 2) * (1 - folds * 0.7);
+        const color = i === depth ? TERM.red : TERM.green;
+        lines.fillRect(cx - rw / 2, cy - rh / 2, rw, rh, withAlpha(color, a * 0.045));
+        lines.rect(cx - rw / 2, cy - rh / 2, rw, rh, 2, withAlpha(color, a * 0.7));
+        const scanX = cx - rw / 2 + rw * ((lt * 0.8 - i / 12 + 1) % 1);
+        lines.fillRect(scanX - 5, cy - rh / 2 - 2, 10, 4, withAlpha(color, a));
+        type.write('execution('.repeat(Math.min(i + 1, 4)) + (i >= 3 ? '…' : '') + ')'.repeat(Math.min(i + 1, 4)), cx - rw / 2 + 16, cy - rh / 2 + 23, { size: 18, family: 'mono', color: css(color, a * 0.8 * (1 - folds)), align: 'left' });
       }
-      type.write('depth: ' + depth, W * 0.88, H * 0.12, { size: 26, family: 'mono', color: css(TERM.amber, 0.85), align: 'right' });
+      type.write('depth: ' + depth, W * 0.88, H * 0.12, { size: 26, family: 'mono', color: css(TERM.amber, 0.85 * (1 - folds)), align: 'right' });
     }
 
     // have you back → return null：169.66 起
     const retT = t - 169.66;
     if (retT > 0 && retT < 5) {
-      const ra = smoothstep(0, 0.4, retT);
-      type.write('return you;', cx, cy - 40, { size: 28, family: 'mono', color: css(TERM.green, ra * (1 - smoothstep(2.5, 3.5, retT))), align: 'center' });
+      const ra = smoothstep(0, 0.4, retT) * (1 - smoothstep(2.5, 3.35, retT));
+      lines.fillRect(cx - 210, cy - 64, 420, 128, withAlpha(TERM.green, ra * 0.13));
+      lines.rect(cx - 210, cy - 64, 420, 128, 2, withAlpha(TERM.green, ra * 0.6));
+      lines.fillRect(cx - 210, cy + 59, 420 * sat(retT / 2.5), 5, withAlpha(TERM.amber, ra * 0.75));
+      type.write('return you;', cx, cy + 12, { size: 38, family: 'mono', color: css(TERM.green, ra), align: 'center' });
       if (retT > 2.5) {
-        const na = smoothstep(2.5, 2.8, retT);
+        const na = smoothstep(2.5, 2.8, retT) * (1 - smoothstep(3.3, 4.4, retT));
         const slam = 1 + 0.35 * Math.exp(-(retT - 2.5) / 0.1);
         const col = glitchColor(retT - 2.5, TERM.white) ?? TERM.white;
         type.write('null', cx, cy + 10, { size: Math.round(56 * slam), weight: 800, family: 'mono', color: css(col, na), align: 'center' });
@@ -100,6 +106,7 @@ export default makeShot('chorus3', {
       }
     }
     text.upload(); comp.draw(gl, text, ctx.out, { premult: false });
+    flashIntoRecursion(ctx);
     const impact = Math.max(kwImpact, soT > 0 && soT < 3 ? Math.exp(-soT / 0.3) * 0.6 : 0);
     return this.cam.post(ctx, { impact, bloomBase: 0.1 });
   },

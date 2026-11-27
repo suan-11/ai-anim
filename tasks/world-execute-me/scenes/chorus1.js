@@ -4,7 +4,7 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { keywordBurst, scanlines, makeParticles, drawParticles, glitchTear, TERM } from './_kit.js';
+import { keywordBurst, drawUnionSignal, makeParticles, drawParticles, glitchTear, TERM } from './_kit.js';
 
 export default makeShot('chorus1', {
   setup() {
@@ -15,14 +15,14 @@ export default makeShot('chorus1', {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
     const lt = t - 58.8;
-    gl.clear(ctx.out, TERM.bg);
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.05);
+
+    if (t < 64.5) drawUnionSignal(ctx);
 
     // stimulation 粒子雨：59.4 "If I can" 起，62.04 关键词
     if (lt < 6) {
-      drawParticles(ctx, this.rain, lt, { x: W * 0.5, y: 0 }, 0, 0.6 * (1 - smoothstep(4, 6, lt)));
+      drawParticles(ctx, this.rain, 1.55 + lt * 0.27, { x: W * 0.5, y: 0 }, 0, 0.52 * smoothstep(0, 1, lt) * (1 - smoothstep(4, 6, lt)));
     }
 
     // satisfaction 双波形共振：63.86 起

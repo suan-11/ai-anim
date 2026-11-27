@@ -7,17 +7,15 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { keywordBurst, scanlines, TERM } from './_kit.js';
+import { keywordBurst, drawVibrations, TERM } from './_kit.js';
 
 export default makeShot('verse2', {
   setup() { this.cam = makeCinematic(); },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
-    gl.clear(ctx.out, TERM.bg);
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.04);
     const cx = W * 0.5, cy = H * 0.48;
     const PH = [
       { start: 74.04, peak: 77.08, end: 77.70 },   // eggplant → NUTRIENTS
@@ -33,12 +31,16 @@ export default makeShot('verse2', {
     if (phase === 0) {
       // 茄子：紫色果实色块 + 分子环（营养）
       const grow = smoothstep(0, 0.6, pu);
-      lines.fillCircle(cx, cy + 20, 90 * grow, withAlpha([0.35, 0.15, 0.5], 0.35 * fade));
-      lines.fillCircle(cx - 30, cy - 10, 40 * grow, withAlpha([0.45, 0.2, 0.6], 0.3 * fade));
-      const n = 6, r = 80;
+      const purple = [0.42, 0.16, 0.65];
+      const neckX = cx + 64 * grow, neckY = cy - 122 * grow;
+      lines.seg(cx - 56 * grow, cy + 58 * grow, neckX, neckY, 122 * grow, withAlpha(purple, 0.48 * fade));
+      lines.fillCircle(cx - 56 * grow, cy + 58 * grow, 92 * grow, withAlpha(purple, 0.48 * fade));
+      lines.fillCircle(neckX, neckY, 48 * grow, withAlpha(TERM.green, 0.34 * fade));
+      const n = 6, r = 80 + 148 * grow;
       for (let i = 0; i < n; i++) {
-        const a1 = (i / n) * Math.PI * 2 - Math.PI / 2;
-        const a2 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2;
+        const spin = -Math.PI / 2 + (t - PH[0].start) * 0.55;
+        const a1 = (i / n) * Math.PI * 2 + spin;
+        const a2 = ((i + 1) / n) * Math.PI * 2 + spin;
         const x1 = cx + Math.cos(a1) * r, y1 = cy + Math.sin(a1) * r;
         const x2 = cx + Math.cos(a2) * r, y2 = cy + Math.sin(a2) * r;
         lines.seg(x1, y1, x2, y2, 2, withAlpha(TERM.green, 0.8 * fade));
@@ -51,10 +53,13 @@ export default makeShot('verse2', {
     } else if (phase === 1) {
       // 番茄：红色果实色块 + 电子轨道（抗氧化剂）
       const grow = smoothstep(0, 0.5, pu);
-      lines.fillCircle(cx, cy, 100 * grow, withAlpha([0.7, 0.12, 0.1], 0.3 * fade));
-      lines.fillCircle(cx, cy - 60 * grow, 30 * grow, withAlpha([0.2, 0.5, 0.15], 0.4 * fade));  // 蒂
+      lines.fillCircle(cx, cy, 138 * grow, withAlpha([0.8, 0.12, 0.1], 0.48 * fade));
+      for (let i = -1; i <= 1; i++) {
+        lines.seg(cx, cy - 120 * grow, cx + i * 54 * grow, cy - (150 - Math.abs(i) * 47) * grow,
+          12 * grow, withAlpha(TERM.green, fade * 0.7));
+      }
       for (let ring = 0; ring < 3; ring++) {
-        const r = 60 + ring * 50;
+        const r = 74 + ring * (54 + 38 * grow);
         const tilt = ring * 0.4 + t * (0.5 + ring * 0.2);
         for (let i = 0; i <= 60; i++) {
           const a = (i / 60) * Math.PI * 2;
@@ -104,7 +109,7 @@ export default makeShot('verse2', {
         ' (_|     |_)',
         '   |_|_|_|  ',
       ];
-      const cs = 46, lh = cs * 1.08;
+      const cs = 54, lh = cs * 1.08;
       const charW = cs * 0.6;                  // mono 字宽≈0.6em
       const x0 = cx - charW * 13 / 2;
       const topY = cy - CAT.length * lh / 2;
@@ -133,36 +138,47 @@ export default makeShot('verse2', {
         branch(x2, y2, ang - 0.5, len * 0.7, d + 1);
         branch(x2, y2, ang + 0.5, len * 0.7, d + 1);
       }
-      branch(cx, H * 0.8, -Math.PI / 2, 100, 0);
+      branch(cx, H * 0.8, -Math.PI / 2, 148, 0);
       lines.fillCircle(cx, H * 0.8, 8, withAlpha(TERM.red, 0.8 * fade));
     }
 
-    // F/M 切换：LRC 90.34 "To F to M"；S/M：97.72 "To S to M"
-    if ((t > 90.34 && t < 92.13) || (t > 97.72 && t < 99.58)) {
-      const base = t < 92.13 ? 90.34 : 97.72;
-      const flipT = t - base;
-      const scaleX = Math.cos(sat(flipT / 0.9) * Math.PI);
-      ctx.setXform({ scale: 1, anchor: [cx, cy] });
-      for (let i = 0; i < 5; i++) {
-        const fy = H * 0.2 + i * H * 0.15;
-        lines.seg(cx - 200 * Math.abs(scaleX), fy, cx + 200 * Math.abs(scaleX), fy, 1, withAlpha(TERM.dim, 0.3));
+    // 同一组寄存器依次切换身份、时间、角色，最后把信号送进 trance。
+    if (t > 88.78) {
+      const a = smoothstep(88.78, 89.3, t) * (1 - smoothstep(101.45, 102.65, t));
+      const controls = [
+        { label: 'GENDER', values: ['F', 'M'], at: 91.54, from: 88.78 },
+        { label: 'CLOCK', values: ['AM', 'PM'], at: 95.22, from: 92.13 },
+        { label: 'ROLE', values: ['S', 'M'], at: 99.0, from: 95.78 },
+      ];
+      const transfer = smoothstep(99.58, 102.6, t);
+      const active = t < 92.13 ? 0 : t < 95.78 ? 1 : 2;
+      const rail = W * 0.16;
+      lines.seg(rail, cy, W - rail, cy, 2, withAlpha(TERM.grid, a * 0.75));
+      for (let i = 0; i < controls.length; i++) {
+        const { label, values, at, from } = controls[i];
+        const x = W * (0.25 + 0.25 * i) + (cx - W * (0.25 + 0.25 * i)) * transfer;
+        const w = 290 * (1 - 0.68 * transfer);
+        const h = 268 * (1 - 0.55 * transfer);
+        const flip = smoothstep(at - 0.30, at + 0.30, t);
+        const level = a * (i === active ? 1 : 0.36);
+        const color = i === active ? TERM.green : TERM.dim;
+        lines.fillRect(x - w / 2, cy - h / 2, w, h, withAlpha(color, level * 0.14));
+        lines.rect(x - w / 2, cy - h / 2, w, h, 2, withAlpha(color, level * 0.66));
+        for (let j = 0; j < 9; j++) {
+          const cellX = x - w * 0.41 + j * w * 0.092;
+          lines.fillRect(cellX, cy + h * 0.34, w * 0.07, 9,
+            withAlpha(j / 8 <= flip ? TERM.amber : color, level * 0.45));
+        }
+        const selected = t < at ? values[0] : values[1];
+        const glyph = t >= from ? selected : '—';
+        type.write(label, x, cy - h * 0.26, { size: 22, family: 'mono', color: css(color, level * (1 - transfer)), align: 'center' });
+        type.write(glyph, x, cy + 22, { size: Math.round(62 * (0.55 + 0.45 * Math.abs(1 - 2 * flip))),
+          weight: 800, family: 'mono', color: css(TERM.white, level * (1 - transfer)), align: 'center' });
       }
-      type.write(t < 92.13 ? (flipT < 0.9 ? 'F' : 'M') : (flipT < 0.9 ? 'S' : 'M'), cx, H * 0.15, { size: 48, weight: 800, family: 'mono', color: css(TERM.white, 0.9), align: 'center' });
+      const packet = (t - 88.78) * 0.55 % 1;
+      lines.fillRect(rail + (W - 2 * rail) * packet - 9, cy - 4, 18, 8, withAlpha(TERM.amber, a * 0.85));
     }
-    // AM/PM：LRC 94.09
-    if (t > 94.09 && t < 95.78) {
-      const ap = t < 94.9 ? 'AM' : 'PM';
-      type.write(ap, cx, H * 0.15, { size: 48, weight: 800, family: 'mono', color: css(TERM.white, 0.9), align: 'center' });
-      const ang = (t - 94.09) * 4;
-      lines.seg(cx, cy, cx + Math.cos(ang) * 80, cy + Math.sin(ang) * 80, 2, withAlpha(TERM.amber, 0.7));
-    }
-    // trance：LRC 101.35
-    if (t > 101.35) {
-      const ta = smoothstep(101.35, 102.3, t);
-      const pulse = 0.5 + 0.5 * Math.sin(t * 5);
-      lines.circle(cx, cy, 180 + pulse * 30, 3, withAlpha(TERM.red, ta * 0.4 * pulse));
-      lines.circle(cx, cy, 220 + pulse * 20, 2, withAlpha(TERM.amber, ta * 0.3));
-    }
+    if (t > 101.35) drawVibrations(ctx);
 
     // 番茄红素化学式 C40H56（真下标排版）+ 标注
     if (phase === 1) {
@@ -188,10 +204,10 @@ export default makeShot('verse2', {
 
     // 切换间隙空窗：贴词代码行（gender/whatever/schedule/role/trance）
     const GAP = [
-      { a: 88.78, b: 92.13, s: t < 91.24 ? '> me.gender = F;' : '> me.gender = M;' },
+      { a: 88.78, b: 92.13, s: t < 91.54 ? '> me.gender = F;' : '> me.gender = M;' },
       { a: 92.13, b: 94.09, s: '> world.doWhatever();  // AM -> PM' },
       { a: 94.09, b: 95.78, s: '> world.schedule(AM, PM);' },
-      { a: 95.78, b: 99.58, s: t < 98.62 ? '> me.role = S;' : '> me.role = M;' },
+      { a: 95.78, b: 99.58, s: t < 99.0 ? '> me.role = S;' : '> me.role = M;' },
       { a: 99.58, b: 101.35, s: '> trance.enter(me, you);' },
     ];
     for (const g of GAP) {

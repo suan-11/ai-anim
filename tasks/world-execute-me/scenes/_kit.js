@@ -97,13 +97,83 @@ export function keywordBurst(ctx, word, cx, cy, progress, { size = 120, color = 
   }
 }
 
-/** 扫描线背景叠加（CRT感）。在 world pass 之后、前景之前画。 */
-export function scanlines(ctx, t, alpha = 0.06) {
-  const { lines, W, H } = ctx;
-  const offset = (t * 30) % 4;
-  for (let y = offset; y < H; y += 4) {
-    lines.seg(0, y, W, y, 0.5, withAlpha([0, 0, 0], alpha));
+/** 两个对象合并后，各自的颜色沿屏幕展开为双通道信号。 */
+export function drawUnionSignal(ctx) {
+  const { lines, W, H, f } = ctx;
+  const t = f.t;
+  const join = smoothstep(55.17, 57.35, t);
+  const unfold = smoothstep(57.6, 60.3, t);
+  const level = smoothstep(55.17, 55.7, t) * (1 - smoothstep(62.4, 64.5, t));
+  const cx = W / 2, cy = H * 0.48;
+  for (const [i, col] of [TERM.green, TERM.amber].entries()) {
+    const sign = i === 0 ? -1 : 1;
+    const x0 = cx + sign * 190 * (1 - join);
+    const radius = 68 + join * 16;
+    const disk = level * (1 - unfold);
+    lines.fillCircle(x0, cy, radius, withAlpha(col, 0.23 * disk));
+    lines.circle(x0, cy, radius, 3, withAlpha(col, 0.75 * disk));
+    const span = radius + (W * 0.44 - radius) * unfold;
+    let prevX = x0 - span, prevY = cy;
+    for (let j = 0; j <= 96; j++) {
+      const u = j / 96;
+      const x = x0 + (u * 2 - 1) * span;
+      const y = cy + sign * unfold * (57 + Math.sin(u * 18 - t * 5 + i) * 50);
+      if (j > 0) lines.seg(prevX, prevY, x, y, 3, withAlpha(col, unfold * level * 0.78));
+      if (j % 4 === 0) lines.fillRect(x - 3, Math.min(y, cy), 6, Math.abs(y - cy), withAlpha(col, unfold * level * 0.13));
+      prevX = x;
+      prevY = y;
+    }
   }
+}
+
+/** 恍惚的双环向外放大，成为下一句的振动波纹。 */
+export function drawVibrations(ctx) {
+  const { lines, W, H, f } = ctx;
+  const t = f.t;
+  const a = smoothstep(101.35, 102.15, t) * (1 - smoothstep(106.8, 108.55, t));
+  const unfold = smoothstep(102.3, 105.7, t);
+  const cx = W / 2, cy = H * 0.48;
+  for (let i = 0; i < 8; i++) {
+    const phase = t * 6 - i * 0.62;
+    const radius = 170 + i * (19 + 35 * unfold) + Math.sin(phase) * (16 + 10 * unfold);
+    const color = i % 2 ? TERM.amber : TERM.green;
+    lines.circle(cx, cy, radius, 2 + 3 * unfold, withAlpha(color, a * (i < 2 ? 0.55 : unfold * (0.32 - i * 0.023))));
+  }
+  lines.fillCircle(cx, cy, 16 + Math.sin(t * 6) * 5, withAlpha(TERM.green, a * 0.5));
+}
+
+const FRAGMENT_LABELS = ['fragment_0x3f', 'pointless[0]', 'null', 'undefined', '// TODO: love', 'me.hope', 'NaN', 'void*', 'fragment_0x7a', '/* us */'];
+
+export function makeFragments() {
+  const next = rng(77);
+  return FRAGMENT_LABELS.map((label, i) => ({
+    label, x: 0.15 + next() * 0.68, y: 0.22 + next() * 0.5, removedAt: 119.22 + i * 0.36,
+  }));
+}
+
+export function drawFragmentDebris(ctx, fragments) {
+  const { lines, type, W, H, f } = ctx;
+  for (const fr of fragments) {
+    const age = f.t - fr.removedAt;
+    const debris = smoothstep(0.25, 0.85, age) * (1 - smoothstep(124.65, 126.2, f.t));
+    if (debris <= 0) continue;
+    const origin = fr.x * W + type.measure(fr.label, { size: 18, family: 'mono' }) / 2;
+    for (let i = 0; i < 5; i++) {
+      const x = origin + (i - 2) * (10 + age * 9);
+      const y = fr.y * H + age * (14 + i * 8);
+      lines.fillRect(x, y, 12 + i * 3, 4 + i, withAlpha(TERM.red, debris * 0.33));
+    }
+  }
+}
+
+export function flashIntoRecursion(ctx) {
+  const { lines, W, H, f } = ctx;
+  const age = f.t - 161.7;
+  if (age < 0 || age >= 0.7) return;
+  const strength = Math.exp(-age / 0.12) * (1 - smoothstep(0.38, 0.7, age));
+  lines.begin();
+  lines.fillRect(0, 0, W, H, withAlpha([1, 1, 1], 0.82 * strength));
+  lines.flush(ctx.out);
 }
 
 /** 预计算粒子（确定性）。用于创世爆发 / stimulation 雨 / fragments 飘落。 */

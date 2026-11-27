@@ -5,21 +5,23 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { keywordBurst, scanlines, glitchTear, TERM } from './_kit.js';
+import { keywordBurst, drawUnionSignal, makeParticles, drawParticles, TERM } from './_kit.js';
 
 export default makeShot('verse1', {
-  setup() { this.cam = makeCinematic(); },
+  setup() {
+    this.cam = makeCinematic();
+    this.genesis = makeParticles(42, 200, 'burst');
+  },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
-    gl.clear(ctx.out, TERM.bg);
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.04);
     const cx = W * 0.5, cy = H * 0.48;
 
     // ── 器奏段 14.8-29.44：模拟运行日志（焦点代码块），色块星云退为背景 ──
     if (t < 29.44) {
+      drawParticles(ctx, this.genesis, t - 14.02, { x: cx, y: H * 0.5 }, 600, 0.9);
       const pulse = 0.5 + 0.5 * Math.sin(t * 1.2);
       for (let i = 0; i < 24; i++) {
         const ang = (i / 24) * Math.PI * 2 + t * 0.08;
@@ -41,7 +43,7 @@ export default makeShot('verse1', {
         { t: 26.0, s: '[sim] running  t -> inf', c: TERM.dim },
         { t: 27.2, s: '> me.love(you);  // unconditional', c: TERM.amber },
       ];
-      const sx = W * 0.24, sy0 = H * 0.24, lh = 38;
+      const sx = W * 0.18, sy0 = H * 0.22, lh = 38;
       const cursorOn = Math.sin(t * 6) > 0;
       for (let i = 0; i < SIM.length; i++) {
         const el = t - SIM[i].t;
@@ -53,9 +55,9 @@ export default makeShot('verse1', {
         }
       }
       // 右侧 INSPECTOR：me/you 对象实况（attract 后靠近，gravity=love 画吸引线）
-      const ipA = smoothstep(15.0, 15.6, t) * (1 - smoothstep(28.9, 29.44, t));
+      const ipA = smoothstep(14.65, 15.45, t) * (1 - smoothstep(28.9, 29.44, t));
       if (ipA > 0) {
-        const px = W * 0.60, py = H * 0.22, pw = W * 0.32, ph = H * 0.52;
+        const px = W * 0.60, py = H * 0.20, pw = W * 0.32, ph = H * (0.36 + 0.16 * smoothstep(15.2, 18.8, t));
         lines.fillRect(px, py, pw, ph, withAlpha([0.02, 0.05, 0.04], ipA * 0.5));
         lines.rect(px, py, pw, ph, 1.5, withAlpha(TERM.grid, ipA * 0.9));
         lines.fillRect(px, py, pw, 30, withAlpha(TERM.grid, ipA * 0.35));
@@ -199,7 +201,7 @@ export default makeShot('verse1', {
       const annA = 1 - smoothstep(0.5, 1, exit);
       const annEl = t - PH[phase].start;
       const ann = ANN[phase];
-      const ca = Math.min(ann.a.length, Math.floor(annEl * 30));
+      const ca = Math.min(ann.a.length, Math.max(0, Math.floor(annEl * 30)));
       type.write(ann.a.slice(0, ca), W * 0.12, H * 0.76, { size: 32, family: 'mono', color: css(TERM.green, annA * 0.9), align: 'left' });
       if (annEl > 0.8) {
         const cb = Math.min(ann.b.length, Math.floor((annEl - 0.8) * 30));
@@ -314,18 +316,10 @@ export default makeShot('verse1', {
       type.write(ts.slice(0, tc), cx, H * 0.74, { size: 26, family: 'mono', color: css(TERM.green, ta * 0.9), align: 'center' });
     }
 
-    // ── unite deeply：55.17-58.8 两个色块圆合拢 ──
+    // 合并后的两颗对象跨镜头展开成双波形。
+    if (t > 55.17) drawUnionSignal(ctx);
     if (t > 55.17 && t < 58.8) {
-      const u = smoothstep(55.17, 57.17, t);
       const fade = 1 - smoothstep(57.8, 58.8, t);
-      const gap = 120 * (1 - u);
-      lines.fillCircle(cx - gap, cy, 60, withAlpha(TERM.green, 0.25 * fade));
-      lines.fillCircle(cx + gap, cy, 60, withAlpha(TERM.amber, 0.25 * fade));
-      lines.circle(cx - gap, cy, 60, 2, withAlpha(TERM.green, 0.7 * fade));
-      lines.circle(cx + gap, cy, 60, 2, withAlpha(TERM.amber, 0.7 * fade));
-      if (u > 0.9) {
-        lines.fillCircle(cx, cy, 70, withAlpha(TERM.white, 0.1 * fade * (u - 0.9) * 10));
-      }
       const us = 'me.unite(you);  // deeply, deeply';
       const uc = Math.min(us.length, Math.floor((t - 55.17) * 35));
       type.write(us.slice(0, uc), cx, H * 0.74, { size: 26, family: 'mono', color: css(TERM.green, fade * 0.9), align: 'center' });

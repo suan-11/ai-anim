@@ -4,26 +4,20 @@
 import { makeShot, withAlpha } from '../../../src/kit/index.js';
 import { sat, smoothstep, css } from '../../../src/core/util.js';
 import { makeCinematic } from '../../_shared/cinematic.js';
-import { keywordBurst, scanlines, makeParticles, drawParticles, glitchTear, glitchColor, TERM } from './_kit.js';
+import { keywordBurst, makeFragments, drawFragmentDebris, glitchTear, glitchColor, TERM } from './_kit.js';
 
 export default makeShot('bridge', {
   setup() {
     this.cam = makeCinematic();
-    this.frags = makeParticles(77, 80, 'fall');
+    this.frags = makeFragments();
   },
   draw(ctx) {
     const { f, lines, text, type, comp, gl, W, H, P } = ctx;
     const t = f.t;
-    const lt = t - 124.37;
-    gl.clear(ctx.out, TERM.bg);
     text.clear();
     lines.begin();
-    scanlines(ctx, t, 0.05);
 
-    // fragments 碎片飘落（承接 chorus2 的 FRAGMENTS 121.52）
-    if (lt < 6) {
-      drawParticles(ctx, this.frags, lt + 2, { x: 0, y: 0 }, 0, 0.6 * (1 - smoothstep(4, 6, lt)));
-    }
+    if (t < 126.2) drawFragmentDebris(ctx, this.frags);
 
     // disheartened 褪色：唱点 124.76
     const desat = smoothstep(124.76, 128.92, t);
@@ -42,8 +36,15 @@ export default makeShot('bridge', {
         lines.rect(boxX, boxY, boxW, boxH, 2, withAlpha(TERM.green, live));
         lines.fillRect(boxX, boxY, boxW, 36, withAlpha(TERM.green, live * 0.12));
         type.write('try {', boxX + 24, boxY + 44, { size: 26, family: 'mono', color: css(TERM.green, live), align: 'left' });
-        type.write('  me.setOpinion("you are here", false);', boxX + 24, boxY + 84, { size: 24, family: 'mono', color: css(TERM.white, live * 0.8), align: 'left' });
-        type.write('} catch (IllegalArgumentException e) {', boxX + 24, boxY + 124, { size: 24, family: 'mono', color: css(TERM.amber, live), align: 'left' });
+        const call = '  me.setOpinion("you are here", false);';
+        const args = '} catch (IllegalArgumentException e) {';
+        type.write(call.slice(0, Math.floor(Math.max(0, errT - 0.45) * 28)), boxX + 24, boxY + 84, { size: 24, family: 'mono', color: css(TERM.white, live * 0.8), align: 'left' });
+        type.write(args.slice(0, Math.floor(Math.max(0, errT - 1.75) * 32)), boxX + 24, boxY + 124, { size: 24, family: 'mono', color: css(TERM.amber, live), align: 'left' });
+        const running = smoothstep(0.8, 3.36, errT);
+        const progressX = boxX + 24, progressY = boxY + boxH - 34, progressW = boxW - 48;
+        const progressA = live * (1 - smoothstep(3.36, 4.12, errT));
+        lines.rect(progressX, progressY, progressW, 10, 2, withAlpha(TERM.green, progressA * 0.35));
+        lines.fillRect(progressX, progressY, progressW * running, 10, withAlpha(TERM.amber, progressA * 0.63));
       }
       if (errT > 3.36) {
         const stackN = Math.min(13, Math.floor((errT - 3.36) / 0.16) + 1);
@@ -80,7 +81,7 @@ export default makeShot('bridge', {
     // crash-dump 滚动错误日志 + RETRY 计数爬升（承接 shatter → breakdown EXECUTION×12，填 134→145.6）
     const crashT = t - 134.0;
     if (crashT > 0 && t < 145.6) {
-      const ca = smoothstep(0, 0.5, crashT) * (1 - smoothstep(10.6, 11.6, crashT));
+      const ca = smoothstep(0, 0.5, crashT) * (1 - smoothstep(11, 11.6, crashT));
       const scroll = (crashT * 70) % 38;
       for (let i = 0; i < 18; i++) {
         const ly = H * 0.12 + i * 38 - scroll;
