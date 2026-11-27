@@ -1,0 +1,112 @@
+[
+  {
+    "t_start": 0,
+    "t_end": 3,
+    "intensity": 4,
+    "info_density": 2,
+    "resistance": 0.4,
+    "attention_target": "single_anchor",
+    "motion_grammar": "zoom_punch_in",
+    "sound_density": 0.4,
+    "beat_role": "pressure"
+  },
+  {
+    "t_start": 3,
+    "t_end": 9.5,
+    "intensity": 3,
+    "info_density": 2,
+    "resistance": 0.55,
+    "attention_target": "single_anchor",
+    "motion_grammar": "bars_smash",
+    "sound_density": 0.45,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 9.5,
+    "t_end": 14,
+    "intensity": 2,
+    "info_density": 3,
+    "resistance": 0.6,
+    "attention_target": "single_anchor",
+    "motion_grammar": "dataset_switch",
+    "sound_density": 0.4,
+    "beat_role": "pressure"
+  },
+  {
+    "t_start": 14,
+    "t_end": 17.3,
+    "intensity": 3,
+    "info_density": 3,
+    "resistance": 0.7,
+    "attention_target": "single_anchor",
+    "motion_grammar": "uniform_hold",
+    "sound_density": 0.5,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 17.3,
+    "t_end": 23,
+    "intensity": 4,
+    "info_density": 4,
+    "resistance": 0.3,
+    "attention_target": "single_anchor",
+    "motion_grammar": "log_axis_reveal",
+    "sound_density": 0.6,
+    "beat_role": "release"
+  },
+  {
+    "t_start": 23,
+    "t_end": 28.5,
+    "intensity": 2,
+    "info_density": 2,
+    "resistance": 0.5,
+    "attention_target": "single_anchor",
+    "motion_grammar": "deviation_settle",
+    "sound_density": 0.4,
+    "beat_role": "residue"
+  },
+  {
+    "t_start": 28.5,
+    "t_end": 31.5,
+    "intensity": 3,
+    "info_density": 3,
+    "resistance": 0.65,
+    "attention_target": "single_anchor",
+    "motion_grammar": "build_to_fake",
+    "sound_density": 0.45,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 31.5,
+    "t_end": 36.5,
+    "intensity": 5,
+    "info_density": 4,
+    "resistance": 0.2,
+    "attention_target": "single_anchor",
+    "motion_grammar": "fake_vs_real",
+    "sound_density": 0.65,
+    "beat_role": "release"
+  },
+  {
+    "t_start": 36.5,
+    "t_end": 42,
+    "intensity": 2,
+    "info_density": 2,
+    "resistance": 0.35,
+    "attention_target": "single_anchor",
+    "motion_grammar": "deviation_settle",
+    "sound_density": 0.4,
+    "beat_role": "residue"
+  },
+  {
+    "t_start": 42,
+    "t_end": 48.4,
+    "intensity": 1,
+    "info_density": 1,
+    "resistance": 0.25,
+    "attention_target": "single_anchor",
+    "motion_grammar": "fade_settle",
+    "sound_density": 0.3,
+    "beat_role": "residue"
+  }
+]

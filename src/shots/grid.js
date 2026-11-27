@@ -11,7 +11,7 @@
 
 
 import { musicOk } from './pick.js';
-import { css, hash2 } from '../core/util.js';
+import { css, hash2, prog } from '../core/util.js';
 
 /** 全部参数 = "什么都不传时的画面"（beat 用的就是这一套）。 */
 const DEFAULTS = {
@@ -34,16 +34,23 @@ export function gridShot(opts = {}) {
     render(ctx) {
       const { f, gl, P, text, type, comp, lines, music } = ctx;
       const { W, H } = gl;
-      const t = f.lt;
+      const rhythm = f.rhythm;
+      const t = rhythm ? rhythm.t_start + rhythm.elapsed : f.lt;
       const a = f.a;
 
       gl.clear(ctx.out, [P.bg[0], P.bg[1], P.bg[2]]);
 
       // 24×12 的格子，每格的历史波形取自包络数组（真的是「读数据」，不是随机）
-      const cols = o.cols, rows = o.rows;
+      const cols = rhythm ? Math.max(2, Math.round(o.cols * rhythm.info_density / 5)) : o.cols;
+      const rows = o.rows;
       const cw = W / cols, ch = (H * 0.68) / rows;
       const y0 = H * 0.10;
       const window = o.window;   // 显示最近 2.2 秒
+      const travel = rhythm ? prog(rhythm.progress, 0, 1, 'inOutCubic') : 0;
+      const settling = rhythm?.beat_role === 'residue';
+      const reveal = rhythm?.beat_role === 'release'
+        ? prog(rhythm.elapsed, 0, 0.8 + rhythm.resistance * 2.5, 'outCubic') : settling ? 1 - 0.35 * travel : 1;
+      const sweep = rhythm ? (settling ? 1 - travel : travel) : 0.94;
 
       lines.begin();
       for (let x = 0; x < cols; x++) {
@@ -52,7 +59,8 @@ export function gridShot(opts = {}) {
         // 每一列用一个频段，让画面有横向的结构
         const bandIdx = x % 3;
         const env = bandIdx === 0 ? (music.low[fi] ?? 0) : bandIdx === 1 ? (music.mid[fi] ?? 0) : (music.high[fi] ?? 0);
-        const litRows = Math.round(env * rows);
+        const litRows = Math.round(env * rows * reveal);
+        const gain = rhythm ? Math.exp(-8 * Math.abs((x + 0.5) / cols - sweep)) : 0;
         for (let y = 0; y < rows; y++) {
           const on = y < litRows;
           const px = x * cw, py = y0 + (rows - 1 - y) * ch;
@@ -69,42 +77,50 @@ export function gridShot(opts = {}) {
           ];
           // 用 hash 给每格一点点差异，避免死板
           const j = 0.75 + hash2(x, y) * 0.5;
+          if (rhythm) {
+            lines.fillRect(px + 4, py + 4, cw - 8, ch - 8,
+              [col[0] * j, col[1] * j, col[2] * j, 0.18 + gain * 0.62], 3);
+          }
           lines.rect(px + 3, py + 3, cw - 6, ch - 6, 1, [col[0] * j, col[1] * j, col[2] * j]);
         }
       }
 
       // 当前时刻的竖直扫描线
-      const sx = W * 0.94;
+      const sx = W * (rhythm ? 0.04 + sweep * 0.92 : sweep);
       lines.seg(sx, y0, sx, y0 + rows * ch, 3, P.bone);
       lines.flush(ctx.out);
 
       // 文字：当前拍 + 四条读数
       text.clear();
-      type.write(o.label, 60, 70, { size: 22, family: 'mono', tracking: 6, color: css(P.signal, 0.9) });
-      type.write(`beat ${(f.beat % 4).toFixed(2)}`, 60, 130, { size: 34, family: 'mono', color: css(P.bone) });
-
-      const readouts = [
-        ['rms', a.rms], ['low', a.low], ['mid', a.mid], ['high', a.high],
-        ['vocal', a.vocal], ['flux', a.flux],
-      ];
-      readouts.forEach(([name, v], i) => {
-        const col = i % 3, row = Math.floor(i / 3);
-        const x = 60 + col * 300, y = H - 150 + row * 38;
-        type.write(`${String(name).padEnd(6)} ${v.toFixed(2)}`, x, y, {
-          size: 22, family: 'mono', color: css(P.ash),
+      if (rhythm) {
+        type.write(`${o.label} / ${rhythm.beat_role.toUpperCase()}`, 144, H - 151,
+          { size: 32, family: 'mono', tracking: 4, color: css(P.signal) });
+      } else {
+        type.write(o.label, 60, 70, { size: 22, family: 'mono', tracking: 6, color: css(P.signal, 0.9) });
+        type.write(`beat ${(f.beat % 4).toFixed(2)}`, 60, 130, { size: 34, family: 'mono', color: css(P.bone) });
+        const readouts = [
+          ['rms', a.rms], ['low', a.low], ['mid', a.mid], ['high', a.high],
+          ['vocal', a.vocal], ['flux', a.flux],
+        ];
+        readouts.forEach(([name, v], i) => {
+          const col = i % 3, row = Math.floor(i / 3);
+          const x = 60 + col * 300, y = H - 150 + row * 38;
+          type.write(`${String(name).padEnd(6)} ${v.toFixed(2)}`, x, y, {
+            size: 22, family: 'mono', color: css(P.ash),
+          });
         });
-      });
+      }
       text.upload();
       comp.draw(gl, text, ctx.out, { premult: false });
 
       return {
-        bloom: 0.55,
+        bloom: rhythm ? 0.08 + rhythm.intensity * 0.1 : 0.55,
         bloomThreshold: 0.8,
         halation: 0.32,
         grain: 0.03,
         vignette: 0.42,
         saturation: 1.05,
-        shake: [a.kick * 5, a.snare * 3],
+        shake: rhythm ? [0, 0] : [a.kick * 5, a.snare * 3],
       };
     },
   };

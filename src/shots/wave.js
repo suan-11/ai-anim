@@ -12,7 +12,7 @@
 
 
 import { musicOk } from './pick.js';
-import { css } from '../core/util.js';
+import { css, prog } from '../core/util.js';
 
 /** 全部参数 = "什么都不传时的画面"（beat 用的就是这一套）。 */
 const DEFAULTS = {
@@ -34,33 +34,62 @@ export function waveShot(opts = {}) {
     render(ctx) {
       const { f, gl, P, text, type, comp, lines, music } = ctx;
       const { W, H } = gl;
-      const t = f.t;
+      const rhythm = f.rhythm;
+      const t = rhythm ? rhythm.t_start + rhythm.elapsed : f.t;
       const a = f.a;   // 音频特征快照：rms/low/mid/high/vocal/kick/snare/hat
+      const motion = rhythm ? (0.55 + rhythm.intensity * 0.28) * (1 - 0.55 * rhythm.resistance) : 1;
+      const openingHook = rhythm && ctx.params?.openingHook;
+      const expansion = openingHook ? prog(f.lt, 0.15, 0.87, 'outCubic') : 1;
+      const hook = openingHook ? prog(f.lt, 0.16, 0.84, 'outCubic') * (1 - prog(f.lt, 1.15, 2.75, 'inOutCubic')) : 0;
+      const gain = openingHook ? 0.45 + 0.55 * prog(f.lt, 0, 0.6, 'outCubic') + 2.3 * hook : 1;
 
       // 背景亮度跟着整体响度走
-      const bg = 0.5 + a.rms * 1.6;
+      const bg = rhythm ? 1 + a.rms * 0.22 * motion : 0.5 + a.rms * 1.6;
       gl.clear(ctx.out, [P.ink[0] * bg, P.ink[1] * bg, P.ink[2] * bg]);
 
       // 波形：直接查音频包络数组（music.rms / low / high 都是每帧一个值）
       const midY = H * 0.5;
-      const cols = o.cols;
+      const cols = rhythm ? Math.max(2, Math.round(o.cols * (0.25 + rhythm.info_density * 0.15))) : o.cols;
+      const span = 0.23 + 0.77 * expansion;
       lines.begin();
       for (let i = 0; i < cols; i++) {
         // 时间窗：以当前时刻为右端，向左 1.2 秒
-        const tt = Math.max(0, t - o.window + (o.window * i) / cols);
+        const sampleTime = t - o.window + (o.window * i) / cols;
+        const tt = Math.max(0, sampleTime);
         const fi = Math.min(music.rms.length - 1, Math.round(tt * music.fps));
         const env = music.rms[fi] ?? 0;
         const lowE = music.low[fi] ?? 0;
         const highE = music.high[fi] ?? 0;
-        const x = (W * i) / (cols - 1);
-        const h = 20 + env * 300 + lowE * 90;
+        const x = openingHook ? W * (0.5 + (i / (cols - 1) - 0.5) * span) : (W * i) / (cols - 1);
+        const preroll = openingHook ? 1 - prog(-sampleTime, 0, 0.65, 'outCubic') : 1;
+        const baseHeight = 20 + (env * 300 + lowE * 90) * motion * preroll;
+        const h = openingHook ? Math.min(H * 0.61, baseHeight * gain) : baseHeight;
         const near = i / cols;   // 越靠右（越接近现在）越亮
-        const col = near > 0.94 ? P.signal : [P.bone[0] * near, P.bone[1] * near, P.bone[2] * near];
-        lines.seg(x, midY - h * 0.5 - highE * 40, x, midY + h * 0.5 + highE * 40, 2 + near * 1.5, col);
+        const col = near > 0.94 - 0.16 * hook ? P.signal : [P.bone[0] * near, P.bone[1] * near, P.bone[2] * near];
+        lines.seg(x, midY - h * 0.5 - highE * 40, x, midY + h * 0.5 + highE * 40, 2 + near * 1.5 + 4 * hook, col);
+      }
+
+      // The opening core is already visible at t=0. The compressed wave expands out of it.
+      const coreAlpha = openingHook ? 1 - prog(f.lt, 0.40, 1.37, 'inOutCubic') : 0;
+      if (coreAlpha > 0) {
+        const cx = W * 0.5;
+        const radius = (0.148 - expansion * 0.053) * Math.min(W, H);
+        const rotation = Math.PI * (0.25 + 0.40 * expansion);
+        const facet = (scale) => Array.from({ length: 4 }, (_, i) => {
+          const angle = rotation + i * Math.PI / 2;
+          return [cx + radius * scale * Math.cos(angle), midY + radius * scale * Math.sin(angle)];
+        });
+        const outer = facet(1);
+        const inner = facet(0.50);
+        lines.circle(cx, midY, radius * 1.21 + H * 0.13 * expansion, 5, [...P.ember, coreAlpha * 0.84], 96);
+        lines.fillPoly(outer, [...P.signal, coreAlpha], 2);
+        lines.polyline(outer, 5, [...P.bone, coreAlpha], true);
+        lines.fillPoly(inner, [...P.ink, coreAlpha * 0.9], 2);
+        lines.seg(cx - radius * 0.22, midY, cx + radius * 0.22, midY, 6, [...P.ember, coreAlpha]);
       }
 
       // 每个 kick 打一道横线（用的是真实打击事件，不是节拍网格）
-      const kicks = music.hits('kick', t - 2.2, t);
+      const kicks = rhythm ? [] : music.hits('kick', t - 2.2, t);
       for (const k of kicks) {
         const e = Math.exp(-(t - k.t) / 0.5);
         lines.seg(0, H * 0.5 - e * 340, W, H * 0.5 - e * 340, 1.5,
@@ -71,31 +100,38 @@ export function waveShot(opts = {}) {
       // 文字：拍号 + bpm + 三条频段读数
       text.clear();
       const beat = f.beat;
-      type.write(o.label, 70, 100, { size: 22, family: 'mono', tracking: 6, color: css(P.signal, 0.9) });
-      type.write((beat % 4).toFixed(2), 70, 190, { size: 84, weight: 800, family: 'mono', color: css(P.bone) });
-      type.write(`bar ${Math.floor(beat / 4)}   ${music.bpm.toFixed(1)} bpm`, 70, 236, {
-        size: 22, family: 'mono', tracking: 3, color: css(P.ash),
-      });
-
-      const bands = [['LOW', a.low, P.signal], ['MID', a.mid, P.bone], ['HIGH', a.high, P.ash]];
-      bands.forEach(([name, val, col], i) => {
-        const y = H - 190 + i * 46;
-        type.write(String(name), W - 430, y, { size: 20, family: 'mono', tracking: 4, color: css(P.ash) });
-        type.write('█'.repeat(Math.round(val * 30)).padEnd(30, '░'), W - 340, y, {
-          size: 20, family: 'mono', color: css(col, 0.9),
+      if (rhythm && (!openingHook || f.lt >= 0.55)) {
+        const opening = openingHook && f.lt < 2.8;
+        type.write(opening ? String(openingHook) : `${o.label} / ${rhythm.beat_role.toUpperCase()}`, 144, 150,
+          { size: 32, family: opening ? 'sans' : 'mono', tracking: opening ? 0 : 4, color: css(P.signal) });
+        type.write(`${beat.toFixed(2)}  /  ${music.bpm.toFixed(1)} BPM`, 144, 204,
+          { size: 24, family: 'mono', tracking: 2, color: css(P.bone, 0.78) });
+      } else if (!rhythm) {
+        type.write(o.label, 70, 100, { size: 22, family: 'mono', tracking: 6, color: css(P.signal, 0.9) });
+        type.write((beat % 4).toFixed(2), 70, 190, { size: 84, weight: 800, family: 'mono', color: css(P.bone) });
+        type.write(`bar ${Math.floor(beat / 4)}   ${music.bpm.toFixed(1)} bpm`, 70, 236, {
+          size: 22, family: 'mono', tracking: 3, color: css(P.ash),
         });
-      });
+        const bands = [['LOW', a.low, P.signal], ['MID', a.mid, P.bone], ['HIGH', a.high, P.ash]];
+        bands.forEach(([name, val, col], i) => {
+          const y = H - 190 + i * 46;
+          type.write(String(name), W - 430, y, { size: 20, family: 'mono', tracking: 4, color: css(P.ash) });
+          type.write('█'.repeat(Math.round(val * 30)).padEnd(30, '░'), W - 340, y, {
+            size: 20, family: 'mono', color: css(col, 0.9),
+          });
+        });
+      }
       text.upload();
       comp.draw(gl, text, ctx.out, { premult: false });
 
       return {
-        bloom: 0.35 + a.high * 0.3,
+        bloom: rhythm ? 0.1 + 0.08 * rhythm.intensity : 0.35 + a.high * 0.3,
         halation: 0.2,
         grain: 0.035,
         vignette: 0.4,
         // 鼓点闪一下 + 轻微位移，这是"有劲儿"的来源
-        flash: a.kick * 0.05,
-        shake: [a.kick * 3, a.snare * 2],
+        flash: rhythm ? 0 : a.kick * 0.05,
+        shake: rhythm ? [0, 0] : [a.kick * 3, a.snare * 2],
         exposure: 1 + a.rms * 0.15,
       };
     },

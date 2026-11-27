@@ -1,0 +1,27 @@
+{
+  "name": "@ai-anim/remotion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ai-anim 的 Remotion 渲染子包：Composition 注册、旧引擎 WebGL 桥、音乐层、素材索引。仓库根 CLI 通过 npm workspace 调用。",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio index.ts --no-open",
+    "still": "remotion still index.ts",
+    "render": "remotion render index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.404",
+    "@remotion/media": "4.0.404",
+    "@remotion/media-utils": "4.0.404",
+    "@remotion/transitions": "4.0.404",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.404",
+    "zod": "3.24.4"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1"
+  }
+}

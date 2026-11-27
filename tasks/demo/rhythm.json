@@ -1,0 +1,6 @@
+[
+  { "t_start": 0, "t_end": 4, "intensity": 2, "info_density": 2, "resistance": 0.48, "attention_target": "single_anchor", "motion_grammar": "type_on", "sound_density": 0, "beat_role": "pressure" },
+  { "t_start": 4, "t_end": 9, "intensity": 3, "info_density": 4, "resistance": 0.77, "attention_target": "single_anchor", "motion_grammar": "bar_growth", "sound_density": 0, "beat_role": "hold" },
+  { "t_start": 9, "t_end": 13.65, "intensity": 5, "info_density": 2, "resistance": 0.2, "attention_target": "single_anchor", "motion_grammar": "warp_and_whip", "sound_density": 0, "beat_role": "release" },
+  { "t_start": 13.65, "t_end": 16.65, "intensity": 1, "info_density": 1, "resistance": 0.25, "attention_target": "single_anchor", "motion_grammar": "settle", "sound_density": 0, "beat_role": "residue" }
+]

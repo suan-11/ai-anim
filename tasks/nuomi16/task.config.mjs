@@ -1,5 +1,5 @@
 // 小糯米 · 第十六支：《才不是想你呢》 —— 配置档 B（只有这一个文件）
-// 人设来源：C:\Users\haoxu\Downloads\NekoHome\xiaonuomi\档案.md
+// 人设来源：本机 xiaonuomi/档案.md（不入仓库）
 // 纯代码动画，无图片/视频素材；数字是编的，尾巴是真的。
 export default {
   title: '才不是想你呢',

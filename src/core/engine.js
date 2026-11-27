@@ -21,6 +21,7 @@ import { P as DEFAULT_PALETTE } from './palette.js';
 import { Scene as SceneBase, frameSeed } from './scene.js';
 import { TextKit } from './text.js';
 import { makeNarration, makeNarrationReader } from './narration.js';
+import { rhythmFrameAt, validateRhythm } from './rhythm.js';
 import { makeCaptionLayer, resolveCaptionStyle } from './captions.js';
 import { SILENT } from './audio.js';
 import * as U from './util.js';
@@ -86,6 +87,8 @@ export class Engine {
     /** @type {Map<string, any>} */
     this.scenes = new Map();
     this.music = SILENT;
+    this.rhythm = null;
+    this.rhythmOffset = 0;
     this.lyrics = null;
     /**
      * 口播 / 旁白时间轴（`docs/NARRATION.md` A 档）。
@@ -190,12 +193,17 @@ export class Engine {
 
   /**
    * @param {{ timeline: TimelineItem[], music?: any, lyrics?: any, title?: string,
-   *           duration?: number, only?: string|null, worldPass?: any }} spec
+   *           duration?: number, only?: string|null, worldPass?: any, rhythm?: unknown,
+   *           attentionProfile?: string|null }} spec
    */
   async load(spec) {
     this.timeline = (spec.timeline ?? []).slice().sort((a, b) => a.start - b.start);
     this.renderErrors.length = 0;
     this.duration = spec.duration ?? Math.max(0, ...this.timeline.map((i) => i.end));
+    this.rhythm = spec.rhythm == null ? null : validateRhythm(spec.rhythm, { duration: this.duration });
+    this.rhythmOffset = 0;
+    // 注意力目标曲线档位（docs/BENCHMARK-WEIGHTED.md）：bit=深谷叙事（代码动画，缺省）/ aigen=高位保持
+    this.attentionProfile = spec.attentionProfile === 'aigen' ? 'aigen' : 'bit';
     this.music = spec.music ?? SILENT;
     this.lyrics = spec.lyrics ?? null;
     /**
@@ -295,7 +303,8 @@ export class Engine {
       }
       // 平移到 0 起点：段的相对先后与重叠保持不变
       const shift = Math.min(...this.timeline.map((i) => i.start));
-      for (const it of this.timeline) { it.start -= shift; it.end -= shift; }
+      this.rhythmOffset = shift;
+      this.timeline = this.timeline.map((it) => ({ ...it, start: it.start - shift, end: it.end - shift }));
       this.timeline.sort((a, b) => a.start - b.start);
       this.onlyDuration = Math.max(...this.timeline.map((i) => i.end));
       // 导出/预览都用这个时长；整片时长仍可从 task.duration 查到
@@ -482,6 +491,7 @@ export class Engine {
       idx,
       seed: frameSeed(idx),
       beat: 0, bar: 0, beatPhase: 0,
+      rhythm: this.rhythm ? rhythmFrameAt(this.rhythm.blocks, t + this.rhythmOffset) : null,
       preview: extras.preview ?? false,
       seeked: false,
       tin: extras.tin ?? 1,

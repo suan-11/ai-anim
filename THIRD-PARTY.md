@@ -6,10 +6,13 @@
 本文件列出仓库里**随附的第三方内容**（目前只有字体）及其许可，以及那些**容易被误会成第三方素材、
 但其实是本仓库自己生成的东西**。目标是：任何人 clone 下来，都能自己确认「哪些东西是谁的、按什么条件用」。
 
-> 一句话结论：**除字体外，仓库里没有第三方素材、没有第三方运行时依赖的代码副本。**
-> 唯一的第三方**代码/文档**是一个 MIT 许可的 skill 目录（`skills/motion-design/`，见 §2.1），
-> 已随目录带上 `LICENSE` 与 `NOTICE.md`。没有第三方图片、没有第三方音乐、没有第三方视频、
-> 没有第三方 3D 模型，也没有随仓库分发的浏览器。
+> 一句话结论：**第三方的只有「字体」「几条单音音效」「一个 MIT 的 skill 目录」和 npm 依赖清单。**
+> 具体的三类例外：
+> ① 字体（OFL-1.1，§1）；② `assets/sfx/` 里几条 SoundDino 单音（免费可商用，§3）；
+> ③ `skills/motion-design/`（MIT，§2.3）。
+> npm 依赖（含 **Remotion License**，不是 MIT，§2.2）不随仓库分发源码副本，`npm install` 时取得。
+> 没有第三方图片、没有第三方音乐、没有第三方视频、没有第三方 3D 模型，
+> 也没有随仓库分发的浏览器或 ffmpeg；`world.execute(me);` 的原曲**已从历史剥离**（§3 末）。
 
 ---
 
@@ -87,7 +90,10 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 
 ## 2. 运行时依赖
 
-`package.json` 的直接依赖共 4 个（版本取自 `package-lock.json`，锁定版本与下表一致）：
+依赖分两处：仓库根（旧引擎 / CLI）与子包 `packages/remotion/`（Remotion 渲染器）。
+版本取自 `package-lock.json`，锁定版本与下表一致。
+
+### 2.1 仓库根（`package.json`）
 
 | 包 | 版本 | 许可证 | 用途 |
 |---|---|---|---|
@@ -95,6 +101,28 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 | [`vite`](https://www.npmjs.com/package/vite) | 5.4.21 | MIT | 开发服务器与打包（CLI 渲染时会自己起一个**私有**的 Vite 服务） |
 | [`ws`](https://www.npmjs.com/package/ws) | 8.22.0 | MIT | CLI 与无头 Chrome 之间的 WebSocket 通道（推帧、收协议消息） |
 | [`playwright-core`](https://www.npmjs.com/package/playwright-core) | 1.63.0 | **Apache-2.0** | 驱动**用户自己安装的 Chrome**（`channel: 'chrome'`）逐帧截帧 |
+
+### 2.2 Remotion 子包（`packages/remotion/package.json`）
+
+| 包 | 版本 | 许可证 | 用途 |
+|---|---|---|---|
+| [`remotion`](https://www.npmjs.com/package/remotion) | 4.0.404 | **Remotion License**（见下） | 帧时钟 / Composition / Studio / 渲染器 |
+| [`@remotion/cli`](https://www.npmjs.com/package/@remotion/cli) | 4.0.404 | **Remotion License** | `remotion render` / `still` / `studio` |
+| [`@remotion/media`](https://www.npmjs.com/package/@remotion/media) | 4.0.404 | **Remotion License** | 帧驱动 `<Audio>`（音乐层 / 切点音效） |
+| [`@remotion/media-utils`](https://www.npmjs.com/package/@remotion/media-utils) | 4.0.404 | **Remotion License**（包内附 MIT 文本） | FFT 频谱（`visualizeAudio`）与音频时长 |
+| [`@remotion/transitions`](https://www.npmjs.com/package/@remotion/transitions) | 4.0.404 | **Remotion License** | `TransitionSeries` + wipe / slide / fade |
+| [`react`](https://www.npmjs.com/package/react) · [`react-dom`](https://www.npmjs.com/package/react-dom) | 18.3.1 | MIT | Remotion 的宿主运行时 |
+| [`zod`](https://www.npmjs.com/package/zod) | 3.24.4 | MIT | Composition 参数 schema（Studio Props 编辑器） |
+| `@types/react` · `@types/react-dom` | 18.3.x | MIT（DefinitelyTyped） | 仅类型 |
+
+> ### ⚠ 关于 Remotion 的许可（**不是** MIT）
+>
+> Remotion 用的是它自己的 **Remotion License**：**个人、以及不超过 3 人的公司免费**；
+> 超过这个规模需要向 [remotion.pro](https://www.remotion.pro/license) 购买公司许可。
+> 本仓库只把 Remotion 作为**可选渲染器**（`--renderer remotion`，默认仍是旧引擎），
+> 不随仓库分发 Remotion 的源码副本 —— 它只是 `package.json` 里的一条依赖，`npm install` 时取得。
+> **商用前请先自己确认这条许可**：`node_modules/remotion/README.md` 第一段就写着
+> “requires obtaining a company license in some cases”，并以 `LICENSE.md` 为准。
 
 关于 `playwright-core`：
 
@@ -114,7 +142,7 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 
 ---
 
-## 2.1 随附的第三方 skill（`skills/motion-design/`）
+### 2.3 随附的第三方 skill（`skills/motion-design/`）
 
 **这是仓库里唯一的第三方**文档/方法论**内容**（不是代码、不是素材）。**
 
@@ -144,12 +172,21 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 关于旁白：旁白是**按任务在本地合成**的产物。公开发布时，相关任务的语音轨**留在作者本地、不进仓库**，
 仓库里只保留生成它们的脚本与文本。因此**仓库不包含任何第三方语音素材**。
 
-**仓库不包含任何第三方图片、音乐、视频素材。** 具体地说：
+**仓库里有两类例外，都在这里点名：**
 
-- **没有位图素材** —— 仓库里被版本管理收录的图像文件只有 `docs/images/` 下那 **4 张 `.webp`**，
-  而它们是引擎渲染输出；除此之外**没有任何** png / jpg / svg / mp4 / glb / gif 被收录。
-- **没有第三方音乐**，没有音效库，没有采样包。
+| 内容 | 来源 | 许可 | 记账位置 |
+|---|---|---|---|
+| `assets/sfx/*.mp3`（切点音效） | [SoundDino](https://sounddino.com) 单个音效 | 站点 FAQ 声明**免费、可商用、无需署名** | `assets/sfx/catalog.json` 与 `assets/sfx/sfx.manifest.json`（id / title / source / license / sha1 逐条记） |
+| `public/nuomi21/`、`tasks/nekohome-intro-ja/assets/avatars/`、`assets/logos/` | 本仓库自己的角色立绘与品牌字标（自绘 / 自摄） | 与仓库同（MIT，见 `LICENSE`） | —— |
+
+具体地说：
+
+- **没有第三方位图素材** —— 除上表那几张自有立绘/字标，被版本管理收录的图像只有 `docs/images/` 下引擎渲染输出的 `.webp`。
+- **没有第三方音乐、采样包**；音效只有 `assets/sfx/` 里那几条 SoundDino 单音，used-by 见 `docs/SFX.md`。
 - **没有第三方 logo**，没有产品截图，没有游戏截图。
+- ⚠ **`tasks/world-execute-me/audio/track.mp3` 不随仓库分发**：那是 Mili《world.execute(me);》的原曲，
+  版权属原作者/唱片方，仓库里已从**历史中剥离**并写入 `.gitignore`；本地需要时自行取得后放回该路径。
+  `tasks/world-execute-me/` 里其余内容（场景代码、歌词时间轴、节奏表、分析结果）都是本仓库自己的产物。
 
 ---
 

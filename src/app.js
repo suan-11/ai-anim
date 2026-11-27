@@ -13,9 +13,9 @@
 import { Engine } from './core/engine.js';
 import { makePalette } from './core/palette.js';
 import { MusicData } from './core/audio.js';
-import { loadTaskList, loadTask } from './tasks.js';
+import { loadTaskList, loadTask, loadTaskRhythm } from './tasks.js';
 import { auditUnderRequires, declaredSelfBase, planWorldAudit, worldAuditVerdict } from './timeline.js';
-import { layoutVerdict, LAYOUT_LIMITS } from './layout.js';
+import { layoutVerdict, LAYOUT_LIMITS, resolveFocus } from './layout.js';
 import { DEFAULT_POST } from './core/post.js';
 import { listStyles } from './style/index.js';
 
@@ -282,6 +282,8 @@ async function boot() {
 
   await engine.load({
     timeline: task.timeline,
+    rhythm: await loadTaskRhythm(taskName),
+    attentionProfile: task.attentionProfile ?? null,
     music,
     lyrics,
     // 口播/旁白表（可选，docs/NARRATION.md A 档）：场景里读 ctx.narration / f.narration
@@ -557,7 +559,13 @@ const api = {
       onlyDuration: engine?.onlyDuration ?? 0,
       only: engine?.only ?? null,
       bpm: engine?.music?.bpm ?? 0,
-      timeline: (engine?.timeline ?? []).map((i) => ({ id: i.id, start: i.start, end: i.end, note: i.note ?? '' })),
+      timeline: (engine?.timeline ?? []).map((i) => ({
+        id: i.id, start: i.start, end: i.end, note: i.note ?? '',
+        state: i.state, transition: i.transition, params: { mode: i.params?.mode },
+      })),
+      rhythm: engine?.rhythm ?? null,
+      rhythmOffset: engine?.rhythmOffset ?? 0,
+      attentionProfile: engine?.attentionProfile ?? 'bit',
       errors: engine?.errors ?? [],
       /** 场景 render 抛的异常（结构化；P0-3 的机器判据用它） */
       renderErrors: engine?.renderErrors ?? [],
@@ -657,6 +665,32 @@ const api = {
       s += String.fromCharCode.apply(null, /** @type {any} */ (buf.subarray(i, i + CH)));
     }
     return { pixels: btoa(s), bytes: buf.length };
+  },
+
+  /** Rendered display pixels for the offline attention report. */
+  async attentionFrame(t, lag) {
+    const { measureAttention, reduceAttentionFrame } = await import('./core/attention.js');
+    const { w, h, pw, ph } = engine.gl;
+    const activeAt = (time) => engine.timeline.filter((item) => time >= item.start && time < item.end);
+    const active = activeAt(t);
+    const previousT = t - lag;
+    const previousItems = previousT < 0 ? [] : activeAt(previousT);
+    const read = async (time) => reduceAttentionFrame(await api.pixels(time, { samples: 1 }), pw, ph, { flipY: true });
+    // A different set of visible shots marks a cut or overlap boundary. Use spatial contrast there.
+    const previous = active.length && previousItems.length === active.length
+      && active.every((item, i) => previousItems[i] === item) ? await read(previousT) : null;
+    const frame = await read(t);
+    const item = active.length === 1 ? active[0] : null;
+    const rect = item ? resolveFocus(item.focus ?? item._scene?.focus, w, h) : null;
+    const focus = rect && { x: rect.x / w, y: rect.y / h, w: rect.w / w, h: rect.h / h };
+    const { heat, ...measured } = measureAttention(frame, { previous, focus });
+    // Embed only a reduced frame, so reports can be opened offline without image sidecars.
+    const thumb = new OffscreenCanvas(frame.width, frame.height);
+    thumb.getContext('2d').putImageData(new ImageData(frame.rgba, frame.width, frame.height), 0, 0);
+    const jpeg = await thumb.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
+    const preview = btoa(String.fromCharCode(...new Uint8Array(await jpeg.arrayBuffer())));
+    return { t, shots: active.map((shot) => shot.id), motionAvailable: previous !== null,
+      ...measured, heat: btoa(String.fromCharCode(...heat)), preview };
   },
 
   /**

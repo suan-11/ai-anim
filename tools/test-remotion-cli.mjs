@@ -1,0 +1,75 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import {
+  extractRenderer, nativeChunkRanges, overlapAwareChunkRanges, remotionCommand, remotionVideoName, videoFrameRange,
+} from '../scripts/lib/cli/remotion.mjs';
+
+assert.deepEqual(extractRenderer(['demo', '-t', '0']), { renderer: 'legacy', args: ['demo', '-t', '0'] });
+assert.deepEqual(extractRenderer(['--renderer', 'remotion', 'example-config-only']), {
+  renderer: 'remotion', args: ['example-config-only'],
+});
+assert.deepEqual(extractRenderer(['demo', '--renderer=legacy']), { renderer: 'legacy', args: ['demo'] });
+assert.throws(() => extractRenderer(['--renderer', '--draft']), /remotion 或 legacy/);
+assert.throws(() => extractRenderer(['--renderer=legacy', '--renderer=remotion']), /只能指定一次/);
+
+assert.ok(remotionCommand('still', 'remotion'));
+assert.ok(!remotionCommand('video', 'legacy'));
+assert.ok(!remotionCommand('queue', 'remotion'));
+assert.ok(!remotionCommand('qa', 'remotion', ['example-config-only', '--file', 'test.mp4']));
+assert.throws(() => remotionCommand('qa', 'remotion'), /--file 指定产物/);
+assert.throws(() => remotionCommand('verify', 'remotion'), /逐帧内容检查.*anim qa/);
+
+assert.deepEqual(videoFrameRange(3.45, 3.55, 60, 834), [207, 212]);
+assert.deepEqual(videoFrameRange(0, 13.9, 60, 834), [0, 833]);
+assert.throws(() => videoFrameRange(0, 0.001, 60, 834), /不足一帧/);
+assert.throws(() => videoFrameRange(12, 14, 60, 834), /影片内/);
+const segments = [0, 210, 474, 684].map((startFrame) => ({ startFrame }));
+assert.deepEqual(nativeChunkRanges(207, 212, 20, segments), [[207, 209], [210, 212]]);
+assert.deepEqual(nativeChunkRanges(207, 212, 2, segments), [[207, 208], [209, 209], [210, 211], [212, 212]]);
+
+const task = 'example-config-only';
+const full = { short: false, draft: false, from: 0, to: 13.9, duration: 13.9 };
+assert.equal(remotionVideoName(task, full), 'example-config-only.remotion.mp4');
+assert.equal(remotionVideoName(task, { ...full, draft: true }), 'example-config-only.remotion.draft.mp4');
+assert.equal(remotionVideoName(task, { ...full, from: 1, to: 2 }), 'example-config-only.remotion.1-2.mp4');
+assert.equal(remotionVideoName(task, { ...full, short: true, to: 4 }), 'shot_0-4.remotion.mp4');
+
+function rejects(args, reason) {
+  const result = spawnSync(process.execPath, ['scripts/anim.mjs', ...args], { encoding: 'utf8' });
+  assert.ifError(result.error);
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, reason);
+}
+
+rejects(['video', 'demo', '--renderer=remotion'], /未验证 Remotion 出片/);
+rejects(['video', task, '--renderer', 'remotion', '--only', 'title'], /暂不支持 --only/);
+rejects(['video', task, '--renderer', 'remotion', '--segments', '0'], /--segments.*正数秒数/);
+rejects(['video', task, '--renderer', 'remotion', '--force'], /--force 必须与 --segments/);
+
+// 交叠感知分块：切点绝不落在交叠窗内，覆盖完整无缝
+{
+  const segs = [
+    { id: 'hook', startFrame: 0, endFrame: 216 },
+    { id: 'bridge', startFrame: 202, endFrame: 389 },
+    { id: 'mechanism', startFrame: 374, endFrame: 662 },
+    { id: 'data', startFrame: 648, endFrame: 878 },
+    { id: 'close', startFrame: 864, endFrame: 1152 },
+  ];
+  const overlaps = [[202, 216], [374, 389], [648, 662], [864, 878]];
+  for (const size of [10, 24, 50, 240]) {
+    const chunks = overlapAwareChunkRanges(0, 1151, size, segs);
+    let expect = 0;
+    for (const [s, e] of chunks) {
+      assert.equal(s, expect, 'chunk gap');
+      expect = e + 1;
+      for (const [os, oe] of overlaps) {
+        assert.ok(!(expect > os && expect < oe), `cut ${expect} inside overlap [${os},${oe})`);
+      }
+    }
+    assert.equal(expect, 1152, 'full coverage');
+  }
+  // 硬切边界优先：example-config-only 四段全硬切
+  const hard = [{ startFrame: 0 }, { startFrame: 210 }, { startFrame: 474 }, { startFrame: 684 }];
+  assert.deepEqual(nativeChunkRanges(207, 212, 20, hard), [[207, 209], [210, 212]]);
+}
+console.log('test-remotion-cli: PASS（渲染器选择、兼容报错、切片区间、分块、交付命名、交叠避切）');

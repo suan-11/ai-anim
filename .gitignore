@@ -31,6 +31,8 @@ tasks/*/audio/*.wav
 # 旁白与混音轨是 TTS 产物（`anim say` / `anim mix`），体积大且可重建。
 tasks/*/audio/*-vo.mp3
 tasks/*/audio/*-mix.mp3
+# 版权曲目不随仓库分发：world.execute(me) 的原曲请在本地自行放入（见 tasks/world-execute-me/README.md）
+tasks/world-execute-me/audio/track.mp3
 tasks/*/audio/vo/
 
 # ⚠ **下面这三样必须入库，不要加进上面的规则里**：

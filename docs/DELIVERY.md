@@ -45,11 +45,12 @@ node scripts/anim.mjs qa <任务>       # 纯 ffmpeg 读数：解码 / 黑场 / 
 - **算出来的数**（模板串插值 / `.toFixed()` / `values` 里的变量）单列「没验」—— 要么登记口径，要么写占位符 `— figure —`；
 - 它**不进退出码**，所以「零命中」只能靠人看输出。
 
-### §10.11.5 / 11.5b 卡点的两种口径
+### §10.11.5 / 11.5b 节奏表与拍点
 
 | 片子类型 | 判据 | 命令 |
 |---|---|---|
-| 有旁白表（`audio/timing.json`） | 切点落在拍的 ±30ms 内（`--strict` 要求 ≥90%） | `check` 的「卡点」行 / `tools/lint-beat-align.mjs` |
+| 有节奏表（`rhythm.json`） | R1–R5 及 C4/C5，BPM 提供参考坐标 | `anim rhythm <任务> --strict` / `check` / `review` |
+| 有旁白表的按拍任务（`audio/timing.json`） | 切点落在拍的 ±30ms 内（`--strict` 要求 ≥90%） | `check` 的「卡点」行 / `tools/lint-beat-align.mjs` |
 | 纯音乐片子（无 `timing.json`） | 段首到**实测拍**的距离 | `tools/lint-cut-beats.mjs <任务> [--bar]` |
 | 歌词片 | 句首到**人声起音**（中位 ≤150ms / p90 ≤400ms） | `tools/lint-lyric-sync.mjs <任务>` |
 

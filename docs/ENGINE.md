@@ -200,6 +200,7 @@ export default {
 | `beat` | number | 连续拍号（来自 `music.beatAt(t)`；无音频时退化为 `t*2`） |
 | `bar` | number | `beat / 4` |
 | `beatPhase` | number | `beat - floor(beat)` |
+| `rhythm` | object / null | `rhythm.json` 的当前事件块，含块内 `elapsed`（秒）和 `progress`（0–1），详见 [节奏双轨 brief](BRIEF-rhythm-dual-track.md) §8 |
 | `fps` | number | 输出帧率 |
 | `idx` | number | 帧号 `floor(t*fps + 1e-6)`；**一帧内所有子帧共享同一个值** |
 | `seed` | number | `frameSeed(idx)`，0..99999 的确定性种子 |

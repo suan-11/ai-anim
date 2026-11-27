@@ -2,13 +2,15 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { opt } from "../lib/cli/args.mjs";
+import { flag, opt } from "../lib/cli/args.mjs";
 import { planBoard } from "../lib/cli/board.mjs";
 import { collectRenderErrors, reportErrors } from "../lib/cli/gates.mjs";
 import { log, warn } from "../lib/cli/log.mjs";
 import { ROOT, pickTask, taskOut } from "../lib/cli/paths.mjs";
 import { closeSession, getSession, openSession } from "../lib/cli/session.mjs";
 import { writeContactSheet } from "../lib/cli/sheet.mjs";
+import { rhythmReportLines, rhythmStructure } from "../lib/rhythm.mjs";
+import { attentionStep, attentionSummary, attentionVideoPath, collectAttention, writeAttentionReport } from "../lib/attention.mjs";
 
 /**
  * 找出下一轮 review 目录名（round-1, round-2, ...）。
@@ -40,6 +42,9 @@ async function cmdReview() {
   const samples = opt('samples', 'auto');
   const shutter = Number(opt('shutter', '0.5'));
   const scale = Number(opt('scale', '0')) || undefined;
+  const attentionInterval = flag('attention') ? attentionStep(opt('attention-step', undefined)) : null;
+  const videoPath = attentionInterval === null ? null
+    : attentionVideoPath(ROOT, opt('video', undefined), only ? null : taskOut(task, `${task}.mp4`));
 
   const reviewRoot = path.resolve(ROOT, taskOut(task, 'review'));
   const roundNum = nextRoundNum(reviewRoot, opt('round', null));
@@ -52,11 +57,17 @@ async function cmdReview() {
   /** @type {{ t: number, label: string, file: string }[]} */
   const cutRows = [];
   let boardFile = null;
+  let rhythmNotes = [];
+  let attention = null;
   let renderErrorCount = 0;
 
   await openSession({ task, scale, only });
   try {
     const info = getSession().info;
+    if (info.rhythm) {
+      rhythmNotes = rhythmReportLines(info.rhythm);
+      if (!only) rhythmNotes.push(...rhythmStructure(info.timeline).lines);
+    }
     const timeline = info.timeline ?? [];
     if (!timeline.length) {
       warn('时间线为空，无法生成评审包');
@@ -120,7 +131,11 @@ async function cmdReview() {
       log('  · cuts：无内部切点，已跳过');
     }
 
-    reportErrors(getSession().info);
+    const loadErrors = reportErrors(info);
+    if (attentionInterval !== null && !loadErrors.length) {
+      log('  · 采集注意力曲线');
+      attention = await collectAttention(getSession(), { task, step: attentionInterval });
+    }
     const rerr = await collectRenderErrors({ take: false });
     renderErrorCount = rerr.count;
     if (rerr.count) {
@@ -131,6 +146,7 @@ async function cmdReview() {
   } finally {
     await closeSession();
   }
+  if (attention && !renderErrorCount) writeAttentionReport(path.join(outDir, 'attention'), attention, { videoPath });
 
   // 4) 跑 lint-craft --json --stills
   const craftArgs = [path.join(ROOT, 'tools', 'lint-craft.mjs'), task, '--stills', framesDir, '--json'];
@@ -166,6 +182,12 @@ async function cmdReview() {
   lines.push(`- **范围**：${only ? `--only ${only}` : '全片'}（${segRows.length} 段 · samples=${samples}）`);
   lines.push(`- **渲染异常帧**：${renderErrorCount}`);
   lines.push(`- **事件密度**：${densityNote}`);
+  for (const note of rhythmNotes) lines.push(`- ${note}`);
+  if (attentionInterval !== null) {
+    lines.push(attention && !renderErrorCount
+      ? `- 注意力曲线 · ${attentionSummary(attention)} · [曲线与热图](attention/attention.html) · [JSON](attention/attention.json)`
+      : '- 注意力曲线未生成（场景装载或渲染异常）');
+  }
   lines.push('');
   lines.push('## 一、图片路径表（审查者必须用 Read 逐张看图）');
   lines.push('');

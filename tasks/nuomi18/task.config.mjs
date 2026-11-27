@@ -1,5 +1,5 @@
 // 小糯米 · 第十八支：《第 9 条命》
-// 人设来源：C:\Users\haoxu\Downloads\NekoHome\xiaonuomi\档案.md
+// 人设来源：本机 xiaonuomi/档案.md（不入仓库）
 // 猎奇/怪谈向：猫娘九条命，八条已丢失，第九条正在看着你。纯代码动画，无真实伤害。
 export default {
   title: '第 9 条命',

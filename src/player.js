@@ -20,7 +20,7 @@ function fmt(x) {
 }
 
 export async function mountFilm(o) {
-  const { cfg, styleResolved, music = null, audioUrl = '', title = '', duration } = o;
+  const { cfg, styleResolved, music = null, audioUrl = '', title = '', duration, rhythm = null } = o;
   const W = cfg.width ?? 1920, H = cfg.height ?? 1080, fps = cfg.fps ?? 60;
   const root = document.getElementById('film');
   root.innerHTML = [
@@ -56,6 +56,7 @@ export async function mountFilm(o) {
   const segs = build(cfg.timeline, { bpm: music?.bpm ?? 120, duration });
   await engine.load({
     timeline: segs,
+    rhythm,
     music,
     title: cfg.title ?? title,
     duration,

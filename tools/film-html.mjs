@@ -17,6 +17,7 @@ import { build } from 'esbuild';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readRhythmSource } from '../scripts/lib/rhythm.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -95,7 +96,9 @@ if (analysisFile) lines.push("import analysis from '" + rel(analysisFile) + "';"
 lines.push('');
 lines.push('const styleResolved = resolveStyle(cfg);');
 lines.push('const music = ' + (analysisFile ? 'new MusicData(analysis, { url: ' + JSON.stringify(path.basename(audioRel ?? '')) + ' })' : 'null') + ';');
-lines.push('mountFilm({ cfg, styleResolved, music, audioUrl: ' + audioExpr + ', title: ' + JSON.stringify(cfg.title ?? task) + ' });');
+const rhythmSource = readRhythmSource(dir);
+lines.push('mountFilm({ cfg, styleResolved, music, audioUrl: ' + audioExpr + ', title: ' + JSON.stringify(cfg.title ?? task)
+  + ', rhythm: ' + JSON.stringify(rhythmSource) + ' });');
 writeFileSync(entry, lines.join('\n') + '\n');
 
 const res = await build({

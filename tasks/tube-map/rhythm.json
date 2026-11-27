@@ -1,0 +1,134 @@
+[
+  {
+    "t_start": 0,
+    "t_end": 3.5,
+    "intensity": 4,
+    "info_density": 2,
+    "resistance": 0.4,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "pressure"
+  },
+  {
+    "t_start": 3.5,
+    "t_end": 8,
+    "intensity": 3,
+    "info_density": 2,
+    "resistance": 0.5,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 8,
+    "t_end": 13,
+    "intensity": 2,
+    "info_density": 3,
+    "resistance": 0.6,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "pressure"
+  },
+  {
+    "t_start": 13,
+    "t_end": 17.5,
+    "intensity": 3,
+    "info_density": 3,
+    "resistance": 0.65,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 17.5,
+    "t_end": 23,
+    "intensity": 4,
+    "info_density": 4,
+    "resistance": 0.3,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "release"
+  },
+  {
+    "t_start": 23,
+    "t_end": 28,
+    "intensity": 3,
+    "info_density": 3,
+    "resistance": 0.65,
+    "attention_target": "single_anchor",
+    "motion_grammar": "build_to_peak",
+    "sound_density": 0.4,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 28,
+    "t_end": 34,
+    "intensity": 5,
+    "info_density": 4,
+    "resistance": 0.2,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "release"
+  },
+  {
+    "t_start": 34,
+    "t_end": 40,
+    "intensity": 3,
+    "info_density": 3,
+    "resistance": 0.35,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "hold"
+  },
+  {
+    "t_start": 40,
+    "t_end": 46,
+    "intensity": 2,
+    "info_density": 2,
+    "resistance": 0.3,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "residue"
+  },
+  {
+    "t_start": 46,
+    "t_end": 52,
+    "intensity": 1,
+    "info_density": 2,
+    "resistance": 0.3,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "residue"
+  },
+  {
+    "t_start": 52,
+    "t_end": 57,
+    "intensity": 2,
+    "info_density": 2,
+    "resistance": 0.28,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "residue"
+  },
+  {
+    "t_start": 57,
+    "t_end": 61.2,
+    "intensity": 1,
+    "info_density": 1,
+    "resistance": 0.25,
+    "attention_target": "single_anchor",
+    "motion_grammar": "cinematic",
+    "sound_density": 0.4,
+    "beat_role": "residue"
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/engine/cjk": [
+        "stubs/cjk.d.ts"
+      ],
+      "@/engine/narration": [
+        "stubs/narration.d.ts"
+      ],
+      "@/engine/timeline": [
+        "stubs/timeline.d.ts"
+      ],
+      "@/engine/util": [
+        "stubs/util.d.ts"
+      ],
+      "@/engine/style": [
+        "stubs/style.d.ts"
+      ],
+      "@/engine/engine": [
+        "stubs/engine.d.ts"
+      ],
+      "@/engine/palette": [
+        "stubs/palette.d.ts"
+      ],
+      "@/engine/audio": [
+        "stubs/audio.d.ts"
+      ],
+      "@/rm/timeline": [
+        "stubs/timeline-mjs.d.ts"
+      ],
+      "@/rm/task-eval": [
+        "stubs/task-eval.d.ts"
+      ],
+      "@/tasks/example-config-only": [
+        "stubs/task-config.d.ts"
+      ],
+      "@/tasks/nekohome-intro-ja": [
+        "stubs/ja-config.d.ts"
+      ],
+      "@/tasks/paperfold": [
+        "stubs/paperfold-config.d.ts"
+      ],
+      "@/tasks/world-execute-me": [
+        "stubs/wem-config.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "index.ts",
+    "Root.tsx",
+    "audio-assets.ts",
+    "media-assets.ts",
+    "image-manifest.ts",
+    "schemas.ts",
+    "assets.d.ts",
+    "audio/MusicLayer.tsx",
+    "audio/AudioVisual.tsx",
+    "shots/common.ts",
+    "shots/TitleShot.tsx",
+    "shots/ChartShot.tsx",
+    "shots/KineticShot.tsx",
+    "shots/OutroShot.tsx",
+    "shots/NekohomeJaVerify.tsx",
+    "shots/EngineBridge.tsx",
+    "shots/ImageLayer.tsx",
+    "shots/SegmentTransitions.tsx",
+    "shots/KaraokeCaption.tsx",
+    "shots/PostFx.tsx",
+    "remotion.config.ts",
+    "shots/SegmentTransitions.tsx"
+  ]
+}
