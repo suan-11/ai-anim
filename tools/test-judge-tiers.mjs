@@ -31,6 +31,8 @@ ok(CHECK_TIERS['background.missing'] === 'floor', '背景守门没铺底 = floor
 ok(CHECK_TIERS['beat.align'] === 'reflex', '卡点 = reflex（--strict 才当门）');
 ok(CHECK_TIERS['audio.loudness'] === 'finish', '响度 = finish（只报读数）');
 ok(CHECK_TIERS['waiver.unrecorded.background'] === 'reflex', '无痕豁免 = reflex（可豁免，但要有留痕）');
+ok(CHECK_TIERS['remotion.render-error'] === 'floor' && CHECK_TIERS['remotion.black'] === 'floor' && CHECK_TIERS['remotion.mismatch'] === 'floor', 'Remotion 渲染/黑帧/不一致 = floor');
+ok(CHECK_TIERS['remotion.flat'] === 'reflex', 'Remotion 纯平 = reflex');
 ok(TIER_LEGEND.includes('floor') && TIER_LEGEND.includes('--strict') && TIER_LEGEND.includes('finish'), '分层脚注把三层的门说清楚');
 {
   const r = summarizeCheckFindings([

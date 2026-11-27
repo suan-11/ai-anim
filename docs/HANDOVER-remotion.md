@@ -1,6 +1,6 @@
 # ai-anim 迁移到 Remotion · 计划与交接
 
-更新于 2026-11-24。原生样片、日配音画标定、`paperfold` 局部 WebGL 和原生 CLI 路径已完成实机验收。当前通过 `--renderer remotion` 显式出片，整库默认切换仍有验收项。
+更新于 2026-11-27。已完成全部迁移收尾与全面切换：`registry.json` + `bridges.generated.tsx` 单一登记、`nekohome-intro-ja` 切换为真实镜头桥、修复 `Compositor` `mode` uniform 类型缺陷与 `EngineBridge` 初始化/内联旁白/缓存键隐患、`check`/`review`/`verify`/`qa` 全面接入 Remotion、`npm run dev` 切换为 Remotion Studio（旧预览保留 `npm run dev:legacy`）、`anim new` 自动登记、已登记任务默认走 Remotion（未登记旧任务与带 `--only`/`--variant`/`--gpu` 等选项时自动回退旧引擎）。
 
 ## 本轮派工与汇合顺序
 
@@ -28,7 +28,7 @@ node scripts/anim.mjs video example-config-only --renderer remotion --draft --fr
 node scripts/anim.mjs qa example-config-only --renderer remotion --file out/example-config-only/example-config-only.remotion.draft.3.45-3.55.mp4 --audio none --strict
 ```
 
-默认切换前要补齐实际日配镜头、含音轨的分块续渲，以及 Remotion 的 `check`、`review`、`verify`。`paperfold` 整片还要复核旧共享合成器的 `mode` uniform 类型告警。当前 `npm run dev` 使用旧预览，`npm run studio` 打开已登记的 Composition。AstrBot 的本地验证通过测试桩对子进程注入选路，聊天参数白名单仍由插件接收现有选项。
+默认切换已于 2026-11-27 落地：`nekohome-intro-ja` 已接入真实镜头桥 `Task-nekohome-intro-ja`（`NekohomeJaVerify` 保留用于 Studio 音画标定），`check` / `review` / `verify` / `qa` 均已接入 Remotion（编程式 `bundle + openBrowser + renderStill`），`Compositor` 的 `uniform float mode` 已修复。新增或移除登记任务运行 `node tools/gen-remotion-registry.mjs`（CI 守门 `--check`）。
 
 完整样片的技术 QA 使用明确口径。原生样片的整段暗色片尾计入 `--tail 2.5`，日配标定画面的静帧以 `--freeze 5` 复核。两者在默认阈值下各有预期告警，日配标定片仅用来验音画同步。
 

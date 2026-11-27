@@ -4,9 +4,13 @@ import path from "node:path";
 import { flag, opt } from "../lib/cli/args.mjs";
 import { resolveAudioTracks } from "../lib/cli/audio.mjs";
 import { checkVerdictLine, collectRenderErrors, firstLine, focusReading, formatSkipped, pushSkipped, reportErrors } from "../lib/cli/gates.mjs";
-import { log, warn } from "../lib/cli/log.mjs";
+import { die, log, warn } from "../lib/cli/log.mjs";
 import { checkFfmpeg } from "../lib/cli/media.mjs";
 import { ROOT, pickTask, taskOut } from "../lib/cli/paths.mjs";
+import { decodePngRgba, flipRows, frameLumaStats, pixelDiff } from "../lib/cli/frame-diff.mjs";
+import { getRegisteredTask } from "../lib/cli/remotion.mjs";
+import { openRemotionSession } from "../lib/cli/remotion-api.mjs";
+import { evaluateRegisteredTask } from "../lib/remotion-registry.mjs";
 import { closeSession, evaluateSafe, getSession, openSession } from "../lib/cli/session.mjs";
 import { writeContactSheet } from "../lib/cli/sheet.mjs";
 import { blankJsComments as sharedBlankJsComments } from "../lib/js-source.mjs";
@@ -366,8 +370,16 @@ function shotDependencyFacts(task) {
  * 每个点渲两次：单子帧与多子帧（成片走的路径）。两条路径的亮度必须一致 ——
  * 运动模糊求平均出过错，而那个 bug 只存在于多子帧那条路。
  */
-async function cmdCheck() {
+async function cmdCheck(opts = {}) {
+  const renderer = opts.renderer ?? 'legacy';
   const task = pickTask();
+  let remMeta = null;
+  if (renderer === 'remotion') {
+    if (opt('only', null) || opt('variant', null) || opt('style', null)) {
+      die('Remotion 的 check 暂不支持 --only / --variant / --style。请改用 --renderer legacy。');
+    }
+    ({ meta: remMeta } = getRegisteredTask(task));
+  }
   const taskRhythm = readTaskRhythm(task);
   log(`检查任务 ${task} …`);
 
@@ -1034,6 +1046,14 @@ async function cmdCheck() {
   }
 
   // 2) 试渲染每一段的三个采样点（有 GPU 就能立刻抓到 shader 编译错误和 NaN）
+  const quick = flag('quick');
+  const errs = [...staticErrs, ...depErrs];
+  const remSamples = [];
+  let remEval = null;
+  let remScale = 1;
+  if (renderer === 'remotion' && remMeta) {
+    remEval = await evaluateRegisteredTask(task, remMeta);
+  }
   await openSession({ task, only: opt('only', undefined) });
   try {
     const info = getSession().info;
@@ -1049,7 +1069,7 @@ async function cmdCheck() {
     if (reported.length) finding('timeline.error', reported.length + ' 条');
     if (info.gaps?.length) finding('timeline.gap', info.gaps.length + ' 处空档');
     if (depErrs.length) finding('shot.missing-audio', depErrs.length + ' 条');
-    const errs = [...staticErrs, ...depErrs, ...reported];
+    errs.push(...reported);
     if (taskRhythm) {
       const report = info.rhythm ?? taskRhythm;
       for (const line of rhythmReportLines(report)) log('  · ' + line);
@@ -1071,7 +1091,6 @@ async function cmdCheck() {
     // `--quick` 的判据要在这之前就知道（响度那一档、试渲染那一档都用它）。
     // ⚠ 它只是**冒烟**：每段只采 50% 一个点、只跑单子帧、响度只量前 60 秒 ——
     //   不看多子帧路径、不看入场头 1 秒。结论行里会写清"哪些没跑"。
-    const quick = flag('quick');
     // 音轨：说清"节拍是从哪条轨测的"（P1-4 —— 从混音里测会被旁白带偏）
     const tracks = resolveAudioTracks(task);
     if (tracks.analysisSource) log(`音频：${tracks.note}`);
@@ -1759,6 +1778,91 @@ async function cmdCheck() {
       for (const l of getSession().consoleLog.slice(0, 15)) warn('  ' + l);
     }
 
+    // Remotion 桥接校验前先收集旧引擎同帧基准像素（之后关掉旧 Chrome 再开 Remotion Chrome，避免争抢 GPU）
+    if (renderer === 'remotion' && remMeta && remEval) {
+      remScale = info.scale || 1;
+      const rw = Math.round(remEval.width * remScale);
+      const rh = Math.round(remEval.height * remScale);
+      for (const seg of remEval.segments) {
+        const startSec = seg.startSec ?? (seg.startFrame / remEval.fps);
+        const endSec = seg.endSec ?? (seg.endFrame / remEval.fps);
+        const dur = Math.max(0, endSec - startSec);
+        for (const k of (quick ? [0.5] : [0.15, 0.5, 0.85])) {
+          const t = startSec + dur * k;
+          const frame = Math.min(remEval.durationInFrames - 1, Math.round(t * remEval.fps));
+          const refT = frame / remEval.fps;
+          let legacyRgba = null;
+          if (remMeta.kind !== 'native') {
+            const r = await evaluateSafe(
+              (tt) => /** @type {any} */ (window).__anim.framePixels(tt, { samples: 1 }),
+              refT,
+              `remotion-ref framePixels(t=${refT.toFixed(3)}s)`,
+            );
+            legacyRgba = flipRows(Buffer.from(r.pixels, 'base64'), rw, rh);
+          }
+          remSamples.push({ segId: seg.id, frame, refT, legacyRgba });
+        }
+      }
+    }
+  } finally { await closeSession(); }
+
+  if (renderer === 'remotion' && remMeta && remEval) {
+    log(`\nRemotion 渲染检验（${remMeta.composition} · ${remSamples.length} 个采样点）…`);
+    const tol = Number(opt('tol', '6'));
+    if (!Number.isFinite(tol) || tol <= 0) die(`--tol 要给正数（收到 ${opt('tol', '')}）`);
+    const remProps = remMeta.eval === 'config-only' ? {} : { samples: 1 };
+    const remSession = await openRemotionSession({
+      compositionId: remMeta.composition,
+      inputProps: remProps,
+    });
+    try {
+      const rw = Math.round(remEval.width * remScale);
+      const rh = Math.round(remEval.height * remScale);
+      for (const s of remSamples) {
+        try {
+          const { buffer } = await remSession.renderFrame({ frame: s.frame, scale: remScale, output: null });
+          if (!buffer || !buffer.length) throw new Error('渲染返回空 PNG');
+          const rgba = await decodePngRgba(buffer, rw, rh);
+          const stats = frameLumaStats(rgba);
+          let msg = `  ${String(s.segId).padEnd(14)} f=${String(s.frame).padStart(5)} (t=${s.refT.toFixed(2)}s)  亮度 ${stats.mean.toFixed(3)} · σ ${stats.stdDev.toFixed(3)}`;
+          if (stats.mean < 0.004) {
+            finding('remotion.black', `[${s.segId}] f=${s.frame} mean=${stats.mean.toFixed(4)}`);
+            warn(`${msg}  ← 几乎全黑`);
+            errs.push(`[Remotion 黑帧] ${s.segId} f=${s.frame} (mean=${stats.mean.toFixed(4)})`);
+            continue;
+          }
+          if (stats.stdDev < 0.005) {
+            finding('remotion.flat', `[${s.segId}] f=${s.frame} stdDev=${stats.stdDev.toFixed(4)}`);
+            warn(`${msg}  ← 画面几乎纯平`);
+            if (strict) errs.push(`[Remotion 纯平] ${s.segId} f=${s.frame} (stdDev=${stats.stdDev.toFixed(4)})`);
+          }
+          if (s.legacyRgba) {
+            const d = pixelDiff(rgba, s.legacyRgba);
+            const ok = d.mean < tol;
+            msg += `  ↔ 旧引擎 mean ${d.mean.toFixed(2)} max ${d.max} >16 ${(d.over16 * 100).toFixed(2)}% >64 ${(d.over64 * 100).toFixed(2)}%  ${ok ? '✓' : '✗'}`;
+            log(msg);
+            if (!ok) {
+              finding('remotion.mismatch', `[${s.segId}] f=${s.frame} mean=${d.mean.toFixed(2)}`);
+              errs.push(`[Remotion↔旧引擎不一致] ${s.segId} f=${s.frame} mean=${d.mean.toFixed(2)} >= ${tol}`);
+            }
+          } else {
+            log(msg);
+          }
+        } catch (err) {
+          const why = firstLine(err);
+          finding('remotion.render-error', `[${s.segId}] f=${s.frame}: ${why}`);
+          warn(`  ${String(s.segId).padEnd(14)} f=${String(s.frame).padStart(5)}  ✗ 渲染失败：${why}`);
+          errs.push(`[Remotion 渲染失败] ${s.segId} f=${s.frame}：${why}`);
+        }
+      }
+      if (remMeta.kind === 'native') {
+        pushSkipped(skipped, 'Remotion↔旧引擎逐像素比对', '原生 React Composition 与旧引擎视觉有意不同，跳过比对');
+      }
+    } finally {
+      await remSession.close();
+    }
+  }
+
     /**
      * 「空 ≠ 干净」（`docs/BACKLOG.md` 1-19）：把**没跑成 / 被跳过 / 不可用**的审计
      * 明明白白列出来，并且写进结论行。这一段永远出现（哪怕是 `skipped: 无`）——
@@ -1817,7 +1921,6 @@ async function cmdCheck() {
         ? '（--quick：**只验了单子帧**这一条路径 —— 多子帧（成片真正走的那条）与入场头 1 秒这次都没看，交付前请去掉 --quick 再跑一次）'
         : '（单子帧与多子帧两条路径都验过了）'}`);
     }
-  } finally { await closeSession(); }
 }
 
 /** 扫描场景源码里的非确定性写法。 */

@@ -4,9 +4,10 @@ import path from "node:path";
 import { positional } from "../lib/cli/args.mjs";
 import { die, log } from "../lib/cli/log.mjs";
 import { ROOT } from "../lib/cli/paths.mjs";
+import { registerTask } from "../lib/remotion-registry.mjs";
 /* ------------------------------------------------------------------ 命令：new */
 
-function cmdNew() {
+async function cmdNew() {
   const name = positional(0);
   if (!name) die('用法：node scripts/anim.mjs new <任务名>');
   if (!/^[\w.-]+$/.test(name)) die('任务名只能用字母数字下划线短横线点');
@@ -216,10 +217,11 @@ export default {
 };
 `);
 
-  log(`✓ 建好了 tasks/${name}/`);
+  const reg = await registerTask(name);
+  log(`✓ 建好了 tasks/${name}/（已登记 Remotion：${reg.entry.composition}）`);
   log('  下一步：');
-  log(`    npm run still -- ${name} -t 1,2.5        出几帧看看`);
-  log(`    npm run dev                              浏览器里实时预览`);
+  log(`    npm run still -- ${name} -t 1,2.5        出几帧看看（默认 Remotion，回旧引擎加 --renderer legacy）`);
+  log(`    npm run dev                              Remotion Studio 实时预览（旧预览用 npm run dev:legacy）`);
   log(`    npm run video -- ${name}                 渲染成片`);
 }
 export { cmdNew as run };

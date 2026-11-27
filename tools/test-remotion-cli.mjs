@@ -3,21 +3,67 @@ import { spawnSync } from 'node:child_process';
 import {
   extractRenderer, nativeChunkRanges, overlapAwareChunkRanges, remotionCommand, remotionVideoName, videoFrameRange,
 } from '../scripts/lib/cli/remotion.mjs';
+import { peekTaskName, resolveRenderer } from '../scripts/lib/cli/renderer.mjs';
+import { readRegistry } from '../scripts/lib/remotion-registry.mjs';
 
-assert.deepEqual(extractRenderer(['demo', '-t', '0']), { renderer: 'legacy', args: ['demo', '-t', '0'] });
+assert.deepEqual(extractRenderer(['demo', '-t', '0']), { renderer: null, explicit: false, args: ['demo', '-t', '0'] });
 assert.deepEqual(extractRenderer(['--renderer', 'remotion', 'example-config-only']), {
-  renderer: 'remotion', args: ['example-config-only'],
+  renderer: 'remotion', explicit: true, args: ['example-config-only'],
 });
-assert.deepEqual(extractRenderer(['demo', '--renderer=legacy']), { renderer: 'legacy', args: ['demo'] });
+assert.deepEqual(extractRenderer(['demo', '--renderer=legacy']), { renderer: 'legacy', explicit: true, args: ['demo'] });
 assert.throws(() => extractRenderer(['--renderer', '--draft']), /remotion 或 legacy/);
 assert.throws(() => extractRenderer(['--renderer=legacy', '--renderer=remotion']), /只能指定一次/);
 
 assert.ok(remotionCommand('still', 'remotion'));
+assert.ok(remotionCommand('check', 'remotion'));
+assert.ok(remotionCommand('review', 'remotion'));
+assert.ok(remotionCommand('verify', 'remotion'));
+assert.ok(remotionCommand('qa', 'remotion'));
 assert.ok(!remotionCommand('video', 'legacy'));
 assert.ok(!remotionCommand('queue', 'remotion'));
-assert.ok(!remotionCommand('qa', 'remotion', ['example-config-only', '--file', 'test.mp4']));
-assert.throws(() => remotionCommand('qa', 'remotion'), /--file 指定产物/);
-assert.throws(() => remotionCommand('verify', 'remotion'), /逐帧内容检查.*anim qa/);
+assert.throws(() => remotionCommand('sheet', 'remotion'), /暂不支持 --renderer remotion/);
+
+// 选路优先级与自动回退
+const registry = readRegistry();
+assert.equal(peekTaskName(['-t', '1,2', 'paperfold']), 'paperfold');
+assert.equal(peekTaskName(['--segments', '10', 'nekohome-intro-ja']), 'nekohome-intro-ja');
+assert.equal(peekTaskName(['--sheet', 'paperfold', '--quick']), 'paperfold');
+
+for (const regTask of ['example-config-only', 'nekohome-intro-ja', 'paperfold', 'world-execute-me']) {
+  for (const cmd of ['still', 'shot', 'video', 'check', 'review', 'verify', 'qa']) {
+    const r = resolveRenderer(cmd, [regTask], { registry, env: {} });
+    assert.equal(r.renderer, 'remotion', `${regTask} ${cmd} 默认应走 remotion`);
+    assert.equal(r.source, 'auto');
+  }
+}
+assert.equal(resolveRenderer('video', ['demo'], { registry, env: {} }).renderer, 'legacy');
+assert.equal(resolveRenderer('sheet', ['example-config-only'], { registry, env: {} }).renderer, 'legacy');
+
+// 优先级：--renderer > ANIM_RENDERER > auto
+{
+  const r = resolveRenderer('video', ['paperfold', '--renderer', 'legacy'], { registry, env: { ANIM_RENDERER: 'remotion' } });
+  assert.equal(r.renderer, 'legacy');
+  assert.equal(r.source, 'flag');
+}
+{
+  const r = resolveRenderer('video', ['demo'], { registry, env: { ANIM_RENDERER: 'remotion' } });
+  assert.equal(r.renderer, 'remotion');
+  assert.equal(r.source, 'env');
+}
+assert.throws(() => resolveRenderer('video', ['demo'], { registry, env: { ANIM_RENDERER: 'invalid' } }), /ANIM_RENDERER/);
+
+// 自动回退 legacy
+{
+  const r1 = resolveRenderer('check', ['paperfold', '--only', 'hook'], { registry, env: {} });
+  assert.equal(r1.renderer, 'legacy');
+  assert.equal(r1.source, 'auto-fallback');
+  assert.equal(r1.fallbackFlag, '--only');
+
+  const r2 = resolveRenderer('video', ['paperfold', '--gpu', 'high'], { registry, env: {} });
+  assert.equal(r2.renderer, 'legacy');
+  assert.equal(r2.source, 'auto-fallback');
+  assert.equal(r2.fallbackFlag, '--gpu');
+}
 
 assert.deepEqual(videoFrameRange(3.45, 3.55, 60, 834), [207, 212]);
 assert.deepEqual(videoFrameRange(0, 13.9, 60, 834), [0, 833]);
@@ -43,6 +89,7 @@ function rejects(args, reason) {
 
 rejects(['video', 'demo', '--renderer=remotion'], /未验证 Remotion 出片/);
 rejects(['video', task, '--renderer', 'remotion', '--only', 'title'], /暂不支持 --only/);
+rejects(['check', task, '--renderer', 'remotion', '--only', 'hook'], /暂不支持 --only/);
 rejects(['video', task, '--renderer', 'remotion', '--segments', '0'], /--segments.*正数秒数/);
 rejects(['video', task, '--renderer', 'remotion', '--force'], /--force 必须与 --segments/);
 
@@ -72,4 +119,4 @@ rejects(['video', task, '--renderer', 'remotion', '--force'], /--force 必须与
   const hard = [{ startFrame: 0 }, { startFrame: 210 }, { startFrame: 474 }, { startFrame: 684 }];
   assert.deepEqual(nativeChunkRanges(207, 212, 20, hard), [[207, 209], [210, 212]]);
 }
-console.log('test-remotion-cli: PASS（渲染器选择、兼容报错、切片区间、分块、交付命名、交叠避切）');
+console.log('test-remotion-cli: PASS（渲染器选择、默认选路、自动回退、兼容报错、切片区间、分块、交付命名、交叠避切）');

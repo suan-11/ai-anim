@@ -1,15 +1,19 @@
 // @ts-check
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { flag, opt } from "../lib/cli/args.mjs";
 import { planBoard } from "../lib/cli/board.mjs";
+import { makeTileSheet } from "../lib/cli/frame-diff.mjs";
 import { collectRenderErrors, reportErrors } from "../lib/cli/gates.mjs";
-import { log, warn } from "../lib/cli/log.mjs";
+import { die, log, warn } from "../lib/cli/log.mjs";
 import { ROOT, pickTask, taskOut } from "../lib/cli/paths.mjs";
+import { getRegisteredTask } from "../lib/cli/remotion.mjs";
+import { openRemotionSession } from "../lib/cli/remotion-api.mjs";
 import { closeSession, getSession, openSession } from "../lib/cli/session.mjs";
 import { writeContactSheet } from "../lib/cli/sheet.mjs";
-import { rhythmReportLines, rhythmStructure } from "../lib/rhythm.mjs";
+import { evaluateRegisteredTask } from "../lib/remotion-registry.mjs";
+import { readTaskRhythm, rhythmReportLines, rhythmStructure } from "../lib/rhythm.mjs";
 import { attentionStep, attentionSummary, attentionVideoPath, collectAttention, writeAttentionReport } from "../lib/attention.mjs";
 
 /**
@@ -36,15 +40,17 @@ function nextRoundNum(reviewRoot, explicit) {
  *   3. lint-craft --json --stills 读数 + 可选事件密度读数
  *   4. index.md：图片路径表 + 机器读数 + 8 维空白评分表 + 已填好路径的审查者派单模板
  */
-async function cmdReview() {
+async function cmdReview(opts = {}) {
+  const renderer = opts.renderer ?? 'legacy';
   const task = pickTask();
   const only = opt('only', undefined);
   const samples = opt('samples', 'auto');
   const shutter = Number(opt('shutter', '0.5'));
   const scale = Number(opt('scale', '0')) || undefined;
   const attentionInterval = flag('attention') ? attentionStep(opt('attention-step', undefined)) : null;
+  const defaultAttVid = renderer === 'remotion' ? `${task}.remotion.mp4` : `${task}.mp4`;
   const videoPath = attentionInterval === null ? null
-    : attentionVideoPath(ROOT, opt('video', undefined), only ? null : taskOut(task, `${task}.mp4`));
+    : attentionVideoPath(ROOT, opt('video', undefined), only ? null : taskOut(task, defaultAttVid));
 
   const reviewRoot = path.resolve(ROOT, taskOut(task, 'review'));
   const roundNum = nextRoundNum(reviewRoot, opt('round', null));
@@ -61,90 +67,214 @@ async function cmdReview() {
   let attention = null;
   let renderErrorCount = 0;
 
-  await openSession({ task, scale, only });
-  try {
-    const info = getSession().info;
-    if (info.rhythm) {
-      rhythmNotes = rhythmReportLines(info.rhythm);
-      if (!only) rhythmNotes.push(...rhythmStructure(info.timeline).lines);
+  if (renderer === 'remotion') {
+    if (only || opt('variant', null) || opt('style', null)) {
+      die('Remotion 的 review 暂不支持 --only / --variant / --style。请改用 --renderer legacy。');
     }
-    const timeline = info.timeline ?? [];
+    const { meta } = getRegisteredTask(task);
+    const evalRes = await evaluateRegisteredTask(task, meta);
+    const timeline = evalRes.segments.map((s) => ({
+      id: s.id,
+      start: s.startSec ?? (s.startFrame / evalRes.fps),
+      end: s.endSec ?? (s.endFrame / evalRes.fps),
+      note: s.note ?? null,
+      state: s.state ?? null,
+      transition: s.transition ?? null,
+      overlap: s.overlap ?? 0,
+      handlesTransition: !!s.handlesTransition,
+      params: s.params ?? {},
+    }));
     if (!timeline.length) {
       warn('时间线为空，无法生成评审包');
       return;
     }
+    const taskRhythm = readTaskRhythm(task);
+    if (taskRhythm) {
+      rhythmNotes = rhythmReportLines(taskRhythm);
+      rhythmNotes.push(...rhythmStructure(timeline).lines);
+    }
 
-    log(`生成评审包：${task} · round-${roundNum}（${timeline.length} 段，samples=${samples}）→ ${path.relative(ROOT, outDir)}`);
+    const remScale = scale || 1;
+    const defaultSamples = meta.samples ?? (meta.eval === 'config-only' ? 1 : 'auto');
+    const remSamplesRaw = opt('samples', String(defaultSamples));
+    const remSamples = meta.eval === 'config-only' ? 1 : (remSamplesRaw === 'auto' ? 'auto' : Number(remSamplesRaw));
+    const inputProps = meta.eval === 'config-only' ? {} : { samples: remSamples, shutter };
+    log(`生成评审包（Remotion）：${task} · round-${roundNum}（${timeline.length} 段，samples=${remSamples}）→ ${path.relative(ROOT, outDir)}`);
 
-    // 1) 每段 0.15 / 0.50 / 0.85 三帧
-    for (let i = 0; i < timeline.length; i++) {
-      const s = timeline[i];
-      const start = Number(s.start ?? 0);
-      const end = Number(s.end ?? start);
-      const dur = Math.max(0.05, end - start);
-      const safeId = String(s.id ?? `seg${i + 1}`).replace(/[^\w.-]+/g, '_');
-      const row = { id: String(s.id ?? `seg${i + 1}`), start, end, dur, frames: [] };
-
-      for (const frac of [0.15, 0.5, 0.85]) {
-        const t = start + dur * frac;
-        const r = await getSession().page.evaluate(
-          ([tVal, samp, shut]) => /** @type {any} */ (window).__anim.still(tVal, { samples: samp === 'auto' ? 'auto' : Number(samp), shutter: shut }),
-          [t, samples, shutter],
-        );
-        const tag = String(Math.round(frac * 100)).padStart(2, '0');
-        const fname = `${String(i + 1).padStart(2, '0')}_${safeId}_p${tag}.png`;
-        const fpath = path.join(framesDir, fname);
-        writeFileSync(fpath, Buffer.from(String(r.png).split(',')[1], 'base64'));
-        row.frames.push({ frac, t, file: fpath });
-        log(`  [${row.id}] p=${tag}% t=${t.toFixed(2)}s (子帧 ${r.samples}) → ${path.relative(ROOT, fpath)}`);
+    const tmpDir = path.join(outDir, '.tmp-sheets');
+    mkdirSync(tmpDir, { recursive: true });
+    const remSession = await openRemotionSession({
+      compositionId: meta.composition,
+      inputProps,
+    });
+    try {
+      // 1) 每段 0.15 / 0.50 / 0.85 三帧
+      for (let i = 0; i < timeline.length; i++) {
+        const s = timeline[i];
+        const dur = Math.max(0.05, s.end - s.start);
+        const safeId = String(s.id ?? `seg${i + 1}`).replace(/[^\w.-]+/g, '_');
+        const row = { id: String(s.id ?? `seg${i + 1}`), start: s.start, end: s.end, dur, frames: [] };
+        for (const frac of [0.15, 0.5, 0.85]) {
+          const t = s.start + dur * frac;
+          const frame = Math.min(evalRes.durationInFrames - 1, Math.round(t * evalRes.fps));
+          const tag = String(Math.round(frac * 100)).padStart(2, '0');
+          const fname = `${String(i + 1).padStart(2, '0')}_${safeId}_p${tag}.png`;
+          const fpath = path.join(framesDir, fname);
+          await remSession.renderFrame({ frame, scale: remScale, output: fpath });
+          row.frames.push({ frac, t, file: fpath });
+          log(`  [${row.id}] p=${tag}% t=${t.toFixed(2)}s (f=${frame}) → ${path.relative(ROOT, fpath)}`);
+        }
+        segRows.push(row);
       }
-      segRows.push(row);
-    }
 
-    // 2) board.png
-    const { times: bTimes, labels: bLabels } = planBoard(timeline, { at: 0.5 });
-    if (bTimes.length) {
-      boardFile = path.join(outDir, 'board.png');
-      await writeContactSheet(bTimes, boardFile, { cols: Math.min(4, timeline.length), cell: 420, samples: 1, labels: bLabels });
-      log(`  ✓ board → ${path.relative(ROOT, boardFile)}`);
-    }
-
-    // 3) cuts 切点接触表（无内部切点时跳过）
-    const cuts = [...new Set(
-      timeline.map((it) => Number(it.start ?? 0)).filter((t) => t > 0.001).map((t) => Math.round(t * 1000) / 1000),
-    )].sort((a, b) => a - b);
-
-    if (cuts.length) {
-      const cutsDir = path.join(outDir, 'cuts');
-      mkdirSync(cutsDir, { recursive: true });
-      const win = 1.5, n = 7, step = (win * 2) / (n - 1);
-      for (const c of cuts) {
-        const before = timeline.filter((it) => c - 0.001 >= it.start && c - 0.001 < it.end).map((it) => it.id);
-        const after = timeline.filter((it) => Math.abs(it.start - c) < 0.02).map((it) => it.id);
-        const times = Array.from({ length: n }, (_, idx) => Math.max(0, c - win + step * idx));
-        const cfile = path.join(cutsDir, `cut_${c.toFixed(3)}s.png`);
-        await writeContactSheet(times, cfile, { samples: 1, shutter, marks: [c] });
-        cutRows.push({ t: c, label: `${before.join('+') || '—'} → ${after.join('+') || '—'}`, file: cfile });
+      // 2) board.png（ffmpeg tile，不用 drawtext）
+      const { times: bTimes } = planBoard(timeline, { at: 0.5 });
+      if (bTimes.length) {
+        const bFiles = [];
+        const bScale = Math.min(1, 480 / evalRes.width);
+        for (let idx = 0; idx < bTimes.length; idx++) {
+          const frame = Math.min(evalRes.durationInFrames - 1, Math.round(bTimes[idx] * evalRes.fps));
+          const tmpFile = path.join(tmpDir, `board_${idx}.png`);
+          await remSession.renderFrame({ frame, scale: bScale, output: tmpFile });
+          bFiles.push(tmpFile);
+        }
+        boardFile = path.join(outDir, 'board.png');
+        await makeTileSheet(bFiles, boardFile, { cols: Math.min(4, timeline.length), cellWidth: 420 });
+        log(`  ✓ board → ${path.relative(ROOT, boardFile)}`);
       }
-      log(`  ✓ cuts → ${cuts.length} 个切点`);
-    } else {
-      log('  · cuts：无内部切点，已跳过');
+
+      // 3) cuts 切点接触表
+      const cuts = [...new Set(
+        timeline.map((it) => Number(it.start ?? 0)).filter((t) => t > 0.001).map((t) => Math.round(t * 1000) / 1000),
+      )].sort((a, b) => a - b);
+      if (cuts.length) {
+        const cutsDir = path.join(outDir, 'cuts');
+        mkdirSync(cutsDir, { recursive: true });
+        const win = 1.5, n = 7, step = (win * 2) / (n - 1);
+        const cScale = Math.min(1, 360 / evalRes.width);
+        for (let ci = 0; ci < cuts.length; ci++) {
+          const c = cuts[ci];
+          const before = timeline.filter((it) => c - 0.001 >= it.start && c - 0.001 < it.end).map((it) => it.id);
+          const after = timeline.filter((it) => Math.abs(it.start - c) < 0.02).map((it) => it.id);
+          const times = Array.from({ length: n }, (_, idx) => Math.max(0, c - win + step * idx));
+          const cFiles = [];
+          for (let j = 0; j < times.length; j++) {
+            const frame = Math.min(evalRes.durationInFrames - 1, Math.round(times[j] * evalRes.fps));
+            const tmpFile = path.join(tmpDir, `cut_${ci}_${j}.png`);
+            await remSession.renderFrame({ frame, scale: cScale, output: tmpFile });
+            cFiles.push(tmpFile);
+          }
+          const cfile = path.join(cutsDir, `cut_${c.toFixed(3)}s.png`);
+          await makeTileSheet(cFiles, cfile, { cols: n, cellWidth: 320 });
+          cutRows.push({ t: c, label: `${before.join('+') || '—'} → ${after.join('+') || '—'}`, file: cfile });
+        }
+        log(`  ✓ cuts → ${cuts.length} 个切点`);
+      } else {
+        log('  · cuts：无内部切点，已跳过');
+      }
+    } finally {
+      await remSession.close();
+      rmSync(tmpDir, { recursive: true, force: true });
     }
 
-    const loadErrors = reportErrors(info);
-    if (attentionInterval !== null && !loadErrors.length) {
-      log('  · 采集注意力曲线');
-      attention = await collectAttention(getSession(), { task, step: attentionInterval });
+    if (attentionInterval !== null) {
+      log('  · 采集注意力曲线（旧引擎会话）');
+      await openSession({ task, scale });
+      try {
+        const loadErrors = reportErrors(getSession().info);
+        if (!loadErrors.length) {
+          attention = await collectAttention(getSession(), { task, step: attentionInterval });
+        }
+      } finally {
+        await closeSession();
+      }
     }
-    const rerr = await collectRenderErrors({ take: false });
-    renderErrorCount = rerr.count;
-    if (rerr.count) {
-      warn(`\n⚠ 刚渲染的帧里有场景异常：${rerr.count} 帧`);
-      for (const line of rerr.text.slice(0, 6)) warn('  · ' + line);
-      process.exitCode = 1;
+  } else {
+    await openSession({ task, scale, only });
+    try {
+      const info = getSession().info;
+      if (info.rhythm) {
+        rhythmNotes = rhythmReportLines(info.rhythm);
+        if (!only) rhythmNotes.push(...rhythmStructure(info.timeline).lines);
+      }
+      const timeline = info.timeline ?? [];
+      if (!timeline.length) {
+        warn('时间线为空，无法生成评审包');
+        return;
+      }
+
+      log(`生成评审包：${task} · round-${roundNum}（${timeline.length} 段，samples=${samples}）→ ${path.relative(ROOT, outDir)}`);
+
+      // 1) 每段 0.15 / 0.50 / 0.85 三帧
+      for (let i = 0; i < timeline.length; i++) {
+        const s = timeline[i];
+        const start = Number(s.start ?? 0);
+        const end = Number(s.end ?? start);
+        const dur = Math.max(0.05, end - start);
+        const safeId = String(s.id ?? `seg${i + 1}`).replace(/[^\w.-]+/g, '_');
+        const row = { id: String(s.id ?? `seg${i + 1}`), start, end, dur, frames: [] };
+
+        for (const frac of [0.15, 0.5, 0.85]) {
+          const t = start + dur * frac;
+          const r = await getSession().page.evaluate(
+            ([tVal, samp, shut]) => /** @type {any} */ (window).__anim.still(tVal, { samples: samp === 'auto' ? 'auto' : Number(samp), shutter: shut }),
+            [t, samples, shutter],
+          );
+          const tag = String(Math.round(frac * 100)).padStart(2, '0');
+          const fname = `${String(i + 1).padStart(2, '0')}_${safeId}_p${tag}.png`;
+          const fpath = path.join(framesDir, fname);
+          writeFileSync(fpath, Buffer.from(String(r.png).split(',')[1], 'base64'));
+          row.frames.push({ frac, t, file: fpath });
+          log(`  [${row.id}] p=${tag}% t=${t.toFixed(2)}s (子帧 ${r.samples}) → ${path.relative(ROOT, fpath)}`);
+        }
+        segRows.push(row);
+      }
+
+      // 2) board.png
+      const { times: bTimes, labels: bLabels } = planBoard(timeline, { at: 0.5 });
+      if (bTimes.length) {
+        boardFile = path.join(outDir, 'board.png');
+        await writeContactSheet(bTimes, boardFile, { cols: Math.min(4, timeline.length), cell: 420, samples: 1, labels: bLabels });
+        log(`  ✓ board → ${path.relative(ROOT, boardFile)}`);
+      }
+
+      // 3) cuts 切点接触表（无内部切点时跳过）
+      const cuts = [...new Set(
+        timeline.map((it) => Number(it.start ?? 0)).filter((t) => t > 0.001).map((t) => Math.round(t * 1000) / 1000),
+      )].sort((a, b) => a - b);
+
+      if (cuts.length) {
+        const cutsDir = path.join(outDir, 'cuts');
+        mkdirSync(cutsDir, { recursive: true });
+        const win = 1.5, n = 7, step = (win * 2) / (n - 1);
+        for (const c of cuts) {
+          const before = timeline.filter((it) => c - 0.001 >= it.start && c - 0.001 < it.end).map((it) => it.id);
+          const after = timeline.filter((it) => Math.abs(it.start - c) < 0.02).map((it) => it.id);
+          const times = Array.from({ length: n }, (_, idx) => Math.max(0, c - win + step * idx));
+          const cfile = path.join(cutsDir, `cut_${c.toFixed(3)}s.png`);
+          await writeContactSheet(times, cfile, { samples: 1, shutter, marks: [c] });
+          cutRows.push({ t: c, label: `${before.join('+') || '—'} → ${after.join('+') || '—'}`, file: cfile });
+        }
+        log(`  ✓ cuts → ${cuts.length} 个切点`);
+      } else {
+        log('  · cuts：无内部切点，已跳过');
+      }
+
+      const loadErrors = reportErrors(info);
+      if (attentionInterval !== null && !loadErrors.length) {
+        log('  · 采集注意力曲线');
+        attention = await collectAttention(getSession(), { task, step: attentionInterval });
+      }
+      const rerr = await collectRenderErrors({ take: false });
+      renderErrorCount = rerr.count;
+      if (rerr.count) {
+        warn(`\n⚠ 刚渲染的帧里有场景异常：${rerr.count} 帧`);
+        for (const line of rerr.text.slice(0, 6)) warn('  · ' + line);
+        process.exitCode = 1;
+      }
+    } finally {
+      await closeSession();
     }
-  } finally {
-    await closeSession();
   }
   if (attention && !renderErrorCount) writeAttentionReport(path.join(outDir, 'attention'), attention, { videoPath });
 
@@ -159,10 +289,13 @@ async function cmdReview() {
   let densityNote = 'skipped（仅在同时存在 audio/timing.json 与成片 mp4 时采集）';
   const hasTiming = existsSync(path.join(ROOT, 'tasks', task, 'audio', 'timing.json'));
   const taskOutDir = path.join(ROOT, 'out', task);
-  const mp4 = existsSync(taskOutDir)
+  const mp4Candidates = existsSync(taskOutDir)
     ? readdirSync(taskOutDir).filter((f) => f.endsWith('.mp4') && !/^part_|_stitched|^smoke-/.test(f))
-      .sort((a, b) => statSync(path.join(taskOutDir, b)).size - statSync(path.join(taskOutDir, a)).size)[0]
-    : null;
+    : [];
+  const remMp4 = `${task}.remotion.mp4`;
+  const mp4 = renderer === 'remotion' && mp4Candidates.includes(remMp4)
+    ? remMp4
+    : mp4Candidates.sort((a, b) => statSync(path.join(taskOutDir, b)).size - statSync(path.join(taskOutDir, a)).size)[0] ?? null;
   if (hasTiming && mp4) {
     const dRes = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'lint-event-density.mjs'), task, '--file', path.join(taskOutDir, mp4), '--json'], { cwd: ROOT, encoding: 'utf8', timeout: 120000 });
     try {

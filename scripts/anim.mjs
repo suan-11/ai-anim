@@ -146,7 +146,7 @@
  * 常用参数：
  *   -t/--t 时刻（逗号分隔）      --from/--to 区间（秒）
  *   -o/--out 输出路径（still/sheet 是目录、video/shot 是 mp4 文件；默认 out/<任务>/…）
- *   --renderer remotion|legacy   still/shot/video/queue 选渲染器（Remotion 目前支持 example-config-only）
+ *   --renderer remotion|legacy   still/shot/video/check/review/verify/qa 选渲染器（已登记任务默认 remotion；可用 ANIM_RENDERER 覆盖）
  *   --samples N|auto            运动模糊子帧数（默认 still=1，video=auto）
  *   --shutter 0.2               快门宽度（帧长的比例）
  *   --scale 2                   2 倍分辨率输出（真 4K；1..4）
@@ -187,7 +187,7 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setRest } from './lib/cli/args.mjs';
-import { warn, die } from './lib/cli/log.mjs';
+import { log, warn, die } from './lib/cli/log.mjs';
 import { closeSession } from './lib/cli/session.mjs';
 import { run as cmdNew } from "./cmd/new.mjs";
 import { run as cmdBrief } from "./cmd/brief.mjs";
@@ -198,7 +198,9 @@ import { run as cmdStyles } from "./cmd/styles.mjs";
 import { run as cmdSubs } from "./cmd/subs.mjs";
 import { run as cmdCheck } from "./cmd/check.mjs";
 import { run as cmdStill } from "./cmd/still.mjs";
-import { extractRenderer, remotionCommand, runRemotion } from "./lib/cli/remotion.mjs";
+import { runRemotion } from "./lib/cli/remotion.mjs";
+import { resolveRenderer } from "./lib/cli/renderer.mjs";
+import { readRegistry } from "./lib/remotion-registry.mjs";
 import { run as cmdCover } from "./cmd/cover.mjs";
 import { run as cmdChapters } from "./cmd/chapters.mjs";
 import { run as cmdSheet } from "./cmd/sheet.mjs";
@@ -324,9 +326,34 @@ if (IS_MAIN) {
   try {
     const fn = commands[cmd];
     if (!fn) { warn(`未知命令 "${cmd}"`); help(); process.exit(1); }
-    const { renderer, args } = cmd === 'help' ? { renderer: 'legacy', args: rest } : extractRenderer(rest);
-    if (remotionCommand(cmd, renderer, args)) {
-      await runRemotion(cmd, args);
+    const registry = cmd === 'help' || cmd === 'queue' ? null : readRegistry();
+    const { renderer, source, args, task, fallbackFlag } = resolveRenderer(cmd, rest, { registry });
+    const silentInfo = args.includes('--json');
+    if (!silentInfo) {
+      if (source === 'auto' && renderer === 'remotion') {
+        log(`ℹ [${task}] 使用默认渲染器 Remotion（回旧引擎加 --renderer legacy）`);
+      } else if (source === 'auto-fallback') {
+        log(`ℹ 检测到 ${fallbackFlag}（Remotion 暂不支持），自动回退旧引擎（legacy）`);
+      }
+    }
+    if (renderer === 'remotion') {
+      if (cmd === 'still' || cmd === 'shot' || cmd === 'video') {
+        await runRemotion(cmd, args);
+      } else if (cmd === 'check') {
+        setRest(args);
+        await cmdCheck({ renderer: 'remotion' });
+      } else if (cmd === 'review') {
+        setRest(args);
+        await cmdReview({ renderer: 'remotion' });
+      } else if (cmd === 'verify') {
+        setRest(args);
+        await cmdVerify({ renderer: 'remotion' });
+      } else if (cmd === 'qa') {
+        setRest(args);
+        await cmdQa({ renderer: 'remotion' });
+      } else {
+        throw new Error(`${cmd} 暂不支持 --renderer remotion`);
+      }
     } else {
       if (cmd !== 'queue') setRest(args);
       await fn();

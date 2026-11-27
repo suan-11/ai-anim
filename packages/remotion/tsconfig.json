@@ -62,6 +62,8 @@
   "files": [
     "index.ts",
     "Root.tsx",
+    "bridges.generated.tsx",
+    "webpack-override.d.mts",
     "audio-assets.ts",
     "media-assets.ts",
     "image-manifest.ts",

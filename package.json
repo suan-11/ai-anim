@@ -9,7 +9,8 @@
     "node": ">=20.10"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run studio",
+    "dev:legacy": "vite",
     "preview": "vite",
     "studio": "npm run studio -w @ai-anim/remotion",
     "still": "node scripts/anim.mjs still",

@@ -1,0 +1,33 @@
+{
+  "schema": "remotion.registry/1",
+  "tasks": {
+    "example-config-only": {
+      "composition": "ExampleConfigOnly",
+      "kind": "native",
+      "eval": "config-only",
+      "audio": false,
+      "samples": 1
+    },
+    "nekohome-intro-ja": {
+      "composition": "Task-nekohome-intro-ja",
+      "kind": "bridge",
+      "eval": "task-eval",
+      "audio": true,
+      "samples": "auto"
+    },
+    "paperfold": {
+      "composition": "PaperfoldBridgeMB",
+      "kind": "custom-bridge",
+      "eval": "task-eval",
+      "audio": true,
+      "samples": "auto"
+    },
+    "world-execute-me": {
+      "composition": "WemBridgeMB",
+      "kind": "custom-bridge",
+      "eval": "task-eval",
+      "audio": true,
+      "samples": "auto"
+    }
+  }
+}

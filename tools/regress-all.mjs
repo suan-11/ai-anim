@@ -106,7 +106,8 @@ const ITEMS = [
   { name: 'unit:remotion-timeline', cmd: ['tools/test-remotion-timeline.mjs'], note: 'Remotion 样片帧数与切点、绝对边界取整、未支持排程的报错' },
   { name: 'unit:remotion-task-eval', cmd: ['tools/test-remotion-task-eval.mjs'], note: 'Remotion 阶段 2A 任务解析对照：834 帧 / _info-lab 变体合并 / nekohome-intro-ja 六段切点与音轨字幕' },
   { name: 'unit:remotion-audio-fixture', cmd: ['tools/test-remotion-audio-fixture.mjs'], needs: ['ffmpeg'], note: 'Remotion 阶段 2C CI 夹具：合成短音频 / 段边界 / 缺失素材报告 / 字幕±1帧' },
-  { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、帧区间、分块边界、产物命名与参数报错' },
+  { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、默认自动路由、回退、帧区间、分块边界、产物命名与参数报错' },
+  { name: 'unit:remotion-registry', cmd: ['tools/test-remotion-registry.mjs'], note: 'Remotion 登记表校验、ID 清洗与 bridges.generated.tsx 同步检查' },
   { name: 'unit:remotion-transitions', cmd: ['tools/test-remotion-transitions.mjs'], note: 'Remotion 转场排程：补时长后段起点不漂、总时长不变、none 缝与交叠缝' },
   { name: 'unit:easing-warn', cmd: ['tools/test-easing-warn.mjs'], note: 'P2-3 缓动名写错要警告（7 项）' },
   { name: 'unit:narration', cmd: ['tools/test-narration.mjs'], note: 'P1-5 旁白表 + C 档词级时间戳（44 项）' },
@@ -213,7 +214,7 @@ const ITEMS = [
   },
 
   // ── 逐任务 check（2026-10-06 整份回归 33/33 全绿，含下面每一条）──
-  { name: 'check:beast', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
+  { name: 'check:beast', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--renderer', 'legacy', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
   { name: 'check:demo', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '5 段', timeout: 30 * 60e3 },
   { name: 'check:beat', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'beat', '--quick'], note: '3 段', timeout: 30 * 60e3 },
   { name: 'check:_calib', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_calib', '--quick'], note: '标定夹具', timeout: 30 * 60e3 },
@@ -228,7 +229,8 @@ const ITEMS = [
   { name: 'check:nekohome', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekoclicker-intro', '--quick'], note: '8 段', timeout: 30 * 60e3 },
   { name: 'check:fidus', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '9 段', timeout: 30 * 60e3 },
   { name: 'check:pdoom-lab', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },
-  { name: 'check:example-config-only', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--quick'], note: 'B 档：整个任务只有 task.config.mjs（配置档）', timeout: 30 * 60e3 },
+  { name: 'check:example-config-only', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--renderer', 'legacy', '--quick'], note: 'B 档：整个任务只有 task.config.mjs（配置档）', timeout: 30 * 60e3 },
+  { name: 'check:remotion-example', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--renderer', 'remotion', '--quick'], note: 'Remotion check 端到端冒烟', timeout: 30 * 60e3 },
   { name: 'check:_three-calib', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_three-calib', '--quick'], note: '第 3 种 3D 的标定夹具（桥的颜色/朝向/透明合成）', timeout: 30 * 60e3 },
   // Three.js 沙盒：3 段（Two Three.js 镜头 + 中间那一段**完全由引擎画**的过渡镜头），
   // 走完整的三点两路径 —— 它同时是"背景守门 + 多子帧"这两件事在桥上的现场证据。

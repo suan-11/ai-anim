@@ -171,6 +171,10 @@ export function evaluateTask(name, mod, opts = {}) {
       params: template?.params ?? it.params ?? {},
       note: it.note ?? null,
       focus: it.focus ?? null,
+      state: it.state ?? null,
+      transition: it.transition ?? null,
+      overlap: it.overlap ?? 0,
+      handlesTransition: !!it.handlesTransition,
     });
     if (i > 0) {
       // 交叠 = 本段 start 早于**此前所有段**的最晚 end（par 组里多段同起点，

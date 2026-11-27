@@ -63,19 +63,21 @@ node scripts/anim.mjs still demo -t 1,6,9.5      # 出单帧 → out/demo/
 node scripts/anim.mjs video demo                 # 出成片 → out/demo/demo.mp4
 
 node scripts/anim.mjs check beat                 # 音乐驱动的那支
-npm run dev                                      # Remotion Studio（已登记样片：原生四镜头 / 日配音画 / paperfold WebGL）
-npm run studio                                   # 同上；旧引擎预览用 npx vite
+npm run dev                                      # Remotion Studio（已登记样片与 anim new 新任务）
+npm run dev:legacy                               # 旧引擎 Vite 预览
+npm run studio                                   # 同 npm run dev
 ```
 
-已验收的任务可从现有 CLI 指定渲染器（`example-config-only` / `nekohome-intro-ja` / `paperfold`）。
+已登记任务（`example-config-only` / `nekohome-intro-ja` / `paperfold` / `world-execute-me` 及 `anim new` 新建任务）默认走 Remotion（覆盖 `still`/`shot`/`video`/`check`/`review`/`verify`/`qa`），未登记旧任务走旧引擎；可用 `--renderer legacy` 显式切回。
 Remotion 产物带 `.remotion` 后缀，草稿和截段另有文件名；成片自动封装 mix 音轨。
-`--segments` 分块避开交叠转场窗，中断重跑复用已渲块。旧任务仍走 `--renderer legacy`（默认）。 [迁移进度与复跑命令](docs/HANDOVER-remotion.md)
+`--segments` 分块避开交叠转场窗，中断重跑复用已渲块。 [迁移进度与复跑命令](docs/HANDOVER-remotion.md)
 
 ```sh
-node scripts/anim.mjs still example-config-only --renderer remotion -t 5
-node scripts/anim.mjs video example-config-only --renderer remotion --draft --from 3.45 --to 3.55 --segments 0.1
-node scripts/anim.mjs video paperfold --renderer remotion --segments 8
-node scripts/anim.mjs qa paperfold --renderer remotion --file out/paperfold/paperfold.remotion.mp4 --expect-fps 24 --audio required --strict
+node scripts/anim.mjs still example-config-only -t 5
+node scripts/anim.mjs video example-config-only --draft --from 3.45 --to 3.55 --segments 0.1
+node scripts/anim.mjs video paperfold --segments 8
+node scripts/anim.mjs check paperfold --quick
+node scripts/anim.mjs qa paperfold --expect-fps 24 --audio required --strict
 ```
 
 **`beat` 依赖一个音频文件**：`tasks/beat/audio/demo-loop.mp3`（仓库里**有**，32 秒 / 120bpm）。它不是凭空来的 —— 由 `node scripts/make-demo-audio.mjs` 纯合成产生，可以自己重跑一遍重新生成。第一次渲染时 CLI 会自动分析它、生成 `audio/demo-loop.analysis.json`（拍子/小节/段落/包络），画面才踩得上拍子。

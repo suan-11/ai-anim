@@ -603,7 +603,7 @@ export const endCard = {
   id: 'end',
   async setup(ctx) {
     const g = ctx.gl.ctx;
-    const load = (rel) => new Promise((resolve) => {
+    const load = (url) => new Promise((resolve) => {
       const im = new Image();
       im.onload = () => {
         const tex = g.createTexture();
@@ -616,11 +616,11 @@ export const endCard = {
         resolve({ tex, __tex: true, w: im.naturalWidth, h: im.naturalHeight });
       };
       im.onerror = () => resolve(null);
-      im.src = new URL(rel, import.meta.url).href;
+      im.src = url;
     });
     // 工作室标识已去掉：这里只留小糯米的头像 + 入群二维码
-    this.face = await load('../assets/avatars/nuomi.jpg');
-    this.qr = await load('../assets/avatars/qrcode-card.png');
+    this.face = await load(new URL('../assets/avatars/nuomi.jpg', import.meta.url).href);
+    this.qr = await load(new URL('../assets/avatars/qrcode-card.png', import.meta.url).href);
   },
   render(ctx) {
     const { f, gl, P, lines, text, type, comp, W } = ctx;
@@ -673,7 +673,7 @@ export const openHook = {
     // ⚠ 先 onload 再 src：把 src 提前设好、之后才挂 onload，图片可能已经加载完 ⇒
     //    回调永不触发 ⇒ setup 的 promise 永远不 resolve ⇒ 整页 boot 卡死（实测踩过）
     const g = ctx.gl.ctx;
-    const load = (rel) => new Promise((resolve) => {
+    const load = (url) => new Promise((resolve) => {
       const im = new Image();
       im.onload = () => {
         const tex = g.createTexture();
@@ -686,10 +686,10 @@ export const openHook = {
         resolve({ tex, __tex: true, w: im.naturalWidth, h: im.naturalHeight });
       };
       im.onerror = () => resolve(null);
-      im.src = new URL(rel, import.meta.url).href;
+      im.src = url;
     });
-    this.mark = await load('../assets/logo-mark.png');
-    this.face = await load('../assets/avatars/nuomi.jpg');
+    this.mark = await load(new URL('../assets/logo-mark.png', import.meta.url).href);
+    this.face = await load(new URL('../assets/avatars/nuomi.jpg', import.meta.url).href);
     return;
   },
   render(ctx) {

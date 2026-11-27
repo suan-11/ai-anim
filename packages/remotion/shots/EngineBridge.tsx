@@ -16,9 +16,13 @@
  * 同一 t 无论之前渲过什么帧结果一致 —— 随机跳帧验收由此成立。
  */
 import React from 'react';
-import { useDelayRender, useCurrentFrame, useVideoConfig, AbsoluteFill } from 'remotion';
+import { useDelayRender, useCurrentFrame, useVideoConfig, AbsoluteFill, cancelRender, useRemotionEnvironment, staticFile } from 'remotion';
 
 export type EngineBridgeProps = {
+  /** 任务 id（用于唯一缓存键，避免同 title 不同任务碰撞） */
+  taskId?: string;
+  /** 允许跳过不支持字段检查（例如仅作元数据声明、场景不读 lyrics 的桥） */
+  allowUnsupported?: boolean;
   /** 任务模块（task.config.mjs 的命名空间），由入口显式 import */
   taskMod: any;
   /** 已解析的旁白表（字符串路径的 narration 由调用方读文件注入） */
@@ -44,18 +48,21 @@ type BridgeState = {
 /** 全局单例缓存：同一任务在同一页面只建一次引擎（Studio 拖帧不重建）。 */
 const engineCache = new Map<string, { engine: any; refs: number }>();
 
-export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationData, music, analysis, rhythm, samples = 1, shutter }) => {
+export const EngineBridge: React.FC<EngineBridgeProps> = ({
+  taskId, allowUnsupported = false, taskMod, narrationData, music, analysis, rhythm, samples = 1, shutter,
+}) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const { delayRender, continueRender } = useDelayRender();
+  const { isRendering } = useRemotionEnvironment();
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const stateRef = React.useRef<BridgeState>({ engine: null, error: null, ready: false });
   const [handle] = React.useState(() => delayRender('engine-init'));
 
-  // ⚠ 键里必须带尺寸/帧率：engine 是按 canvas 尺寸建的，同任务不同尺寸复用会画错分辨率。
+  // ⚠ 键里必须带 taskId 与尺寸/帧率：engine 是按 canvas 尺寸建的，同任务不同尺寸或同 title 不同任务复用会出错。
   const cacheKey = React.useMemo(
-    () => `${taskMod?.default?.title ?? 'task'}@${width}x${height}@${fps}@${samples === 'auto' ? 'auto' : 'fixed'}`,
-    [taskMod, width, height, fps, samples],
+    () => `${taskId ?? taskMod?.default?.title ?? 'task'}@${width}x${height}@${fps}@${samples === 'auto' ? 'auto' : 'fixed'}`,
+    [taskId, taskMod, width, height, fps, samples],
   );
   // 引擎就绪状态必须进 React state：ref 变化不触发重渲染，canvas 会一直不挂载（首帧全黑）。
   const [ready, setReady] = React.useState(false);
@@ -87,18 +94,28 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
         const { MusicData } = await import('@/engine/audio');
 
         const spec = taskMod.default ?? taskMod;
+        if (!allowUnsupported) {
+          if (spec.fonts) {
+            throw new Error(`EngineBridge 暂不支持任务级 fonts（${JSON.stringify(spec.fonts)}），请改用 --renderer legacy`);
+          }
+          if (spec.lyrics) {
+            throw new Error(`EngineBridge 暂不支持 lyrics（${JSON.stringify(spec.lyrics)}），请改用 --renderer legacy`);
+          }
+        }
         const styleResolved = resolveStyle(spec);
         const palette = makePalette({ ...(styleResolved?.palette ?? {}), ...(spec.palette ?? {}) });
 
         // 音乐：优先预计算 analysis（与 CLI still 同口径），否则调用方给的 music，再否则 SILENT
         const musicObj = analysis?.beats ? new MusicData(analysis, {}) : (music ?? null);
 
+        // 内联旁白与注入旁白统一归一，时间线 build 与 engine.load 共用一份（防止内联旁白字幕丢失）
+        const nd = narrationData ?? (spec.narration && typeof spec.narration !== 'string'
+          ? makeNarration(spec.narration, { duration: spec.duration }) : null);
+
         // 时间线：与 src/tasks.js 同一条选路（配置档/seq 走 build，已展开数组原样）
         let timeline = spec.timeline;
         const laidOut = Array.isArray(timeline) && !timeline.some(isConfigNode);
         if (!laidOut) {
-          const nd = narrationData ?? (spec.narration && typeof spec.narration !== 'string'
-            ? makeNarration(spec.narration, { duration: spec.duration }) : null);
           timeline = build(timeline, {
             ...(musicObj ? { beats: musicObj.beats, downbeats: musicObj.downbeats, bpm: musicObj.bpm } : {}),
             narration: nd,
@@ -117,13 +134,13 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
           duration: spec.duration,
           music: musicObj,
           rhythm: rhythm ?? null,
-          narration: narrationData ?? null,
+          narration: nd,
           worldPass: taskMod.world ?? spec.world ?? null,
           styleResolved,
           captions: spec.captions ?? null,
         });
         // 字体就绪（与 app.js 同一步：第一帧之前加载，否则拍到方框）
-        await engine.hud2d.type.load().catch(() => {});
+        await engine.hud2d.type.load([staticFile('fonts/fonts.css')]).catch(() => {});
         for (const it of engine.timeline) it._layer?.type?.clearCache?.();
 
         if (engine.errors.length) {
@@ -137,9 +154,15 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({ taskMod, narrationDa
         setReady(true);
       } catch (err: any) {
         if (!cancelled) {
-          stateRef.current = { engine: null, error: String(err?.message ?? err), ready: false };
+          const error = err instanceof Error ? err : new Error(String(err));
+          stateRef.current = { engine: null, error: String(error.message), ready: false };
+          if (isRendering) {
+            settled = true;
+            cancelRender(error);
+            return;
+          }
           settle();
-          setInitError(String(err?.message ?? err));
+          setInitError(String(error.message));
         }
       }
     };

@@ -1,65 +1,40 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, rmdirSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, renameSync, rmSync, rmdirSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { engineSig, sigOf, taskSig } from '../render-stamp.mjs';
+import { evaluateRegisteredTask, readRegistry } from '../remotion-registry.mjs';
 import { log, warn } from './log.mjs';
-import { checkTimestamps, checkVideoFile, runFfmpeg } from './media.mjs';
+import { checkTimestamps, checkVideoFile, ffmpegCmd, runFfmpeg } from './media.mjs';
 import { ROOT, taskOut } from './paths.mjs';
+import { extractRenderer, REMOTION_SUPPORTED_CMDS } from './renderer.mjs';
 import { children } from './session.mjs';
 
 const require = createRequire(import.meta.url);
-const REMOTION_COMMANDS = new Set(['still', 'shot', 'video']);
-const LEGACY_DIAGNOSTICS = new Set(['check', 'review', 'verify']);
-/**
- * 已验证 Remotion 出片的任务 → Composition id。
- * 每个条目带求值方式：config-only 走阶段 1 帧级口径；其余走 task-eval（build/变体/旁白/风格）。
- * audio=true 的任务成片封装 mix 轨（与旧引擎 video 同口径：audioMuxArgs）。
- */
-const TASKS = new Map([
-  ['example-config-only', { id: 'ExampleConfigOnly', eval: 'config-only', audio: false }],
-  ['nekohome-intro-ja', { id: 'NekohomeJaVerify', eval: 'task-eval', audio: true }],
-  ['paperfold', { id: 'PaperfoldBridgeMB', eval: 'task-eval', audio: true, samples: 'auto' }],
-  ['world-execute-me', { id: 'WemBridgeMB', eval: 'task-eval', audio: true, samples: 'auto' }],
-]);
 // Remotion 子包：入口与 remotion.config.ts 都在 packages/remotion/，CLI 以该目录为 cwd 起进程。
 const RM_PKG = path.join(ROOT, 'packages', 'remotion');
 const entry = path.join(RM_PKG, 'index.ts');
 
-/** 从命令行提取渲染器，剩余选项用各命令原有的解析口径。 */
-export function extractRenderer(argv) {
-  let renderer = 'legacy';
-  let selected = false;
-  const args = [];
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg !== '--renderer' && !arg.startsWith('--renderer=')) {
-      args.push(arg);
-      continue;
-    }
-    if (selected) throw new Error('--renderer 只能指定一次');
-    renderer = arg === '--renderer' ? argv[++i] : arg.slice('--renderer='.length);
-    if (renderer !== 'remotion' && renderer !== 'legacy') {
-      throw new Error('--renderer 要填 remotion 或 legacy');
-    }
-    selected = true;
+export { extractRenderer };
+
+export function getRegisteredTask(task) {
+  const reg = readRegistry(ROOT);
+  const meta = task ? reg.tasks[task] : null;
+  if (!meta) {
+    throw new Error(`任务 ${task ?? '（未指定）'} 未验证 Remotion 出片。当前支持 ${Object.keys(reg.tasks).join('、')}，旧任务使用 --renderer legacy。`);
   }
-  return { renderer, args };
+  return { meta, reg };
 }
 
 export function remotionCommand(command, renderer, args = []) {
   if (renderer !== 'remotion' || command === 'queue') return false;
   if (command === 'qa') {
-    const hasFile = args.some((arg, i) => (arg === '--file' || arg === '-o') && args[i + 1] && !args[i + 1].startsWith('-'));
-    if (!hasFile) throw new Error('Remotion 成片技术扫描需要用 --file 指定产物');
-    return false;
+    return true;
   }
-  if (REMOTION_COMMANDS.has(command)) return true;
-  if (LEGACY_DIAGNOSTICS.has(command)) {
-    throw new Error(`Remotion 暂未接入 ${command} 的逐帧内容检查。成片技术扫描请用 anim qa。`);
-  }
+  if (REMOTION_SUPPORTED_CMDS.has(command)) return true;
   throw new Error(`${command} 暂不支持 --renderer remotion`);
 }
 
@@ -95,11 +70,8 @@ function parseArgs(command, args) {
       throw new Error(`Remotion 的 ${command} 暂不支持 ${flag}。可使用 --renderer legacy 运行原有命令。`);
     }
   }
-  const meta = TASKS.get(task);
-  if (!meta) {
-    throw new Error(`任务 ${task ?? '（未指定）'} 未验证 Remotion 出片。当前支持 ${[...TASKS.keys()].join('、')}，旧任务使用 --renderer legacy。`);
-  }
-  return { task, id: meta.id, meta, options };
+  const { meta } = getRegisteredTask(task);
+  return { task, id: meta.composition, meta, options };
 }
 
 /** Remotion 的帧区间含末帧，CLI 参数表示秒的左闭右开区间。 */
@@ -179,7 +151,7 @@ export function overlapAwareChunkRanges(first, last, framesPerChunk, segments) {
   return chunks;
 }
 
-function localBrowser() {
+export function localBrowser() {
   if (process.env.ANIM_REMOTION_BROWSER_EXECUTABLE) return process.env.ANIM_REMOTION_BROWSER_EXECUTABLE;
   if (process.platform !== 'win32') return undefined;
   const edge = process.env.ANIM_CHANNEL === 'msedge';
@@ -188,15 +160,94 @@ function localBrowser() {
     .filter(Boolean).map((root) => path.join(root, relative)).find(existsSync);
 }
 
+let cachedBinariesDir;
+
+function findSystemBinary(cmdName, explicitPath) {
+  if (explicitPath && existsSync(explicitPath)) {
+    try { return realpathSync(explicitPath); } catch { return explicitPath; }
+  }
+  const locator = process.platform === 'win32' ? 'where.exe' : 'which';
+  const r = spawnSync(locator, [cmdName], { encoding: 'utf8', timeout: 5000, windowsHide: true });
+  if (r.status !== 0) return null;
+  for (const rawLine of String(r.stdout ?? '').split(/\r?\n/)) {
+    const p = rawLine.trim();
+    if (p && existsSync(p)) {
+      try { return realpathSync(p); } catch { return p; }
+    }
+  }
+  return null;
+}
+
+/**
+ * 探测 Remotion 内置 ffmpeg 是否可用；不可用时把系统 ffmpeg/ffprobe 同步到临时目录并返回。
+ * 健康环境返回 null（零开销）。
+ */
+export function resolveRemotionBinariesDir() {
+  if (cachedBinariesDir !== undefined) return cachedBinariesDir;
+  const exe = (n) => (process.platform === 'win32' ? `${n}.exe` : n);
+  const pkgCandidates = process.platform === 'win32'
+    ? ['@remotion/compositor-win32-x64-msvc']
+    : process.platform === 'darwin'
+      ? (process.arch === 'arm64' ? ['@remotion/compositor-darwin-arm64'] : ['@remotion/compositor-darwin-x64'])
+      : (process.arch === 'arm64'
+        ? ['@remotion/compositor-linux-arm64-gnu', '@remotion/compositor-linux-arm64-musl']
+        : ['@remotion/compositor-linux-x64-gnu', '@remotion/compositor-linux-x64-musl']);
+
+  let bundledDir = null;
+  for (const pkg of pkgCandidates) {
+    try {
+      const d = require(pkg)?.dir;
+      if (d && existsSync(d)) { bundledDir = d; break; }
+    } catch { /* 忽略未安装的平台包 */ }
+  }
+  if (!bundledDir) { cachedBinariesDir = null; return null; }
+
+  const bundledFfmpeg = path.join(bundledDir, exe('ffmpeg'));
+  if (existsSync(bundledFfmpeg)) {
+    const probe = spawnSync(bundledFfmpeg, ['-version'], { cwd: bundledDir, timeout: 5000, windowsHide: true });
+    if (probe.status === 0) { cachedBinariesDir = null; return null; }
+  }
+
+  const ffParts = ffmpegCmd();
+  const explicitFfmpeg = ffParts.length === 1 && path.isAbsolute(ffParts[0]) ? ffParts[0] : null;
+  const sysFfmpeg = findSystemBinary(exe('ffmpeg'), explicitFfmpeg);
+  if (!sysFfmpeg) { cachedBinariesDir = null; return null; }
+  const sysProbe = spawnSync(sysFfmpeg, ['-version'], { timeout: 5000, windowsHide: true });
+  if (sysProbe.status !== 0) { cachedBinariesDir = null; return null; }
+
+  const explicitProbe = process.env.ANIM_FFPROBE && existsSync(process.env.ANIM_FFPROBE) ? process.env.ANIM_FFPROBE : null;
+  const sysFfprobe = findSystemBinary(exe('ffprobe'), explicitProbe);
+
+  const dir = path.join(os.tmpdir(), 'ai-anim-remotion-bin');
+  mkdirSync(dir, { recursive: true });
+  const syncBin = (src, dstName) => {
+    if (!src || !existsSync(src)) return;
+    const dst = path.join(dir, dstName);
+    const srcSize = statSync(src).size;
+    if (existsSync(dst) && statSync(dst).size === srcSize) return;
+    rmSync(dst, { force: true });
+    try { linkSync(src, dst); } catch { copyFileSync(src, dst); }
+  };
+  syncBin(sysFfmpeg, exe('ffmpeg'));
+  syncBin(sysFfprobe, exe('ffprobe'));
+  syncBin(path.join(bundledDir, exe('remotion')), exe('remotion'));
+
+  log(`ℹ Remotion 内置 ffmpeg 不可用，已切换系统 ffmpeg（${dir}）`);
+  cachedBinariesDir = dir;
+  return cachedBinariesDir;
+}
+
 function runCli(args, onFrame = () => {}) {
   const manifest = require.resolve('@remotion/cli/package.json');
   const { bin } = require(manifest);
   const env = { ...process.env, CI: '1', FORCE_COLOR: '0' };
   const browser = localBrowser();
   const browserArgs = browser ? [`--browser-executable=${browser}`] : [];
+  const binDir = args[0] === 'render' ? resolveRemotionBinariesDir() : null;
+  const binArgs = binDir ? [`--binaries-directory=${binDir}`] : [];
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [
-      path.resolve(path.dirname(manifest), bin.remotion), ...args, ...browserArgs, '--log=warn',
+      path.resolve(path.dirname(manifest), bin.remotion), ...args, ...browserArgs, ...binArgs, '--log=warn',
     ], { cwd: RM_PKG, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     children.add(child);
     const recent = [];
@@ -267,12 +318,12 @@ function sourceFingerprint(task) {
   return [engineSig(ROOT), taskSig(ROOT, task), sigOf(ROOT, files)];
 }
 
-async function renderParts(output, { task, id, ranges, fps, scale, crf, force, progress, verify, render, publish }) {
+async function renderParts(output, { task, id, ranges, fps, scale, crf, samples, force, progress, verify, render, publish }) {
   const sources = sourceFingerprint(task).join(':');
   const browser = localBrowser();
   const browserInfo = browser && existsSync(browser) ? [browser, statSync(browser).mtimeMs] : [browser ?? 'auto'];
   const key = createHash('sha256').update(JSON.stringify([
-    1, process.platform, process.arch, sources, browserInfo, id, ranges, fps, scale, crf,
+    1, process.platform, process.arch, sources, browserInfo, id, ranges, fps, scale, crf, samples,
   ])).digest('hex').slice(0, 20);
   const cache = path.join(`${output}.remotion.parts`, key);
   const files = [];
@@ -319,31 +370,7 @@ async function renderParts(output, { task, id, ranges, fps, scale, crf, force, p
 
 export async function runRemotion(command, args) {
   const { task, id, meta, options } = parseArgs(command, args);
-  // 求值：config-only 走阶段 1 帧级口径；其余走 task-eval（与 Composition 同一份解析）
-  let fps, width, height, durationInFrames, segments;
-  if (meta.eval === 'config-only') {
-    const [{ default: config }, { buildFrameTimeline }] = await Promise.all([
-      import('../../../tasks/example-config-only/task.config.mjs'),
-      import('../../../packages/remotion/timeline.mjs'),
-    ]);
-    ({ fps, width, height, durationInFrames, segments } = buildFrameTimeline(config));
-  } else {
-    const [{ evaluateTask }, mod] = await Promise.all([
-      import('../../../packages/remotion/task-eval.mjs'),
-      import(`../../../tasks/${task}/task.config.mjs`),
-    ]);
-    // 旁白表：字符串路径由这里读文件注入（与 Root.tsx 同口径）
-    let narrationData = null;
-    const spec = mod.default ?? mod;
-    if (typeof spec.narration === 'string') {
-      const { readFileSync } = await import('node:fs');
-      const narrPath = path.join(ROOT, 'tasks', task, spec.narration.replace(/^\.\//, ''));
-      const { makeNarration } = await import('../../../src/core/narration.js');
-      narrationData = makeNarration(JSON.parse(readFileSync(narrPath, 'utf8')), { duration: spec.duration });
-    }
-    const parsed = evaluateTask(task, mod, { narrationData });
-    ({ fps, width, height, durationInFrames, segments } = parsed);
-  }
+  const { fps, width, height, durationInFrames, segments, audio: parsedAudio } = await evaluateRegisteredTask(task, meta);
   const still = command === 'still';
   const draft = options.has('draft');
   const scale = Number(options.get('scale') ?? (draft ? 0.5 : 1));
@@ -368,12 +395,15 @@ export async function runRemotion(command, args) {
     const outDir = out('stills');
     const progress = frameProgress(times.length);
     progress(0);
+    const stillProps = meta.eval !== 'config-only' && samples !== 'auto'
+      ? [`--props=${JSON.stringify({ samples })}`]
+      : [];
     for (const [index, time] of times.entries()) {
       const frame = Math.min(durationInFrames - 1, Math.round(time * fps));
       const suffix = options.has('out') ? '' : '.remotion';
       const output = path.join(outDir, `f_${time.toFixed(3).padStart(8, '0')}${suffix}.png`);
       await renderFile(output, async (pending) => {
-        await runCli(['still', ...argsBase, pending, `--frame=${frame}`, `--scale=${scale}`, '--image-format=png']);
+        await runCli(['still', ...argsBase, pending, `--frame=${frame}`, `--scale=${scale}`, '--image-format=png', ...stillProps]);
         if (statSync(pending).size === 0) throw new Error('Remotion 生成了空 PNG');
       });
       progress(index + 1);
@@ -421,13 +451,13 @@ export async function runRemotion(command, args) {
 
   let audioTrack = null;
   let audioMuxArgs = null;
-  if (!short && meta.audio && !options.has('noaudio')) {
+  if (!short && (meta.audio || parsedAudio?.packaging) && !options.has('noaudio')) {
     const { resolveAudioTracks } = await import('./audio.mjs');
     const tracks = resolveAudioTracks(task);
     if (tracks.packaging) {
       audioTrack = tracks.packaging;
       ({ audioMuxArgs } = await import('./media.mjs'));
-    } else {
+    } else if (meta.audio) {
       warn('· 任务声明了音频但找不到 mix 轨 —— 成片无声。检查 tasks/' + task + '/audio/');
     }
   }
@@ -464,7 +494,7 @@ export async function runRemotion(command, args) {
     const ranges = meta.eval === 'config-only'
       ? nativeChunkRanges(first, last, segmentSize, segments)
       : overlapAwareChunkRanges(first, last, segmentSize, segments);
-    await renderParts(output, { task, id, ranges, fps, scale, crf, force: options.has('force'), progress, verify, render, publish });
+    await renderParts(output, { task, id, ranges, fps, scale, crf, samples, force: options.has('force'), progress, verify, render, publish });
   } else {
     await renderFile(output, (pending) => publish(
       pending,

@@ -53,6 +53,9 @@ const CHECK_JUDGE_TABLE = [
   ['shot.missing-audio', 'floor', '镜头模板需要 audio，任务没配'],
   ['motion-spec.invalid', 'floor', 'motion.json 解析失败'],
   ['waiver.invalid', 'floor', '豁免记录不成立（判据 id / guard / reason 不合格）'],
+  ['remotion.render-error', 'floor', 'Remotion 渲染期报错'],
+  ['remotion.black', 'floor', 'Remotion 采样帧几乎全黑（mean < 0.004）'],
+  ['remotion.mismatch', 'floor', 'Remotion 桥接帧与旧引擎同帧不一致'],
   // ── reflex：默认只报，--strict 当门；可豁免（要留痕） ─────────────────────
   ['narration.config', 'reflex', '旁白表配了但加载不了'],
   ['narration.dup', 'reflex', '画面文字逐字复述旁白'],
@@ -76,6 +79,7 @@ const CHECK_JUDGE_TABLE = [
   ['waiver.reused', 'reflex', '豁免理由逐字复用（样板豁免）'],
   ['waiver.unrecorded.layout', 'reflex', '无痕豁免：layout.allowOverlap 没有留痕'],
   ['waiver.unrecorded.background', 'reflex', '无痕豁免：world: false 没有留痕'],
+  ['remotion.flat', 'reflex', 'Remotion 采样帧几乎纯平（无视觉层次）'],
   // ── finish：只报读数，永不拦 ────────────────────────────────────────────
   ['under.no-handles', 'finish', '读了 ctx.under 却没声明 handlesTransition（只报）'],
   ['timeline.gap', 'finish', '时间线有空档（会渲染成黑，但当前只报）'],

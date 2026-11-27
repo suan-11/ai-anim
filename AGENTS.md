@@ -81,16 +81,17 @@ node scripts/anim.mjs still demo -t 1,6,9.5     # 出单帧 PNG（agent 主要�
 node scripts/anim.mjs shot  demo --from 0 --to 6   # 出短 mp4（快速看运动）
 node scripts/anim.mjs video demo                # 出完整成片（默认自动运动模糊）
 node scripts/anim.mjs check demo                # 体检：静态检查 + 逐段试渲染 + 亮度统计
-npm run dev                                     # 旧引擎 Vite 预览（不变）
-npm run studio                                  # Remotion Studio（子包 packages/remotion，见 docs/HANDOVER-remotion.md）
+npm run dev                                     # Remotion Studio（子包 packages/remotion，见 docs/HANDOVER-remotion.md）
+npm run dev:legacy                              # 旧引擎 Vite 预览
+npm run studio                                  # 同 npm run dev
 ```
 
 出图落在 `out/<任务名>/`。**渲染完立刻用 Read 打开那些 PNG 看** —— 这是唯一可靠的验证方式。
 
-**渲染器选择**：`--renderer remotion` 走 Remotion（已验收：example-config-only / nekohome-intro-ja / paperfold），
-产物带 `.remotion` 后缀、成片自动封装 mix 音轨、`--segments` 分块避开交叠窗且可续跑；
-不写或 `--renderer legacy` 走旧引擎（默认，全部任务）。Remotion 的 check/review/verify 暂未接入，
-成片技术扫描用 `anim qa --file <产物>`。
+**渲染器选择**：已登记任务（`packages/remotion/registry.json`，含 `anim new` 新建任务）在
+`still/shot/video/check/review/verify/qa` 下**默认走 Remotion**（回旧引擎加 `--renderer legacy` 或设 `ANIM_RENDERER=legacy`）；
+遇到 `--only`/`--variant`/`--gpu` 等 Remotion 暂不支持的旗标时自动回退旧引擎并提示。
+产物带 `.remotion` 后缀、成片自动封装 mix 音轨、`--segments` 分块避开交叠窗且可续跑；未登记的旧任务默认走旧引擎。
 
 **做整支片子时先出草稿、后出成片**：先用 `still` 看画面，再跑
 `node scripts/anim.mjs video <任务> --draft --segments 10`，把草稿路径交给用户并停下等反馈。

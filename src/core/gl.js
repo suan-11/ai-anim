@@ -1026,7 +1026,7 @@ export class Compositor {
     this.pass = new Pass(gl, /* glsl */ `
       uniform sampler2D src;
       uniform sampler2D src2;
-      uniform int  mode;
+      uniform float mode;
       uniform float opacity;
       uniform vec3 tint;
       uniform vec4 rect;     // x, y, w, h（目标区域，逻辑像素）
@@ -1047,13 +1047,13 @@ export class Compositor {
         s.rgb *= tint;
         float a = clamp(s.a * opacity, 0.0, 1.0);
         vec3 col;
-        if (mode == 0)      col = mix(dst, s.rgb, a);                       // normal
-        else if (mode == 1) col = dst + s.rgb * a;                          // add
-        else if (mode == 2) col = 1.0 - (1.0 - dst) * (1.0 - s.rgb * a);    // screen
-        else if (mode == 3) col = dst * mix(vec3(1.0), s.rgb, a);           // multiply
-        else if (mode == 4) col = max(dst, s.rgb * a);                      // max
-        else if (mode == 5) col = min(dst, mix(vec3(1.0), s.rgb, a));       // min
-        else if (mode == 6) {                                               // overlay
+        if (mode < 0.5)      col = mix(dst, s.rgb, a);                       // normal
+        else if (mode < 1.5) col = dst + s.rgb * a;                          // add
+        else if (mode < 2.5) col = 1.0 - (1.0 - dst) * (1.0 - s.rgb * a);    // screen
+        else if (mode < 3.5) col = dst * mix(vec3(1.0), s.rgb, a);           // multiply
+        else if (mode < 4.5) col = max(dst, s.rgb * a);                      // max
+        else if (mode < 5.5) col = min(dst, mix(vec3(1.0), s.rgb, a));       // min
+        else if (mode < 6.5) {                                               // overlay
           vec3 lo = 2.0 * dst * s.rgb;
           vec3 hi = 1.0 - 2.0 * (1.0 - dst) * (1.0 - s.rgb);
           col = mix(dst, mix(lo, hi, vec3(greaterThanEqual(dst, vec3(0.5)))), a);

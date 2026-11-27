@@ -30,6 +30,7 @@ import paperfoldAnalysis from '../../tasks/paperfold/audio/bed.analysis.json';
 import * as wemMod from '@/tasks/world-execute-me';
 import wemRhythm from '../../tasks/world-execute-me/rhythm.json';
 import wemAnalysis from '../../tasks/world-execute-me/audio/track.analysis.json';
+import { BRIDGES } from './bridges.generated';
 
 const TL = buildFrameTimeline(config);
 const JA = evaluateTask('nekohome-intro-ja', jaMod, {
@@ -98,6 +99,7 @@ export const RemotionRoot: React.FC = () => {
         height={TL.height}
         defaultProps={{}}
       />
+      {/* 标定专用：简化 React 画面核对日语配音/中文字幕对齐（CLI 真实镜头出片走 Task-nekohome-intro-ja）。 */}
       <Composition
         id="NekohomeJaVerify"
         component={NekohomeJaVerify}
@@ -152,6 +154,18 @@ export const RemotionRoot: React.FC = () => {
         height={WEM.height}
         defaultProps={{}}
       />
+      {BRIDGES.map((b) => (
+        <Composition
+          key={b.id}
+          id={b.id}
+          component={b.component as any}
+          durationInFrames={b.durationInFrames}
+          fps={b.fps}
+          width={b.width}
+          height={b.height}
+          defaultProps={{}}
+        />
+      ))}
     </>
   );
 };
@@ -164,10 +178,10 @@ const WEM = evaluateTask('world-execute-me', wemMod, {});
  *  渲染期挂 <Audio> 会让 @remotion/media 逐帧抽音频，长 mp3 实测在 f230 超时炸渲染。
  *  Studio 预览要听声时用 npm run studio 的旧引擎预览（src/app.js 自带 Audio 播放器）。 */
 const WemBridgeNoMB: React.FC<{ samples?: number }> = ({ samples = 1 }) => (
-  <EngineBridge taskMod={wemMod} rhythm={wemRhythm} analysis={wemAnalysis} samples={samples} />
+  <EngineBridge taskId="world-execute-me" allowUnsupported taskMod={wemMod} rhythm={wemRhythm} analysis={wemAnalysis} samples={samples} />
 );
 const WemBridgeMB: React.FC<{ samples?: number | 'auto' }> = ({ samples = 'auto' }) => (
-  <EngineBridge taskMod={wemMod} rhythm={wemRhythm} analysis={wemAnalysis} samples={samples} shutter={0.5} />
+  <EngineBridge taskId="world-execute-me" allowUnsupported taskMod={wemMod} rhythm={wemRhythm} analysis={wemAnalysis} samples={samples} shutter={0.5} />
 );
 
 /** paperfold 桥：samples 走 inputProps（CLI --props 注入），默认 auto。
@@ -175,14 +189,14 @@ const WemBridgeMB: React.FC<{ samples?: number | 'auto' }> = ({ samples = 'auto'
  *  音乐层：bed 循环 + 淡入淡出 + 旁白闪避 + 切点 whoosh（Remotion 原生，不依赖 CLI mux）。 */
 const PaperfoldBridgeNoMB: React.FC<{ samples?: number }> = ({ samples = 1 }) => (
   <>
-    <EngineBridge taskMod={paperfoldMod} narrationData={paperfoldNarration}
+    <EngineBridge taskId="paperfold" taskMod={paperfoldMod} narrationData={paperfoldNarration}
       rhythm={paperfoldRhythm} analysis={paperfoldAnalysis} samples={samples} />
     <PaperfoldMusic />
   </>
 );
 const PaperfoldBridgeMB: React.FC<{ samples?: number | 'auto' }> = ({ samples = 'auto' }) => (
   <>
-    <EngineBridge taskMod={paperfoldMod} narrationData={paperfoldNarration}
+    <EngineBridge taskId="paperfold" taskMod={paperfoldMod} narrationData={paperfoldNarration}
       rhythm={paperfoldRhythm} analysis={paperfoldAnalysis} samples={samples} shutter={0.5} />
     <PaperfoldMusic />
   </>

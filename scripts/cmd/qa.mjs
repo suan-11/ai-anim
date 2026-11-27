@@ -31,9 +31,12 @@ import { ROOT, pickTask, taskOut } from "../lib/cli/paths.mjs";
  * `--expect-size/--expect-fps/--expect-duration/--audio required|none` 显式传了才当门（不符=失败）；
  * **没传的规格打 NOT CHECKED，不算通过**。一个都不传时行为与从前逐字一致（只报读数）。
  */
-async function cmdQa() {
+async function cmdQa(opts = {}) {
   const task = pickTask();
-  const file = path.resolve(ROOT, opt('file', opt('o', taskOut(task, `${task}.mp4`))));
+  const defaultFile = opts.renderer === 'remotion'
+    ? taskOut(task, `${task}.remotion.mp4`)
+    : taskOut(task, `${task}.mp4`);
+  const file = path.resolve(ROOT, opt('file', opt('o', defaultFile)));
   if (!existsSync(file)) die(`没有找到成片 ${path.relative(ROOT, file)}。先跑 video，或用 --file 指定。`);
   const strict = flag('strict');
   const withDecode = !flag('no-decode');
