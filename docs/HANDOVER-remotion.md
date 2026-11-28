@@ -2,6 +2,8 @@
 
 更新于 2026-11-28。迁移实施收尾与默认切换已落地（2026-11-27），并已完成 2026-11-28 阶段生产验收与 R5 对照包建包自检；**R2 已解除一半（`paperfold` 真实音画已验证，`nekohome-intro-ja` 因克隆音色不可重建仍阻塞）**，**R5 跨驱动对照仍待第二环境回传**，尚未签署最终生产验收，且未触发正式成片全渲染，当前总表见 [生产验收矩阵](REMOTION-ACCEPTANCE.md)。迁移底盘变更：`registry.json` + `bridges.generated.tsx` 单一登记（含 `_three-lab` 共 5 个任务）、`nekohome-intro-ja` 切换为真实镜头桥、修复 `Compositor` `mode` uniform 类型缺陷与 `EngineBridge`/内联旁白/注释 `audio:`/Windows ACL `0xC0000142` 启动回退/`queue` 选路、`check`/`review`/`verify`/`qa` 全面接入 Remotion、`npm run dev` 切换为 Remotion Studio（旧预览保留 `npm run dev:legacy`）、`anim new` 自动登记、已登记任务默认走 Remotion（未登记旧任务与带 `--only`/`--variant`/`--gpu` 等选项时自动回退旧引擎）。
 
+> **剩下的活怎么干**：Machine B 的跨驱动作业单、本机 `nekohome-intro-ja` 的重建步骤与红线，见 [HANDOVER-2026-11-28.md](HANDOVER-2026-11-28.md)。
+
 ## 当前生产验收（2026-11-28 阶段验收记录）
 
 详细命令、产物字节数、SHA-256、`ffprobe` 与回归清单均见 [生产验收矩阵](REMOTION-ACCEPTANCE.md) 与 [R5 对照指南](CROSS-GPU-REPRO.md)：

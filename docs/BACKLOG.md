@@ -126,6 +126,8 @@
 
 ### 1.K Remotion 生产验收（1-88）
 
+> 剩下要做的（Machine B 跨驱动对照 + `nekohome-intro-ja` 的音色）已拆成可执行作业单：[HANDOVER-2026-11-28.md](HANDOVER-2026-11-28.md)。
+
 | 编号 | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
 | 1-88 | **Remotion 生产验收矩阵与证据回填** | 按 [REMOTION-ACCEPTANCE.md](REMOTION-ACCEPTANCE.md) 持续收口：**2026-11-28 已完成 R1/R3/R4 与 M2 工程实测并建好 R5 对照包**（`example-config-only` `11.40–12.32s` 确认为 `outro` 有意留白且 `--tail 2.5 --strict` 过线；`_three-lab` 已登记 `Task-three-lab` 并通过 `check`/静帧/乱序/`samples=4` 片段/草稿；`regress-all --ci` `102/102` 退出码 `0`；`paperfold --noaudio` 无声视觉路径与确定性/续渲/保旧已验；`cross-gpu-bundle` 本机自检 `28/28` + `3/3` PASS）。**仍开放阻塞项**：① R2 真实音画 **`paperfold` 已解除**（`*-vo/mix.mp3` 是 gitignore 的派生产物，已用真 edge-tts + `say --pin-timing --bpm 100` 重建，时间线仍 `48.000s`，带音轨草稿 `qa --audio required --strict` 0 错 0 警，见矩阵 §3.4）；**`nekohome-intro-ja` 仍阻塞** —— `cotton-ja` 是 GPT-SoVITS 克隆音色，本机无服务与参考音频，禁止以静音、合成夹具或换音色替代；② R5 跨 GPU/驱动 **待第二环境回传**（[CROSS-GPU-REPRO.md](CROSS-GPU-REPRO.md)）；③ 正式成片全渲染未触发。 | 2026-11-28 生产验收收口；R2 续做（同日） |

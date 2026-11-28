@@ -4,12 +4,12 @@
  * 场景代码一行都没复制：直接 import 中文版那套 ../nekohome-intro/scenes/cards.js。
  * 时长来自 audio/ja.timing.mjs（`say --table ja` 的产物），中文版的 timing/mix 不动。
  *
- * 重做日文旁白后依次跑：
- *   call D:\gptsov\ai-anim环境.bat
- *   node scripts/anim.mjs say nekohome-intro --script narration.ja.mjs --table ja --rate +8% --tts "python tools/tts-gptsovits.py"
- *   node scripts/anim.mjs mix nekohome-intro --table ja --target streaming
- *   node scripts/sync-ja-audio.mjs            （把 ja.* / bed 同步进本任务）
+ * 重做日文旁白后依次跑（GPT-SoVITS 服务与 ANIM_GSV_* 参考音频见 tools/tts-gptsovits.py）：
+ *   node scripts/anim.mjs say nekohome-intro-ja --table ja --rate +8% --tts "python tools/tts-gptsovits.py" --pin-timing --pin-table ja
+ *   node scripts/make-ja-zhsub.mjs            （中文字幕表：时间轴=日语，文本=narration.mjs 的 zh）
+ *   node scripts/anim.mjs mix nekohome-intro-ja --table ja --target streaming
  *   node scripts/anim.mjs video nekohome-intro-ja
+ * 想改段长就去掉 --pin-timing / --pin-table；作业单见 docs/HANDOVER-2026-11-28.md §3.1。
  */
 import jaTiming from './audio/ja.timing.mjs';
 import { seq, cut } from '../../src/timeline.js';
