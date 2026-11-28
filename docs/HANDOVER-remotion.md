@@ -26,9 +26,9 @@
 
 | 验收 | 结果与复跑资料 |
 | --- | --- |
-| 阶段 2 · 日配音画 | 完整标定片 2835 帧、60 fps、47.25s，含立体声 AAC。既有片段 120 帧，修复素材解析后另用 Node 20 导出 24 帧跨 `f495`。干净环境缺生成音轨时，原生样片正常，打开日配样片才报告缺少 `./audio/ja-mix.mp3`。 [独立验证](../out/_remotion-migration/stage2-agent/verification.md) |
-| 阶段 3 · `paperfold` 局部 | `rm/webgl/index.jsx` 的 38 帧 1080p 交叠窗口已走 Remotion 两并发导出。切点无黑帧，乱序跳帧后复现同一 Canvas 哈希。1 和 4 子采样分别做了重复帧对照，整片及跨驱动还需验证。 [复杂镜头复跑记录](../out/_remotion-migration/stage3-agent/verification.md) |
-| 阶段 4 · 原生 CLI | `example-config-only` 支持 Remotion 的 `still`、`shot`、`video`、`queue`，实测草稿、跨切点分块、缺块续渲、失败时保留上次产物和严格 QA。默认文件名保留 `.remotion` 标识，带 `--out` 时发布到指定路径。AstrBot 本地桩验证了 Remotion 的进度、PNG 与 MP4 拾取以及旧引擎单帧。 [分块产物](../out/_remotion-migration/stage4-agent/final/segmented.mp4) |
+| 阶段 2 · 日配音画 | 完整标定片 2835 帧、60 fps、47.25s，含立体声 AAC。既有片段 120 帧，修复素材解析后另用 Node 20 导出 24 帧跨 `f495`。干净环境缺生成音轨时，原生样片正常，打开日配样片才报告缺少 `./audio/ja-mix.mp3`。 独立验证（`out/_remotion-migration/stage2-agent/verification.md`，**当前工作区已不存在**，见验收矩阵 §4.2） |
+| 阶段 3 · `paperfold` 局部 | `rm/webgl/index.jsx` 的 38 帧 1080p 交叠窗口已走 Remotion 两并发导出。切点无黑帧，乱序跳帧后复现同一 Canvas 哈希。1 和 4 子采样分别做了重复帧对照，整片及跨驱动还需验证。 复杂镜头复跑记录（`out/_remotion-migration/stage3-agent/verification.md`，**当前工作区已不存在**，见验收矩阵 §4.2） |
+| 阶段 4 · 原生 CLI | `example-config-only` 支持 Remotion 的 `still`、`shot`、`video`、`queue`，实测草稿、跨切点分块、缺块续渲、失败时保留上次产物和严格 QA。默认文件名保留 `.remotion` 标识，带 `--out` 时发布到指定路径。AstrBot 本地桩验证了 Remotion 的进度、PNG 与 MP4 拾取以及旧引擎单帧。 分块产物（`out/_remotion-migration/stage4-agent/final/segmented.mp4`，**当前工作区已不存在**，见验收矩阵 §4.2） |
 
 ```powershell
 npm run studio
