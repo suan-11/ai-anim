@@ -115,7 +115,7 @@ export const VIDEOS = [
     args: ['video', 'paperfold', '--renderer', 'remotion', '--from', '8', '--to', '9.5', '--draft', '--samples', '1', '--noaudio'],
     checkFrames: [0, 12, 24, 35],
     audioExpected: false,
-    note: 'paperfold 交叠窗无声草稿（--noaudio；R2 真实音画因缺 paperfold-vo.mp3/paperfold-mix.mp3 仍保持阻塞）',
+    note: 'paperfold 交叠窗无声草稿（--noaudio：对照包只比画面确定性，音轨不参与像素判据）',
   },
   {
     id: 'three-lab-draft',
@@ -558,7 +558,7 @@ function buildBundleReadme(manifest) {
     '',
     '- **同机同会话乱序重复帧**：同一会话内重复渲染的同帧（如 `paperfold` `[204, 48]`、`_three-lab` `[339, 120]`）必须 **SHA-256 逐字节一致**。',
     '- **跨驱动对比**：允许不同 GPU / ANGLE 驱动存在微小栅格化四舍五入差异（PNG 容差默认 `mean <= 3.0` 且 `d > 8` 占比 `<= 2.0%`；草稿 MP4 关键帧容差 `mean <= 6.0` 且 `d > 16` 占比 `<= 5.0%`），同时校验 `ffprobe` 流参数一致。',
-    '- **R2 音频说明**：`paperfold` 代表性草稿固定携带 `--noaudio`（`audioStreams: 0`），因为真实 `paperfold-vo.mp3` / `paperfold-mix.mp3` 仍保持阻塞。',
+    '- **音频说明**：`paperfold` 代表性草稿固定携带 `--noaudio`（`audioStreams: 0`）—— 对照包只比画面确定性与流规格，音轨不参与像素判据；`paperfold` 的真实音画验收见 `docs/REMOTION-ACCEPTANCE.md` §3.4。',
     '',
   ].join('\n');
 }

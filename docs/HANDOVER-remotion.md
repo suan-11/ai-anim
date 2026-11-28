@@ -1,6 +1,6 @@
 # ai-anim 迁移到 Remotion · 计划与交接
 
-更新于 2026-11-28。迁移实施收尾与默认切换已落地（2026-11-27），并已完成 2026-11-28 阶段生产验收与 R5 对照包建包自检；因 **R2 真实音画（`nekohome-intro-ja`、`paperfold` 缺 VO/mix）仍阻塞** 且 **R5 跨驱动对照仍待第二环境回传**，尚未签署最终生产验收，且未触发正式成片全渲染，当前总表见 [生产验收矩阵](REMOTION-ACCEPTANCE.md)。迁移底盘变更：`registry.json` + `bridges.generated.tsx` 单一登记（含 `_three-lab` 共 5 个任务）、`nekohome-intro-ja` 切换为真实镜头桥、修复 `Compositor` `mode` uniform 类型缺陷与 `EngineBridge`/内联旁白/注释 `audio:`/Windows ACL `0xC0000142` 启动回退/`queue` 选路、`check`/`review`/`verify`/`qa` 全面接入 Remotion、`npm run dev` 切换为 Remotion Studio（旧预览保留 `npm run dev:legacy`）、`anim new` 自动登记、已登记任务默认走 Remotion（未登记旧任务与带 `--only`/`--variant`/`--gpu` 等选项时自动回退旧引擎）。
+更新于 2026-11-28。迁移实施收尾与默认切换已落地（2026-11-27），并已完成 2026-11-28 阶段生产验收与 R5 对照包建包自检；**R2 已解除一半（`paperfold` 真实音画已验证，`nekohome-intro-ja` 因克隆音色不可重建仍阻塞）**，**R5 跨驱动对照仍待第二环境回传**，尚未签署最终生产验收，且未触发正式成片全渲染，当前总表见 [生产验收矩阵](REMOTION-ACCEPTANCE.md)。迁移底盘变更：`registry.json` + `bridges.generated.tsx` 单一登记（含 `_three-lab` 共 5 个任务）、`nekohome-intro-ja` 切换为真实镜头桥、修复 `Compositor` `mode` uniform 类型缺陷与 `EngineBridge`/内联旁白/注释 `audio:`/Windows ACL `0xC0000142` 启动回退/`queue` 选路、`check`/`review`/`verify`/`qa` 全面接入 Remotion、`npm run dev` 切换为 Remotion Studio（旧预览保留 `npm run dev:legacy`）、`anim new` 自动登记、已登记任务默认走 Remotion（未登记旧任务与带 `--only`/`--variant`/`--gpu` 等选项时自动回退旧引擎）。
 
 ## 当前生产验收（2026-11-28 阶段验收记录）
 
@@ -11,7 +11,7 @@
 - **R4（Three.js Remotion 覆盖）**：`_three-lab` 已通过 `gen-remotion-registry.mjs --add _three-lab` 正式登记为 `Task-three-lab`（`1920x1080`, `60fps`, `876` 帧）；`anim check _three-lab`、1/4/auto 静帧、单会话乱序同帧（`samples=1` 与 `4` 的 `three-seek-order` SHA-256 全等）、草稿 MP4（`three-lab.remotion.draft.mp4` `876` 帧）及 `samples=4` 1080p 片段（`three-lab.remotion.s4.shot_5-6.5.mp4` `90` 帧）均已通过 `ffprobe`、`verify` 与 `qa --strict`。
 - **M2 工程链路实测**：`paperfold --noaudio` 整片草稿（`1152` 帧 / `48.00s`、`0` 音轨）与 1080p 交叠片段（`24` 帧 / `1.00s`、`0` 音轨）、`demo --renderer legacy` 草稿（`999` 帧 / `16.65s`）、断点续渲（`resume-verify.remotion.draft.mp4` 命中 `复用分块 0–209`）及原子失败保旧（`preserve-verify.remotion.draft.mp4` SHA-256 不变且无残余暂存）均已实测通过。
 - **R5（跨 GPU/驱动复现对照包）**：已交付 `tools/cross-gpu-repro.mjs`、`docs/CROSS-GPU-REPRO.md` 与 `out/_remotion-migration/acceptance/cross-gpu-bundle/`（5 组用例 **28 张基准 PNG** + **3 支基准草稿 MP4**）；Machine A 隔离自检 `PASS`（`exact=28/28, withinTol=0, diverged=0, detFail=0, videos=3/3`）。当前状态保持 **待第二环境回传**。
-- **R2（真实音画阻塞项）**：`tasks/nekohome-intro-ja/audio/` 仍缺 `ja-vo.mp3`、`ja-mix.mp3`，`tasks/paperfold/audio/` 仍缺 `paperfold-vo.mp3`、`paperfold-mix.mp3`。两者真实音画均保持 **阻塞（素材缺失）**，未以静音渲染或合成夹具替代结论。
+- **R2（真实音画）**：**`paperfold` 已验证（2026-11-28 续做）** —— `*-vo.mp3`/`*-mix.mp3` 按 `.gitignore` 不入库、属派生产物，已用仓库自带 `tools/tts-edge.py`（真 edge-tts，`ANIM_PYTHON` 指向装了 `edge_tts` 的解释器）+ `say --pin-timing --bpm 100` 重建，`timing.json` 的 `start/slot/stretch/total` 与既有交付逐字段相同（`48.000s`），`words` 由近似升级为真实词边界；带音轨草稿 `paperfold.audio.remotion.draft.mp4`（`1152` 帧 / AAC 48kHz 立体声）`qa --audio required --strict` **0 错 0 警**、`verify` `12/12`、封装音轨与 mix 包络相关 `r=1.00000`，细节见矩阵 §3.4。**`nekohome-intro-ja` 仍阻塞**：`VOICE='cotton-ja'` 是 GPT-SoVITS 克隆音色，`D:\gptsov\ai-anim环境.bat` 与 `ANIM_GSV_*` 参考音频在本机不存在；换普通日语音色会改变交付物，未擅自替换，也未以静音/合成夹具替代结论。
 ## 本轮派工与汇合顺序（2026-11-27 迁移阶段历史记录）
 
 | 工作 | 交付与衔接 |
@@ -104,7 +104,7 @@ Remotion 负责帧时钟、镜头编排、Studio 预览和视频渲染。同一�
 
 1. 在 `ai-anim` 仓库根目录确认 `git status --short --branch` 与 [生产验收矩阵](REMOTION-ACCEPTANCE.md)，阅读 [AGENTS.md](../AGENTS.md) 的确定性与渲染约定；Windows 下执行 Remotion/回归前先将 `$env:TEMP` 与 `$env:TMP` 指向工作区内 `out/_remotion-migration/acceptance/tmp`。
 2. **R5 第二环境对照**：在独立第二套 GPU / 驱动机器（Machine B）拷入 `out/_remotion-migration/acceptance/cross-gpu-bundle/`，按 [R5 对照指南](CROSS-GPU-REPRO.md) 运行 `node tools/cross-gpu-repro.mjs`，将生成的 `runs/<run-id>/repro-report.{json,md}` 回传并更新验收矩阵。
-3. **R2 音画解除阻塞**：补齐或重建 `tasks/nekohome-intro-ja/audio/{ja-vo,ja-mix}.mp3` 与 `tasks/paperfold/audio/{paperfold-vo,paperfold-mix}.mp3` 后，补跑带音轨整片草稿、短切段试听、`ffprobe` 音轨探查、首/中/尾字幕声音边界抽查与 `anim qa --audio required --strict`。
+3. **R2 音画解除阻塞**：`paperfold` 已完成（重建 + 带音轨草稿 + `qa --audio required --strict`，见矩阵 §3.4）；剩 `nekohome-intro-ja`：补齐 GPT-SoVITS 克隆音色服务（`ANIM_GSV_API`/`ANIM_GSV_REF`/`ANIM_GSV_REF_TEXT`）后重建 `tasks/nekohome-intro-ja/audio/{ja-vo,ja-mix}.mp3`，或由用户拍板换音色，再补跑整片草稿、短切段试听、`ffprobe` 音轨探查与首/中/尾字幕声音边界抽查。
 4. **已通过基线守门（2026-11-28 实测全绿，供后续改动复核参照）**：
    - `node tools/regress-all.mjs --ci` → 退出码 `0`（`102/102` 通过）
    - `npm run typecheck -w @ai-anim/remotion` → 退出码 `0`

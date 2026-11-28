@@ -8,7 +8,7 @@ import {
   extractRenderer, nativeChunkRanges, overlapAwareChunkRanges, remotionCommand, remotionPartsDirectory,
   remotionScaleWarning, remotionVideoName, resolveRemotionBinariesDir, resolveSamples, videoFrameRange,
 } from '../scripts/lib/cli/remotion.mjs';
-import { finalVideo } from '../scripts/lib/cli/paths.mjs';
+import { finalVideo, ROOT } from '../scripts/lib/cli/paths.mjs';
 import { findUnsupportedFlag, peekTaskName, REMOTION_SUPPORTED_CMDS, resolveRenderer } from '../scripts/lib/cli/renderer.mjs';
 import { readTaskAudioSpec } from '../scripts/lib/media.mjs';
 import { readRegistry } from '../scripts/lib/remotion-registry.mjs';
@@ -236,12 +236,21 @@ rejects(['video', task, '--renderer', 'remotion', '--force'], /--force 必须与
 
 // T2-R2-B：inline audio:{...} + 注释剥离（resolveAudioTracks + readTaskAudioSpec）
 {
+  // ⚠ 只断言"声明解析"与"仓库里入库的那条 bed 轨"，**不断言 vo/mix 是否存在**：
+  // `tasks/*/audio/*-vo.mp3` / `*-mix.mp3` 是 .gitignore 的派生产物（`anim say` / `anim mix` 生成），
+  // 干净克隆里没有、本机跑过 say 之后又有 —— 拿它当固定前提的断言会随仓库状态红绿互换。
+  // "缺失文件解析成 null" 由下面那个临时夹具覆盖（自带 config，不依赖仓库状态）。
+  const pfDir = path.join(ROOT, 'tasks', 'paperfold');
+  const spec = readTaskAudioSpec(pfDir);
+  assert.deepEqual(spec, {
+    music: './audio/bed.mp3',
+    vo: './audio/paperfold-vo.mp3',
+    mix: './audio/paperfold-mix.mp3',
+  }, 'paperfold 的 audio 声明应被完整解析（不受文件是否存在影响）');
+
   const pf = resolveAudioTracks('paperfold');
   assert.equal(pf.isSplit, true, 'paperfold 应识别为分轨配置');
-  assert.equal(pf.vo, null, '缺失 paperfold-vo.mp3 时 vo 应为 null');
-  assert.equal(pf.mix, null, '缺失 paperfold-mix.mp3 时 mix 应为 null');
   assert.ok(pf.music && pf.music.endsWith(path.join('tasks', 'paperfold', 'audio', 'bed.mp3')), 'paperfold music 应解析为 bed.mp3');
-  assert.equal(pf.packaging, pf.music, 'paperfold 缺失 mix 时 packaging 退回 music');
 
   const tmpRoot = mkdtempSync(path.join(tmpdir(), 'anim-audio-inline-'));
   try {
