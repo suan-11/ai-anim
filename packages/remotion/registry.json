@@ -1,6 +1,13 @@
 {
   "schema": "remotion.registry/1",
   "tasks": {
+    "_three-lab": {
+      "composition": "Task-three-lab",
+      "kind": "bridge",
+      "eval": "task-eval",
+      "audio": false,
+      "samples": "auto"
+    },
     "example-config-only": {
       "composition": "ExampleConfigOnly",
       "kind": "native",

@@ -3,10 +3,11 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { log, warn } from "./log.mjs";
+import { blankJsComments } from "../js-source.mjs";
 import { checkFfmpeg, ffmpegCmd } from "./media.mjs";
 import { ROOT } from "./paths.mjs";
-function findAudio(task) {
-  const dir = path.join(ROOT, 'tasks', task, 'audio');
+function findAudio(task, root = ROOT) {
+  const dir = path.join(root, 'tasks', task, 'audio');
   if (!existsSync(dir)) return null;
   const f = readdirSync(dir).filter((x) => /\.(mp3|wav|m4a|flac|ogg)$/i.test(x))[0];
   return f ? path.join(dir, f) : null;
@@ -38,8 +39,8 @@ function findAudio(task) {
  *             isSplit: boolean, note: string }}
  *           路径都是**绝对路径**；不存在的文件会被判成 null。
  */
-function resolveAudioTracks(task) {
-  const dir = path.join(ROOT, 'tasks', task);
+function resolveAudioTracks(task, root = ROOT) {
+  const dir = path.join(root, 'tasks', task);
   const abs = (p) => {
     if (!p || typeof p !== 'string') return null;
     const f = path.isAbsolute(p) ? p : path.join(dir, p.replace(/^\.\//, ''));
@@ -50,7 +51,8 @@ function resolveAudioTracks(task) {
   let spec = null;
   try {
     const src = readFileSync(path.join(dir, 'task.config.mjs'), 'utf8');
-    const m = /(^|\n)\s*audio:\s*(\{[^}]*\}|'[^']*'|"[^"]*")/.exec(src);
+    const code = blankJsComments(src);
+    const m = /(^|[,{[\s])audio\s*:\s*(\{[^}]*\}|'[^']*'|"[^"]*")/.exec(code);
     if (m) {
       const raw = m[2];
       if (raw.startsWith('{')) {
@@ -73,7 +75,7 @@ function resolveAudioTracks(task) {
   const isSplit = !!(spec && typeof spec === 'object');
 
   // 老写法（或分轨但没写全）：从 audio/ 里扫第一个音频文件当"唯一那条轨"
-  if (!music && !vo && !mix) mix = findAudio(task);
+  if (!music && !vo && !mix) mix = findAudio(task, root);
   // 补缺省
   if (!mix && !music && !vo) return { music: null, vo: null, mix: null, analysisSource: null, packaging: null, isSplit, note: '(没有音频)' };
   const analysisSource = music ?? mix ?? vo;

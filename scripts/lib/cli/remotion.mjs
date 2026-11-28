@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, renameSync, rmSync, rmdirSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, renameSync, rmSync, rmdirSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -198,63 +198,131 @@ function findSystemBinary(cmdName, explicitPath) {
   return null;
 }
 
+function canRunFfmpeg(binPath, cwd) {
+  if (!binPath || !existsSync(binPath)) return false;
+  const r = spawnSync(binPath, ['-version'], { cwd, timeout: 5000, windowsHide: true });
+  return r.status === 0;
+}
+
+function canRunRemotionBin(binPath, cwd) {
+  if (!binPath || !existsSync(binPath)) return false;
+  const r = spawnSync(binPath, [], { cwd, encoding: 'utf8', timeout: 5000, windowsHide: true });
+  // 健康的 remotion 合成器二进制在无参数时返回 1 且 stderr 含 "No input"；ACL/DLL 失败会返回 NTSTATUS 且无 stderr。
+  return r.status === 0 || (r.status === 1 && String(r.stderr ?? '').includes('No input'));
+}
+
 /**
- * 探测 Remotion 内置 ffmpeg 是否可用；不可用时把系统 ffmpeg/ffprobe 同步到临时目录并返回。
- * 健康环境返回 null（零开销）。
+ * 探测 Remotion 内置 ffmpeg/remotion 是否可用；不可用时（如工作区 ACL 阻断 PE 启动或缺失运行时）
+ * 同步 ffmpeg/ffprobe/remotion 及动态库到可执行目录并返回，健康环境返回 null（零开销）。
  */
-export function resolveRemotionBinariesDir() {
-  if (cachedBinariesDir !== undefined) return cachedBinariesDir;
-  const exe = (n) => (process.platform === 'win32' ? `${n}.exe` : n);
-  const pkgCandidates = process.platform === 'win32'
+export function resolveRemotionBinariesDir(opts = {}) {
+  const useCache = opts.useCache ?? Object.keys(opts).length === 0;
+  if (useCache && cachedBinariesDir !== undefined) return cachedBinariesDir;
+  const env = opts.env ?? process.env;
+  const platform = opts.platform ?? process.platform;
+  const arch = opts.arch ?? process.arch;
+  const probeFfmpeg = opts.canRunFfmpeg ?? canRunFfmpeg;
+  const probeRemotion = opts.canRunRemotionBin ?? canRunRemotionBin;
+  const locateSysBin = opts.findSystemBinary ?? findSystemBinary;
+  const tmpBase = opts.tmpdir ?? os.tmpdir();
+  const homeBase = opts.homedir !== undefined ? opts.homedir : os.homedir();
+  const logFn = opts.log ?? log;
+
+  const exe = (n) => (platform === 'win32' ? `${n}.exe` : n);
+  const pkgCandidates = platform === 'win32'
     ? ['@remotion/compositor-win32-x64-msvc']
-    : process.platform === 'darwin'
-      ? (process.arch === 'arm64' ? ['@remotion/compositor-darwin-arm64'] : ['@remotion/compositor-darwin-x64'])
-      : (process.arch === 'arm64'
+    : platform === 'darwin'
+      ? (arch === 'arm64' ? ['@remotion/compositor-darwin-arm64'] : ['@remotion/compositor-darwin-x64'])
+      : (arch === 'arm64'
         ? ['@remotion/compositor-linux-arm64-gnu', '@remotion/compositor-linux-arm64-musl']
         : ['@remotion/compositor-linux-x64-gnu', '@remotion/compositor-linux-x64-musl']);
 
   let bundledDir = null;
-  for (const pkg of pkgCandidates) {
-    try {
-      const d = require(pkg)?.dir;
-      if (d && existsSync(d)) { bundledDir = d; break; }
-    } catch { /* 忽略未安装的平台包 */ }
+  if (opts.bundledDir !== undefined) {
+    if (opts.bundledDir && existsSync(opts.bundledDir)) bundledDir = opts.bundledDir;
+  } else {
+    for (const pkg of pkgCandidates) {
+      try {
+        const d = require(pkg)?.dir;
+        if (d && existsSync(d)) { bundledDir = d; break; }
+      } catch { /* 忽略未安装的平台包 */ }
+    }
   }
-  if (!bundledDir) { cachedBinariesDir = null; return null; }
+  if (!bundledDir) {
+    if (useCache) cachedBinariesDir = null;
+    return null;
+  }
 
   const bundledFfmpeg = path.join(bundledDir, exe('ffmpeg'));
-  if (existsSync(bundledFfmpeg)) {
-    const probe = spawnSync(bundledFfmpeg, ['-version'], { cwd: bundledDir, timeout: 5000, windowsHide: true });
-    if (probe.status === 0) { cachedBinariesDir = null; return null; }
+  const bundledFfprobe = path.join(bundledDir, exe('ffprobe'));
+  const bundledRemotion = path.join(bundledDir, exe('remotion'));
+  if (probeFfmpeg(bundledFfmpeg, bundledDir) && probeRemotion(bundledRemotion, bundledDir)) {
+    if (useCache) cachedBinariesDir = null;
+    return null;
   }
 
-  const ffParts = ffmpegCmd();
+  const ffParts = opts.ffmpegParts ?? ffmpegCmd();
   const explicitFfmpeg = ffParts.length === 1 && path.isAbsolute(ffParts[0]) ? ffParts[0] : null;
-  const sysFfmpeg = findSystemBinary(exe('ffmpeg'), explicitFfmpeg);
-  if (!sysFfmpeg) { cachedBinariesDir = null; return null; }
-  const sysProbe = spawnSync(sysFfmpeg, ['-version'], { timeout: 5000, windowsHide: true });
-  if (sysProbe.status !== 0) { cachedBinariesDir = null; return null; }
+  const sysFfmpeg = locateSysBin(exe('ffmpeg'), explicitFfmpeg);
+  const srcFfmpeg = probeFfmpeg(sysFfmpeg, undefined) ? sysFfmpeg : bundledFfmpeg;
+  const explicitProbe = env.ANIM_FFPROBE && existsSync(env.ANIM_FFPROBE) ? env.ANIM_FFPROBE : null;
+  const srcFfprobe = locateSysBin(exe('ffprobe'), explicitProbe) ?? bundledFfprobe;
 
-  const explicitProbe = process.env.ANIM_FFPROBE && existsSync(process.env.ANIM_FFPROBE) ? process.env.ANIM_FFPROBE : null;
-  const sysFfprobe = findSystemBinary(exe('ffprobe'), explicitProbe);
+  const sharedLibs = readdirSync(bundledDir).filter((f) => /\.(dll|dylib)$/i.test(f) || /\.so(\.|$)/.test(f));
+  const envDir = env.ANIM_REMOTION_BINARIES_DIR ? path.resolve(env.ANIM_REMOTION_BINARIES_DIR) : null;
+  const candidates = [
+    envDir,
+    tmpBase ? path.join(tmpBase, 'ai-anim-remotion-bin') : null,
+    platform === 'win32' && env.LOCALAPPDATA ? path.join(env.LOCALAPPDATA, 'ai-anim-remotion-bin') : null,
+    homeBase ? path.join(homeBase, '.cache', 'ai-anim-remotion-bin') : null,
+  ].filter(Boolean);
 
-  const dir = path.join(os.tmpdir(), 'ai-anim-remotion-bin');
-  mkdirSync(dir, { recursive: true });
-  const syncBin = (src, dstName) => {
+  const syncCopy = (dir, src, dstName, created) => {
     if (!src || !existsSync(src)) return;
     const dst = path.join(dir, dstName);
-    const srcSize = statSync(src).size;
-    if (existsSync(dst) && statSync(dst).size === srcSize) return;
+    const srcStat = statSync(src);
+    if (existsSync(dst)) {
+      const dstStat = statSync(dst);
+      if (dstStat.size === srcStat.size && dstStat.mtimeMs >= srcStat.mtimeMs) return;
+    } else {
+      created.push(dst);
+    }
     rmSync(dst, { force: true });
-    try { linkSync(src, dst); } catch { copyFileSync(src, dst); }
+    // 必须 copyFileSync 而非硬链接：若工作区 ACL 阻断可执行初始化，硬链接会共享源文件的安全描述符。
+    copyFileSync(src, dst);
   };
-  syncBin(sysFfmpeg, exe('ffmpeg'));
-  syncBin(sysFfprobe, exe('ffprobe'));
-  syncBin(path.join(bundledDir, exe('remotion')), exe('remotion'));
 
-  log(`ℹ Remotion 内置 ffmpeg 不可用，已切换系统 ffmpeg（${dir}）`);
-  cachedBinariesDir = dir;
-  return cachedBinariesDir;
+  for (const rawDir of [...new Set(candidates.map((d) => path.resolve(d)))]) {
+    const dir = rawDir;
+    const isUserDir = Boolean(envDir && dir === envDir);
+    const existedBefore = existsSync(dir);
+    const createdFiles = [];
+    const cleanupFailed = () => {
+      if (!isUserDir && !existedBefore) {
+        rmSync(dir, { recursive: true, force: true });
+      } else {
+        for (const f of createdFiles) rmSync(f, { force: true });
+      }
+    };
+    try {
+      mkdirSync(dir, { recursive: true });
+      for (const lib of sharedLibs) syncCopy(dir, path.join(bundledDir, lib), lib, createdFiles);
+      syncCopy(dir, srcFfmpeg, exe('ffmpeg'), createdFiles);
+      syncCopy(dir, srcFfprobe, exe('ffprobe'), createdFiles);
+      syncCopy(dir, bundledRemotion, exe('remotion'), createdFiles);
+      if (probeFfmpeg(path.join(dir, exe('ffmpeg')), dir) && probeRemotion(path.join(dir, exe('remotion')), dir)) {
+        logFn(`ℹ Remotion 内置二进制不可用，已切换可用二进制目录（${dir}）`);
+        if (useCache) cachedBinariesDir = dir;
+        return dir;
+      }
+      cleanupFailed();
+    } catch {
+      try { cleanupFailed(); } catch { /* 忽略清理失败 */ }
+    }
+  }
+
+  if (useCache) cachedBinariesDir = null;
+  return null;
 }
 
 function runCli(args, onFrame = () => {}) {

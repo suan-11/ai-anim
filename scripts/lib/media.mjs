@@ -20,6 +20,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { blankJsComments } from './js-source.mjs';
 
 /** 把 `node tools/x.mjs --a` 这种命令行切成 argv（支持引号包住的路径）。 */
 export function parseCmdline(s) {
@@ -183,7 +184,8 @@ export function encodeMp3(wavPath, mp3Path, bitrate = '192k') {
 export function readTaskAudioSpec(taskDir) {
   let src = '';
   try { src = readFileSync(path.join(taskDir, 'task.config.mjs'), 'utf8'); } catch { return null; }
-  const m = /(^|\n)\s*audio:\s*(\{[^}]*\}|'[^']*'|"[^"]*")/.exec(src);
+  const code = blankJsComments(src);
+  const m = /(^|[,{[\s])audio\s*:\s*(\{[^}]*\}|'[^']*'|"[^"]*")/.exec(code);
   if (!m) return null;
   const raw = m[2];
   if (raw.startsWith('{')) {

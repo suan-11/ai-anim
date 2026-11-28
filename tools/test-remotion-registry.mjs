@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { ROOT } from '../scripts/lib/cli/paths.mjs';
 import {
-  BRIDGES_REL, REGISTRY_REL, compositionIdForTask, detectTaskFiles,
+  BRIDGES_REL, REGISTRY_REL, compositionIdForTask, detectTaskFiles, parseConfigTextFallback,
   readRegistry, registerTask, renderBridgesSource, syncBridges, unregisterTask, writeRegistry,
 } from '../scripts/lib/remotion-registry.mjs';
 
@@ -77,6 +77,41 @@ try {
   ok(unreg.existed === true && !readRegistry(tmp).tasks.alpha_1, 'unregisterTask 移除登记');
   const after = readFileSync(path.join(tmp, BRIDGES_REL), 'utf8');
   ok(!after.includes('alpha_1'), 'unregisterTask 同步清理生成桥');
+
+  // 4) parseConfigTextFallback + detectTaskFiles 单行属性与注释剥离兜底
+  const parsedFallback = parseConfigTextFallback([
+    "export default {",
+    "  // narration: './audio/wrong.json',",
+    "  /* analysis: './audio/wrong.analysis.json', audio: './audio/wrong.mp3', */",
+    "  narration:'./audio/narration.json', analysis:'./audio/bed.analysis.json', audio:{music:'./audio/bed.mp3',vo:'./audio/beta-vo.mp3',mix:'./audio/beta-mix.mp3'},",
+    "};",
+  ].join('\n'));
+  ok(parsedFallback.narration === './audio/narration.json', 'parseConfigTextFallback 提取单行 narration');
+  ok(parsedFallback.analysis === './audio/bed.analysis.json', 'parseConfigTextFallback 提取单行 analysis');
+  ok(
+    parsedFallback.audio && typeof parsedFallback.audio === 'object'
+      && parsedFallback.audio.music === './audio/bed.mp3'
+      && parsedFallback.audio.vo === './audio/beta-vo.mp3'
+      && parsedFallback.audio.mix === './audio/beta-mix.mp3',
+    'parseConfigTextFallback 提取单行 audio:{...} 且忽略注释',
+  );
+
+  const betaDir = path.join(tmp, 'tasks', 'beta_inline');
+  mkdirSync(path.join(betaDir, 'audio'), { recursive: true });
+  writeFileSync(path.join(betaDir, 'task.config.mjs'), [
+    "import '../../src/timeline.js';",
+    "export default {",
+    "  narration:'./audio/narration.json', audio:{music:'./audio/bed.mp3',vo:'./audio/beta-vo.mp3',mix:'./audio/beta-mix.mp3'},",
+    "  timeline: [],",
+    "};",
+  ].join('\n'));
+  writeFileSync(path.join(betaDir, 'audio', 'narration.json'), '{"lines":[]}');
+  writeFileSync(path.join(betaDir, 'audio', 'bed.analysis.json'), '{"beats":[]}');
+  const betaFiles = await detectTaskFiles('beta_inline', tmp);
+  ok(betaFiles.mod === null, 'beta_inline 因不可解析导入进入文本兜底分支');
+  ok(betaFiles.narrationRel === './audio/narration.json', 'detectTaskFiles 兜底识别单行 narrationRel');
+  ok(betaFiles.analysisRel === './audio/bed.analysis.json', 'detectTaskFiles 兜底通过单行 audio.music 识别 analysisRel');
+  ok(betaFiles.hasAudio === true, 'detectTaskFiles 兜底识别 hasAudio');
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }

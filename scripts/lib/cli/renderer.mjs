@@ -130,9 +130,9 @@ export function resolveRenderer(cmd, argv, { registry = null, env = process.env 
   }
   const { renderer: flagRenderer, explicit, args } = extractRenderer(argv);
   if (cmd === 'queue') {
-    // queue 原样把参数转给子进程 video，由各任务自己解析
+    // queue 本身由 legacy 编排；renderer 参数原样转给子进程 video，由各任务自己选路。
     return {
-      renderer: explicit && flagRenderer ? flagRenderer : 'legacy',
+      renderer: 'legacy',
       source: explicit ? 'flag' : 'default',
       args: argv,
       task: null,

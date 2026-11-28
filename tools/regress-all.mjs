@@ -110,6 +110,7 @@ const ITEMS = [
   { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、默认自动路由、回退、帧区间、分块目录、成片选择、采样默认、scale 提示与参数报错' },
   { name: 'unit:remotion-typecheck', bin: 'npm', cmd: ['run', 'typecheck', '-w', '@ai-anim/remotion'], note: 'Remotion TypeScript 严格类型检查' },
   { name: 'unit:remotion-registry', cmd: ['tools/test-remotion-registry.mjs'], note: 'Remotion 登记表校验、ID 清洗与 bridges.generated.tsx 同步检查' },
+  { name: 'unit:cross-gpu-repro', cmd: ['tools/test-cross-gpu-repro.mjs'], note: '跨 GPU/驱动复现对照包纯函数逻辑（清单校验、目录隔离、像素差分容差与媒体流规格比对，离线单测）' },
   { name: 'unit:remotion-transitions', cmd: ['tools/test-remotion-transitions.mjs'], note: 'Remotion 转场排程：补时长后段起点不漂、总时长不变、none 缝与交叠缝' },
   { name: 'unit:easing-warn', cmd: ['tools/test-easing-warn.mjs'], note: 'P2-3 缓动名写错要警告（7 项）' },
   { name: 'unit:narration', cmd: ['tools/test-narration.mjs'], note: 'P1-5 旁白表 + C 档词级时间戳（44 项）' },

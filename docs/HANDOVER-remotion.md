@@ -1,8 +1,18 @@
 # ai-anim 迁移到 Remotion · 计划与交接
 
-更新于 2026-11-27。已完成全部迁移收尾与全面切换：`registry.json` + `bridges.generated.tsx` 单一登记、`nekohome-intro-ja` 切换为真实镜头桥、修复 `Compositor` `mode` uniform 类型缺陷与 `EngineBridge` 初始化/内联旁白/缓存键隐患、`check`/`review`/`verify`/`qa` 全面接入 Remotion、`npm run dev` 切换为 Remotion Studio（旧预览保留 `npm run dev:legacy`）、`anim new` 自动登记、已登记任务默认走 Remotion（未登记旧任务与带 `--only`/`--variant`/`--gpu` 等选项时自动回退旧引擎）。
+更新于 2026-11-28。迁移实施收尾与默认切换已落地（2026-11-27），并已完成 2026-11-28 阶段生产验收与 R5 对照包建包自检；因 **R2 真实音画（`nekohome-intro-ja`、`paperfold` 缺 VO/mix）仍阻塞** 且 **R5 跨驱动对照仍待第二环境回传**，尚未签署最终生产验收，且未触发正式成片全渲染，当前总表见 [生产验收矩阵](REMOTION-ACCEPTANCE.md)。迁移底盘变更：`registry.json` + `bridges.generated.tsx` 单一登记（含 `_three-lab` 共 5 个任务）、`nekohome-intro-ja` 切换为真实镜头桥、修复 `Compositor` `mode` uniform 类型缺陷与 `EngineBridge`/内联旁白/注释 `audio:`/Windows ACL `0xC0000142` 启动回退/`queue` 选路、`check`/`review`/`verify`/`qa` 全面接入 Remotion、`npm run dev` 切换为 Remotion Studio（旧预览保留 `npm run dev:legacy`）、`anim new` 自动登记、已登记任务默认走 Remotion（未登记旧任务与带 `--only`/`--variant`/`--gpu` 等选项时自动回退旧引擎）。
 
-## 本轮派工与汇合顺序
+## 当前生产验收（2026-11-28 阶段验收记录）
+
+详细命令、产物字节数、SHA-256、`ffprobe` 与回归清单均见 [生产验收矩阵](REMOTION-ACCEPTANCE.md) 与 [R5 对照指南](CROSS-GPU-REPRO.md)：
+
+- **R1（`example-config-only` 11.40–12.32s 近黑段）**：已提取 `r1-outro-stills/` 三帧核对 `OutroShot.tsx` 与 `task.config.mjs:87-98`，确认为**有意极简 `outro` 开场留白**（非渲染漏层）；Remotion 在 `yuvj420p` 下无旧版 `grain`/`bloom`，故默认 `--tail 1.2` 触发 1 条预期告警，按既定口径传 `--tail 2.5 --strict` 过线 `0 错 / 0 警`；`verify --times` `8/8` 通过，整片草稿 `native-config.remotion.draft.mp4`（`834` 帧 / `13.90s`）已验收。
+- **R3（环境快照、代码修复与全仓 CI 回归）**：本机固定工作区 `TEMP`/`TMP = D:\ai-anim\out\_remotion-migration\acceptance\tmp`（Node `v26.13.0`、npm `12.0.2`、`@remotion/* 4.0.404`、Chrome `158.0.8127.88`、ffmpeg/ffprobe `8.1.2-full_build-www.gyan.dev`、Windows GPU RTX 3070 Laptop `32.0.16.2124` + AMD Radeon Graphics `31.0.21924.61`、WebGL `ANGLE AMD Radeon(TM) Graphics (0x00001638) D3D11`）。修复 `scripts/lib/cli/remotion.mjs`（`0xC0000142` 二进制目录自动同步）与 `audio.mjs`/`media.mjs`/`remotion-registry.mjs`（`blankJsComments()` + 内联 `audio:` 安全解析）及 `renderer.mjs`（`queue` 走 legacy 编排）。`node tools/regress-all.mjs --ci` 实测通过 **`102/102`**（退出码 `0`；M1 收口时曾先通过 `101/101`）。
+- **R4（Three.js Remotion 覆盖）**：`_three-lab` 已通过 `gen-remotion-registry.mjs --add _three-lab` 正式登记为 `Task-three-lab`（`1920x1080`, `60fps`, `876` 帧）；`anim check _three-lab`、1/4/auto 静帧、单会话乱序同帧（`samples=1` 与 `4` 的 `three-seek-order` SHA-256 全等）、草稿 MP4（`three-lab.remotion.draft.mp4` `876` 帧）及 `samples=4` 1080p 片段（`three-lab.remotion.s4.shot_5-6.5.mp4` `90` 帧）均已通过 `ffprobe`、`verify` 与 `qa --strict`。
+- **M2 工程链路实测**：`paperfold --noaudio` 整片草稿（`1152` 帧 / `48.00s`、`0` 音轨）与 1080p 交叠片段（`24` 帧 / `1.00s`、`0` 音轨）、`demo --renderer legacy` 草稿（`999` 帧 / `16.65s`）、断点续渲（`resume-verify.remotion.draft.mp4` 命中 `复用分块 0–209`）及原子失败保旧（`preserve-verify.remotion.draft.mp4` SHA-256 不变且无残余暂存）均已实测通过。
+- **R5（跨 GPU/驱动复现对照包）**：已交付 `tools/cross-gpu-repro.mjs`、`docs/CROSS-GPU-REPRO.md` 与 `out/_remotion-migration/acceptance/cross-gpu-bundle/`（5 组用例 **28 张基准 PNG** + **3 支基准草稿 MP4**）；Machine A 隔离自检 `PASS`（`exact=28/28, withinTol=0, diverged=0, detFail=0, videos=3/3`）。当前状态保持 **待第二环境回传**。
+- **R2（真实音画阻塞项）**：`tasks/nekohome-intro-ja/audio/` 仍缺 `ja-vo.mp3`、`ja-mix.mp3`，`tasks/paperfold/audio/` 仍缺 `paperfold-vo.mp3`、`paperfold-mix.mp3`。两者真实音画均保持 **阻塞（素材缺失）**，未以静音渲染或合成夹具替代结论。
+## 本轮派工与汇合顺序（2026-11-27 迁移阶段历史记录）
 
 | 工作 | 交付与衔接 |
 | --- | --- |
@@ -12,7 +22,7 @@
 
 三个工作包并行，验收按依赖汇合。共用注册和配置在样片接口稳定后统一接入，默认入口按阶段 4 的切换门槛决定。验证产物各自落在 `out/_remotion-migration/` 的独立目录。
 
-## 本轮验收与入口
+## 本轮验收与入口（2026-11-27 迁移阶段历史记录）
 
 | 验收 | 结果与复跑资料 |
 | --- | --- |
@@ -21,7 +31,6 @@
 | 阶段 4 · 原生 CLI | `example-config-only` 支持 Remotion 的 `still`、`shot`、`video`、`queue`，实测草稿、跨切点分块、缺块续渲、失败时保留上次产物和严格 QA。默认文件名保留 `.remotion` 标识，带 `--out` 时发布到指定路径。AstrBot 本地桩验证了 Remotion 的进度、PNG 与 MP4 拾取以及旧引擎单帧。 [分块产物](../out/_remotion-migration/stage4-agent/final/segmented.mp4) |
 
 ```powershell
-npm run studio
 npm run studio
 node scripts/anim.mjs still example-config-only --renderer remotion -t 5
 node scripts/anim.mjs video example-config-only --renderer remotion --draft --from 3.45 --to 3.55 --segments 0.1
@@ -40,7 +49,7 @@ Remotion 负责帧时钟、镜头编排、Studio 预览和视频渲染。同一�
 
 这项计划更新了之前对 Remotion 的采用方向。旧选型记录保留了自适应子帧采样、断点续渲和交付复核等能力的来历，可用于核对迁移范围。 [早期选型记录](REFERENCE-remotion.md) · [当前制作交接](HANDOVER-2026-11-23-v2.md)
 
-## 已核实的起点
+## 已核实的起点（2026-11-27 迁移开工快照，当前运行环境见验收矩阵 §3.1）
 
 | 项目 | 当前情况 |
 | --- | --- |
@@ -93,15 +102,12 @@ Remotion 负责帧时钟、镜头编排、Studio 预览和视频渲染。同一�
 
 ## 接手时先做什么
 
-1. 在 `ai-anim` 仓库根目录确认 `git status --short --branch`，阅读 [AGENTS.md](../AGENTS.md) 的确定性与渲染约定。环境盘点和样片素材以本机实时结果为准。
-2. 重跑阶段 1 时，用下列命令恢复旧引擎基线并验证阶段 1 收尾。抽帧、探测结果与命令记录放在 `out/_remotion-migration/`，文件名注明渲染器、任务、帧号和版本。仓库进行旧引擎渲染时，只向 `out/` 写入制品。
-
-   ```powershell
-   node scripts/anim.mjs tasks --json
-   node scripts/anim.mjs still example-config-only -t "1,5,9,12.5"
-   node scripts/anim.mjs shot example-config-only --from 3.25 --to 3.75
-   npx.cmd --yes --package typescript@5.9.3 tsc -p packages/remotion/tsconfig.json
-   node tools/regress-all.mjs --ci
-   ```
-
-3. 开始阶段 2 时先跑 `node scripts/anim.mjs cues nekohome-intro-ja --json`。本机已确认该命令可读出六段切点。旁白逐词数据另从 `tasks/nekohome-intro-ja/audio/ja.timing.json` 读取，中文字幕以任务配置引用的中文表为准。先完成 2A 的元数据对照，再接音画，阶段 3 开始记录复杂镜头的性能数据。
+1. 在 `ai-anim` 仓库根目录确认 `git status --short --branch` 与 [生产验收矩阵](REMOTION-ACCEPTANCE.md)，阅读 [AGENTS.md](../AGENTS.md) 的确定性与渲染约定；Windows 下执行 Remotion/回归前先将 `$env:TEMP` 与 `$env:TMP` 指向工作区内 `out/_remotion-migration/acceptance/tmp`。
+2. **R5 第二环境对照**：在独立第二套 GPU / 驱动机器（Machine B）拷入 `out/_remotion-migration/acceptance/cross-gpu-bundle/`，按 [R5 对照指南](CROSS-GPU-REPRO.md) 运行 `node tools/cross-gpu-repro.mjs`，将生成的 `runs/<run-id>/repro-report.{json,md}` 回传并更新验收矩阵。
+3. **R2 音画解除阻塞**：补齐或重建 `tasks/nekohome-intro-ja/audio/{ja-vo,ja-mix}.mp3` 与 `tasks/paperfold/audio/{paperfold-vo,paperfold-mix}.mp3` 后，补跑带音轨整片草稿、短切段试听、`ffprobe` 音轨探查、首/中/尾字幕声音边界抽查与 `anim qa --audio required --strict`。
+4. **已通过基线守门（2026-11-28 实测全绿，供后续改动复核参照）**：
+   - `node tools/regress-all.mjs --ci` → 退出码 `0`（`102/102` 通过）
+   - `npm run typecheck -w @ai-anim/remotion` → 退出码 `0`
+   - `node tools/gen-remotion-registry.mjs --check` → 退出码 `0`（`5 个任务，packages\remotion\bridges.generated.tsx 最新`）
+   - `node tools/test-ci-coverage.mjs` → 退出码 `0`（`8/8` 通过）
+5. **未授权正式成片全渲染**：需 R2 音画与 R5 第二环境回传闭环并经用户审阅草稿明确同意后，再去掉 `--draft` 执行全渲染。

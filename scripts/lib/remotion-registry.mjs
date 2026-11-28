@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { makeNarration } from '../../src/core/narration.js';
 import { buildFrameTimeline } from '../../packages/remotion/timeline.mjs';
 import { evaluateTask, normalizeAudio } from '../../packages/remotion/task-eval.mjs';
+import { blankJsComments } from './js-source.mjs';
 import { ROOT } from './cli/paths.mjs';
 
 export const REGISTRY_REL = path.join('packages', 'remotion', 'registry.json');
@@ -92,14 +93,14 @@ export function writeRegistry(reg, root = ROOT) {
  * 当 task.config.mjs 在无完整仓库上下文的临时目录中无法 import 时，用文本正则兜底提取字段。
  * @param {string} src
  */
-function parseConfigTextFallback(src) {
-  const clean = src.replace(/^\s*\/\/.*$/gm, '');
+export function parseConfigTextFallback(src) {
+  const clean = blankJsComments(src);
   const spec = {};
-  const narrM = /^\s*narration\s*:\s*(['"])([^'"]+)\1/m.exec(clean);
-  if (narrM) spec.narration = narrM[2];
-  const analM = /^\s*analysis\s*:\s*(['"])([^'"]+)\1/m.exec(clean);
-  if (analM) spec.analysis = analM[2];
-  const audioM = /(^|\n)\s*audio:\s*(\{[^}]*\}|'[^']*'|"[^"]*")/.exec(clean);
+  const narrM = /(^|[,{[\s])narration\s*:\s*(['"])([^'"]+)\2/.exec(clean);
+  if (narrM) spec.narration = narrM[3];
+  const analM = /(^|[,{[\s])analysis\s*:\s*(['"])([^'"]+)\2/.exec(clean);
+  if (analM) spec.analysis = analM[3];
+  const audioM = /(^|[,{[\s])audio\s*:\s*(\{[^}]*\}|'[^']*'|"[^"]*")/.exec(clean);
   if (audioM) {
     const raw = audioM[2];
     if (raw.startsWith('{')) {

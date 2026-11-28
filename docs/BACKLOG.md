@@ -104,6 +104,8 @@
 
 ### 1.J 叙事节奏与开头钩子评估（盘点 + 缺口 1-86～1-87）
 
+> **2026-11-28 当前代码复核（静态盘点；1-86/1-87 本轮未实现，全仓 CI 回归 102/102 已另行跑通）**：`1-86` 仍只有简短 logline 与结构化视觉分镜等约束，尚无脚本/文案层前 3 秒悬念、中段转折和信息递进评估；本轮不实现这些叙事功能。`1-87` 已有部分汇总：`scripts/lib/rhythm.mjs` 的 `rhythmStructure()` 被 `check` / `review` 调用，能汇报静态 C4/C5；`tools/lint-anti-ppt.mjs` 的完整判据及 `anim rhythm --motion` 的逐帧静/动分析仍是独立路径，尚未全部汇总为统一验收输出。故 1-87 仍开放，不把部分接线写成收口完成。
+
 > **2026-11-22 盘点**：当前引擎已具备「分镜前置门禁 → 画面手艺与独立审查 → 时间线/成片量化指标」三层叙事节奏与开头钩子评价标准，重点覆盖**视觉钩子、剪辑节奏与单段叙事推进**：
 > - **分镜前置门禁（`anim brief` / `scripts/lib/brief-lint.mjs`）**：必填 `role: 'hook'` 与 `'close'`；`hook` / `mechanism` / `close` 三个主角段必须手写（`build: 'custom'`）；每段必填 `peak: { at, what }` 与 `relayTo`（除末段外）。
 > - **画面手艺与独立审查（[CRAFT.md](CRAFT.md) §5/§7/§8.3 · [CRAFT-RUBRIC.md](CRAFT-RUBRIC.md) · [BAR.md](BAR.md)）**：`hook` 第 1 秒直接抛反常现象或矛盾结果（严禁模板黑底居中大字淡入），`close` 回扣开场视觉母题闭环；每段唯一高光峰值且 `p15` 不提前剧透；独立审查 8 维普通段均分 ≥ 4.0 且无 ≤ 2 分，**`hook` / `close` 为硬门须 8 项全 ≥ 4 分**。
@@ -116,12 +118,17 @@
 | 编号 | 事 | 从哪接着做 | 出处 |
 |---|---|---|---|
 | 1-86 | **脚本/文案层的叙事节奏与前 3 秒钩子评价标准** | 现有标准偏视觉与剪辑节奏，纯文案层面只有 `brief.logline ≤ 30 字`（`scripts/lib/brief-lint.mjs`）与去 AI 味（[RULES.md](RULES.md) C1）。**接着做**：定义前 3 秒信息差/悬念抓手、中段留存转折、信息递进坡度与话术钩子反例，扩充 `brief.mjs` 字段与校验规则或新增独立叙事 rubric 接入 `anim review`。**完成判据**：文档化标准 + 离线校验单测进 CI + 在 1 支样片上验证 | 2026-11-22 评价标准盘点 |
-| 1-87 | **节奏与过程钩子门禁收口** | `tools/lint-anti-ppt.mjs` 的 C4 呼吸窗 / C5 每 10s 过程钩子与 `anim rhythm` 静/动停顿目前仍需单独运行，尚未统一汇聚到 `anim check` / `anim review` 报告。**接着做**：评估按默认只报读数 / `--strict` 当门并依 `tools/lib/judge-tiers.mjs` 分层接入，保持存量任务退出码不变。**完成判据**：汇总读数落盘 + 离线回归全绿 | 2026-11-22 评价标准盘点 |
+| 1-87 | **节奏与过程钩子门禁收口（部分已接入，仍开放）** | `check` / `review` 已通过 `rhythmStructure()` 汇报静态 C4/C5；尚需核对与 `lint-anti-ppt` 的完整判据口径，并评估将 `anim rhythm --motion` 的逐帧静/动结果统一落盘（默认只报、`--strict` 当门，保持存量退出码）。**完成判据**：报告明确区分已跑/跳过，离线回归通过且至少一支片的输出可复核。不要将当前部分接线记成全部完成。 | 2026-11-22 评价标准盘点；2026-11-28 静态代码复核 |
 
 节奏双轨任务的 R1–R5 与 C4/C5 已接入 `check` / `review`。实测静动读数可用 `anim rhythm <任务> --motion`。详见 [节奏双轨 brief](BRIEF-rhythm-dual-track.md) §8。
 
 ---
 
+### 1.K Remotion 生产验收（1-88）
+
+| 编号 | 事 | 从哪接着做 | 出处 |
+|---|---|---|---|
+| 1-88 | **Remotion 生产验收矩阵与证据回填** | 按 [REMOTION-ACCEPTANCE.md](REMOTION-ACCEPTANCE.md) 持续收口：**2026-11-28 已完成 R1/R3/R4 与 M2 工程实测并建好 R5 对照包**（`example-config-only` `11.40–12.32s` 确认为 `outro` 有意留白且 `--tail 2.5 --strict` 过线；`_three-lab` 已登记 `Task-three-lab` 并通过 `check`/静帧/乱序/`samples=4` 片段/草稿；`regress-all --ci` `102/102` 退出码 `0`；`paperfold --noaudio` 无声视觉路径与确定性/续渲/保旧已验；`cross-gpu-bundle` 本机自检 `28/28` + `3/3` PASS）。**仍开放阻塞项**：① R2 真实音画 **阻塞**（缺 `ja-vo.mp3`/`ja-mix.mp3` 与 `paperfold-vo.mp3`/`paperfold-mix.mp3`，禁止以静音或合成夹具替代）；② R5 跨 GPU/驱动 **待第二环境回传**（[CROSS-GPU-REPRO.md](CROSS-GPU-REPRO.md)）；③ 正式成片全渲染未触发。 | 2026-11-28 生产验收收口 |
 ## 2. 内容 / 片子
 
 | 编号 | 事项 | 状态 / 下一步 |
