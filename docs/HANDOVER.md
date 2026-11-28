@@ -1,5 +1,7 @@
 # 交接文档（HANDOVER）
 
+> **最新进度见** [`HANDOVER-remotion.md`](HANDOVER-remotion.md) / [`HANDOVER-2026-11-23-v2.md`](HANDOVER-2026-11-23-v2.md)。
+
 > 写给接手的人 / agent：**先读这一页，再读 [`AGENTS.md`](../AGENTS.md)**。这一页回答四件事 ——
 > 现在是什么状态、这轮发生了什么、怎么验证、接下来从哪接着做。
 >

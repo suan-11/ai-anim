@@ -45,6 +45,19 @@ type BridgeState = {
   ready: boolean;
 };
 
+/** Small JSON/FNV fingerprint for render inputs that affect the cached engine. */
+function dataFingerprint(value: unknown): string {
+  let text: string;
+  try { text = JSON.stringify(value) ?? String(value); }
+  catch { text = String(value); }
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `${text.length}:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
 /** 全局单例缓存：同一任务在同一页面只建一次引擎（Studio 拖帧不重建）。 */
 const engineCache = new Map<string, { engine: any; refs: number }>();
 
@@ -59,11 +72,15 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({
   const stateRef = React.useRef<BridgeState>({ engine: null, error: null, ready: false });
   const [handle] = React.useState(() => delayRender('engine-init'));
 
-  // ⚠ 键里必须带 taskId 与尺寸/帧率：engine 是按 canvas 尺寸建的，同任务不同尺寸或同 title 不同任务复用会出错。
-  const cacheKey = React.useMemo(
-    () => `${taskId ?? taskMod?.default?.title ?? 'task'}@${width}x${height}@${fps}@${samples === 'auto' ? 'auto' : 'fixed'}`,
-    [taskId, taskMod, width, height, fps, samples],
-  );
+  // ⚠ 缓存键要覆盖所有初始化期会影响画面的输入；同 taskId 不同旁白/音乐分析/节奏/快门不可串用。
+  const cacheKey = React.useMemo(() => [
+    taskId ?? taskMod?.default?.title ?? 'task', `${width}x${height}`, fps,
+    samples === 'auto' ? 'auto' : 'fixed', `shutter=${shutter ?? 'default'}`,
+    `narration=${dataFingerprint(narrationData)}`,
+    `analysis=${dataFingerprint(analysis)}`,
+    `rhythm=${dataFingerprint(rhythm)}`,
+    `music=${dataFingerprint(music)}`,
+  ].join('@'), [taskId, taskMod, width, height, fps, samples, shutter, narrationData, analysis, rhythm, music]);
   // 引擎就绪状态必须进 React state：ref 变化不触发重渲染，canvas 会一直不挂载（首帧全黑）。
   const [ready, setReady] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
@@ -197,7 +214,8 @@ export const EngineBridge: React.FC<EngineBridgeProps> = ({
     engine.render(t, { samples, shutter, seeked: true, preview: false });
     if ((engine.renderErrors?.length ?? 0) > prevErrors) {
       const e = engine.renderErrors[engine.renderErrors.length - 1];
-      throw new Error(`[EngineBridge] render error @t=${t.toFixed(3)}s (${e.id ?? 'scene'}): ${e.message}`);
+      cancelRender(new Error(`[EngineBridge] render error @t=${t.toFixed(3)}s (${e.id ?? 'scene'}): ${e.message}`));
+      return;
     }
     const buf = engine.readPixels(); // Uint8Array RGBA，行序自下而上，已 sRGB 编码
     const ctx = cv.getContext('2d');

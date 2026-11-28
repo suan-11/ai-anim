@@ -18,6 +18,7 @@ import {
   STAMP_FILE, STAMP_SCHEMA, engineSig, taskSig, fileHash, sigOf,
   readStamp, writeStamp, compareStamp, stampPath,
 } from '../scripts/lib/render-stamp.mjs';
+import { taskLocalDeps } from '../scripts/lib/task-deps.mjs';
 
 let fail = 0;
 let pass = 0;
@@ -42,12 +43,30 @@ section('内容签名，不是 mtime');
 {
   const f = path.join(scenes, 'a.js');
   const s1 = taskSig(root, task);
+  ok(s1 === sigOf(root, [f]), '没有跨任务依赖时沿用原有任务签名');
   // 只改 mtime、内容不变 —— 签名**不许**变（git clone / checkout 就是这个效果）
   utimesSync(f, 2000, 2000);
   ok(taskSig(root, task) === s1, '只动 mtime、内容不变 ⇒ 签名不变（clone 之后不会集体误判）');
   // 改内容 —— 必须变
   writeFileSync(f, "export default { id: 'a', x: 2 };\n");
   ok(taskSig(root, task) !== s1, '改了内容 ⇒ 签名变');
+}
+
+section('递归签入 tasks/_shared 与跨任务依赖');
+{
+  const sharedDir = path.join(root, 'tasks', '_shared');
+  mkdirSync(sharedDir, { recursive: true });
+  const shared = path.join(sharedDir, 'x.js');
+  const nested = path.join(sharedDir, 'nested.mjs');
+  writeFileSync(path.join(scenes, 'a.js'), 'import "../../_shared/x.js";\n' + "export default { id: 'a', x: 2 };\n");
+  writeFileSync(shared, "import './nested.mjs';\nexport const shared = 1;\n");
+  writeFileSync(nested, "import './x.js';\nexport const nested = 1;\n"); // 环：seen 集合必须收敛
+  const deps = taskLocalDeps(root, task);
+  ok(JSON.stringify(deps) === JSON.stringify(['tasks/_shared/nested.mjs', 'tasks/_shared/x.js']),
+    '递归收集并排序共享 .js/.mjs，环不会重复或卡住：' + deps.join(', '));
+  const before = taskSig(root, task);
+  writeFileSync(shared, "import './nested.mjs';\nexport const shared = 22;\n");
+  ok(taskSig(root, task) !== before, '改 tasks/_shared/x.js ⇒ taskSig 变化');
 }
 
 section('戳自己不进签名');

@@ -153,6 +153,25 @@ section('配置档的按段切片（BACKLOG 1-59）');
   ok(s3.includes('slice:') === false, '没有切片时退回文件 stat（不含 slice: 前缀）');
 }
 
+section('跨任务共享依赖进入块签名');
+{
+  const shared = path.join(root, 'tasks', '_shared', 'x.js');
+  mkdirSync(path.dirname(shared), { recursive: true });
+  writeFileSync(shared, 'export const shared = 1;\n');
+  const user = path.join(scenes, 'shared-user.js');
+  writeFileSync(user, "import '../../_shared/x.js';\nexport default { id: 'shared-user' };\n");
+  const sharedTimeline = [{ id: 'shared-user', start: 0, end: 4 }];
+  const sharedIndex = sceneFileIndex(path.join(root, 'tasks', 't1'), root);
+  const sharedSig = (index) => blockSignature({
+    root, engineSig: 'e1', paramsText: 'p1', timeline: sharedTimeline, index, from: 0, to: 4,
+  });
+  const before = sharedSig(sharedIndex);
+  ok(sharedIndex.shared.includes('tasks/_shared/x.js'), 'sceneFileIndex.shared 收到 tasks/_shared/x.js');
+  writeFileSync(shared, 'export const shared = 22;\n');
+  const afterIndex = sceneFileIndex(path.join(root, 'tasks', 't1'), root);
+  ok(sharedSig(afterIndex) !== before, '改共享文件 ⇒ 块签名变化');
+}
+
 section('配置档省略 id：任务参数和模板都不能被固定问号哨兵漏掉');
 {
   const base = {

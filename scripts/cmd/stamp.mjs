@@ -3,7 +3,7 @@ import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { flag, opt, positional } from "../lib/cli/args.mjs";
 import { log } from "../lib/cli/log.mjs";
-import { ROOT, pickTask } from "../lib/cli/paths.mjs";
+import { finalVideo, ROOT, pickTask } from "../lib/cli/paths.mjs";
 import { LEGACY_ENGINE, compareStamp, engineSig as stampEngineSig, readStamp, taskSig as stampTaskSig, writeStamp } from "../lib/render-stamp.mjs";
 /**
  * `anim stamp <任务>`（或 `anim stamp`，全任务）—— **成片版本戳**：这份 mp4 是哪一版渲的。
@@ -36,7 +36,7 @@ async function cmdStamp() {
   const legacy = flag('legacy');
   const now = { engine: stampEngineSig(ROOT) };
   const tasksDir = path.join(ROOT, 'tasks');
-  const hasMp4 = (t) => existsSync(path.join(ROOT, 'out', t, t + '.mp4'));
+  const hasMp4 = (t) => !!finalVideo(t);
   const names = only
     ? [only]
     : readdirSync(tasksDir, { withFileTypes: true })
@@ -59,12 +59,12 @@ async function cmdStamp() {
     // 下划线开头的是夹具 / 实验任务（与 precommit-report 的排除表同口径）：它们本来就要频繁重渲，
     // 补记一笔只会让清单变吵，而且它们不是交付物。
     if (legacy && !stamp && !t.startsWith('_')) {
-      const mp4 = existsSync(path.join(ROOT, 'out', t, t + '.mp4'));
+      const mp4 = finalVideo(t);
       if (mp4) {
         stamp = writeStamp(ROOT, t, {
           engine: LEGACY_ENGINE,
           scene: stampTaskSig(ROOT, t),
-          video: 'out/' + t + '/' + t + '.mp4',
+          video: path.relative(ROOT, mp4).split(path.sep).join('/'),
           note: '补记：这支片子渲于版本戳落地之前，引擎版本未知（场景签名按当前内容算）',
         });
         filled++;

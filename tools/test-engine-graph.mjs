@@ -70,11 +70,28 @@ ok('stripComments：字符串里的 // 不被当成注释（URL 那种）', () =
   assert.equal(paths[0], './a.js');
 });
 
+ok('parseImports：静态 import / re-export 同时支持单双引号', () => {
+  const src = [
+    'import value from "./value.js";',
+    'export { value } from "../shared.mjs";',
+    'import "./side-effect.js";',
+  ].join('\n');
+  assert.deepEqual(parseImports(src).paths, ['./value.js', '../shared.mjs', './side-effect.js']);
+});
+
 /* ---------------------------------------------------------------- 动态标记 */
 ok('动态导入 / glob ⇒ dynamic，调用方据此退回整批', () => {
   assert.equal(parseImports("const m = await import('./x.js')").dynamic, true);
+  assert.equal(parseImports('const m = await import("./x.js")').dynamic, true);
   assert.equal(parseImports("const g = import.meta.glob('./*.js')").dynamic, true);
   assert.equal(parseImports("import a from './a.js'").dynamic, false);
+});
+
+/* --------------------------------------------------------------- 绝对说明符 */
+ok('resolveSpecifier：/src/... 说明符以项目根为基准', () => {
+  const from = W('src/core/from.js', 'export const from = 1;\n');
+  const target = W('src/x.js', 'export const x = 1;\n');
+  assert.equal(resolveSpecifier(from, '/src/x.js'), path.resolve(target));
 });
 
 /* ---------------------------------------------------------------- 反图 */

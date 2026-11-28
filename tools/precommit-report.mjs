@@ -35,6 +35,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readStamp, compareStamp, engineSig, taskSig } from '../scripts/lib/render-stamp.mjs';
+import { finalVideo } from '../scripts/lib/cli/paths.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -51,14 +52,13 @@ function touched() {
   for (const line of out.split(/\r?\n/)) {
     const m = /^tasks\/([^/]+)\//.exec(line);
     if (m) set.add(m[1]);
-    if (/^(src|scripts|tools)\//.test(line)) engine = true;
+    if (/^(src|scripts|tools|packages)\//.test(line)) engine = true;
   }
   return { tasks: [...set], engine };
 }
 
 function hasMp4(name) {
-  const f = path.join(ROOT, 'out', name, name + '.mp4');
-  return existsSync(f) ? f : null;
+  return finalVideo(name);
 }
 
 const touchedInfo = touched();

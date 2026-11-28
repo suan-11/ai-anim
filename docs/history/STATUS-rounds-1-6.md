@@ -1091,7 +1091,7 @@ node tools/regress-all.mjs --list
 
 **两次"真失败"都不是回归的问题，都记下来：**
 
-1. **`check:fidus` 报 `net::ERR_CONNECTION_REFUSED`** —— 是**我自己造成的**：
+1. **fidus 检查报 `net::ERR_CONNECTION_REFUSED`** —— 是**我自己造成的**：
    跑回归的同时我在 `scripts/lib/` 里写文件，私有 Vite 的文件监听去 watch 编辑器产生的
    `.say.mjs.<pid>.<uuid>.tmpdir/say.mjs.tmp`，撞上 `EBUSY` **直接把 Vite 进程搞崩**。
    重跑（不并发写文件）就过了。→ 元教训见 §12.4.1。
@@ -1247,7 +1247,7 @@ k=0.1 时**设计上就只有 6.7px**：那个二次方是故意的"速度感"�
    P2-2 放宽 `watch.ignored` 只保护了 `docs/**`、`**/*.md`、`tasks/*/audio/**` 等几类；
    在 `scripts/`、`tools/` 里写文件仍然会打断渲染 —— 私有 Vite 会去 watch 编辑器写文件时
    产生的临时文件（`.xxx.tmpdir/…tmp`），撞 `EBUSY` **直接让 Vite 进程崩掉**，
-   渲染报 `net::ERR_CONNECTION_REFUSED`。本轮 `check:fidus` 就是这么假失败的。
+   渲染报 `net::ERR_CONNECTION_REFUSED`。本轮 fidus 检查就是这么假失败的。
    → 结论收紧为：**渲染期间只写 `vite.config.mjs` 的 `ignored` 里那几类**。
 2. **量具自己会骗人（第二次）。** 我写了一段临时脚本量 beast 27 句的尾部静音，
    得到"0.00s/句"，差点据此把"21.6s 是虚的"这个结论撤回去。真相是那段脚本的

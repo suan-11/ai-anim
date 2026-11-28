@@ -51,7 +51,7 @@
 `fade` 是**黑掉的量**（开场淡入要写 `1 - prog(...)`）；`shake` 单位是**物理像素**；
 `--only` 会把选中的段**平移到开头**（此时 `-t` 是段内时间）；`prog(t, a, b)` 的 `b` 是**结束时刻**，不是时长。
 
-> 完整规则见 §4（铁律）/ §10（交付自检）；长清单在 [`docs/DELIVERY.md`](DELIVERY.md)。
+> 完整规则见 §4（铁律）/ §10（交付自检）；长清单在 [`docs/DELIVERY.md`](docs/DELIVERY.md)。
 
 ---
 
@@ -304,7 +304,7 @@ export default makeShot('chart', {
 | 像素风（`pixelText` 像素字 / 块栅格 / 抖动）/ 手绘笔迹 / 零状态 GPU 粒子 | `src/kit/pixel.js` · `stroke.js` · `particles.js` |
 | 带回弹的落位 | `spring(f.lt - t0)`（指数弹簧解析解） |
 
-> **其余 20+ 条元件（面板/眉标/页脚/准星、`paperStack` 纸艺、`stickerShot`、`codeRow`、`withAlpha`/`mul`…）见 [`docs/KIT.md`](KIT.md)** —— 带「写错不报错」的坑。
+> **其余 20+ 条元件（面板/眉标/页脚/准星、`paperStack` 纸艺、`stickerShot`、`codeRow`、`withAlpha`/`mul`…）见 [`docs/KIT.md`](docs/KIT.md)** —— 带「写错不报错」的坑。
 
 ⚠ **`makeShot` 与镜头库模板是两条平行的路**：`src/shots/` 的模板自己就铺满整帧（自带背景），
 所以别把模板塞进 `makeShot().draw()` 里 —— 那会覆盖掉 `makeShot` 铺的背景。一段里二选一，详见 `docs/ENGINE.md` §14.5。
@@ -478,16 +478,16 @@ node scripts/anim.mjs say <任务> --table en   # 表写到 audio/en.{timing,nar
 
 > 贴平台响度靶子要**显式**：`anim mix <任务> --target streaming`（默认只报数字、不动音轨；`docs/NARRATION.md` §7）。
 
-写法（`tasks/<任务>/narration.mjs`，**旁白是唯一的时间源**）：`VOICE` / `TAIL` / `MAX_STRETCH` / `SCENES`（每段 `internal` + 逐句 `cue`）——完整字段与示例见 [`docs/NARRATION.md`](NARRATION.md)。
+写法（`tasks/<任务>/narration.mjs`，**旁白是唯一的时间源**）：`VOICE` / `TAIL` / `MAX_STRETCH` / `SCENES`（每段 `internal` + 逐句 `cue`）——完整字段与示例见 [`docs/NARRATION.md`](docs/NARRATION.md)。
 
 `say` 逐句合成、**量出真实时长**、解出每段的 `stretch`/`slot`，写 `audio/timing.{json,mjs}` + `narration.json` +
 `<任务>-vo.mp3` 并打印时长表；场景侧只写 `const t = f.lt / (ctx.params?.stretch ?? 1)`。
 它挡住的坑：**叠句**、放慢到 `MAX_STRETCH` 还不够、没有节拍源。⚠ 旁白尾巴自带约 0.9s 静音 —— 别用文件时长。
 
-`task.config.mjs` 里接 `audio.{music,vo,mix}` + `narration` + 用 `timing.scenes[i].slot/stretch` 定段长（`duration` 直接用生成的表）——接线示例见 [`docs/NARRATION.md`](NARRATION.md)。
+`task.config.mjs` 里接 `audio.{music,vo,mix}` + `narration` + 用 `timing.scenes[i].slot/stretch` 定段长（`duration` 直接用生成的表）——接线示例见 [`docs/NARRATION.md`](docs/NARRATION.md)。
 
 **词级时间戳**（"唱到哪亮哪"）：`say` 把词级时间戳写进 `narration.json` 的 `lines[].words`（整片绝对时间），
-直接喂 `type.karaoke`；完整用法见 [`docs/NARRATION.md`](NARRATION.md)。
+直接喂 `type.karaoke`；完整用法见 [`docs/NARRATION.md`](docs/NARRATION.md)。
 
 没有 TTS 也能手写 `narration.lines` + `dur: { vo: 'line-id' }`（名字写错会抛错）。离线回归 `tools/test-say.mjs`。
 
@@ -554,7 +554,7 @@ node scripts/anim.mjs shake <任务> [--from 0 --to 48]      # 抖动是"平滑�
 node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再定：填充重的片子差 2×
 ```
 
-**分块渲染**：切点只落在段边界、避开转场；块级判断见 [`DELIVERY.md`](DELIVERY.md) §3（改 `tasks/` 只重渲那一块 /
+**分块渲染**：切点只落在段边界、避开转场；块级判断见 [`DELIVERY.md`](docs/DELIVERY.md) §3（改 `tasks/` 只重渲那一块 /
 改引擎地基整批 / 改 `src/kit` `src/shots` 按 import 图收窄）。**这只管「正在渲的那一支」**，不是「已交付的成片作废」。
 
 > **交付物是哪一版渲的：`node scripts/anim.mjs stamp [<任务>]`** —— 四档 `current` / `engine-drift`（**不需要重渲**）/
@@ -565,7 +565,7 @@ node scripts/anim.mjs perf <任务> --from 20 --to 24 --gpu high   # 先量再�
 
 **编码器不可用会自动兜底**：默认 `libx264`，出片前探一次（Windows 的 LGPL 构建没有它），自动退 `h264_mf` / `libopenh264`
 并警告；要原配方就装 GPL 构建或用 `--vcodec` / `ANIM_VCODEC`。**4K / 竖屏都不用改场景**：`--scale 2`、`width: 1080, height: 1920`；
-竖屏先读 [`LAYOUT.md`](LAYOUT.md) §6.5。出片速度与运动模糊档位见 [`PERF.md`](PERF.md) §5.3–§5.4。
+竖屏先读 [`LAYOUT.md`](docs/LAYOUT.md) §6.5。出片速度与运动模糊档位见 [`PERF.md`](docs/PERF.md) §5.3–§5.4。
 
 ---
 
@@ -655,7 +655,7 @@ node scripts/anim.mjs check <任务>
 
 ## 10. 交付前自检
 
-> **判定细节、完整命令块、以及每条门「为什么这么判」都在 [`docs/DELIVERY.md`](DELIVERY.md)** ——
+> **判定细节、完整命令块、以及每条门「为什么这么判」都在 [`docs/DELIVERY.md`](docs/DELIVERY.md)** ——
 > 这一节只留**要跑什么**与**红了怎么办**。编号（§10.11.56 之类）是外部锚点，不许删改。
 
 1. `check <任务>`：无报错、无空档、每段不全黑、**背景守门通过**（过曝 / 单多子帧不一致 / 段内亮度不均 / 交叠段没铺底 都会报）。
@@ -682,4 +682,4 @@ node scripts/anim.mjs check <任务>
 
 ### 出问题时按这个顺序查
 
-> 症状 → 原因只有一张表：§8。完整命令块（体检 / 出图 / 引擎量具 / 出片之后）见 [`docs/DELIVERY.md`](DELIVERY.md) §2。
+> 症状 → 原因只有一张表：§8。完整命令块（体检 / 出图 / 引擎量具 / 出片之后）见 [`docs/DELIVERY.md`](docs/DELIVERY.md) §2。

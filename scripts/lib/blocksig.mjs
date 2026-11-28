@@ -10,6 +10,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { taskLocalDeps } from './task-deps.mjs';
 
 /** 不算"源文件"的目录（产物与运行时素材不影响画面签名） */
 const SKIP_DIRS = new Set(['node_modules', 'out', '.git', 'audio', 'fonts']);
@@ -157,25 +158,9 @@ export function sceneFileIndex(taskDir, root = taskDir) {
     try { src = readFileSync(f, 'utf8'); } catch { continue; }
     for (const [id, h] of configNodeHashes(src)) configHashes.set(rel + '#' + id, h);
   }
-  /**
-   * **跨任务 import 的场景文件**：像 `tasks/nekohome-intro-ja` 这样只写配置、
-   * 用 `import … from '../nekohome-intro/scenes/cards.js'` 复用别人场景的任务，
-   * 上面那套 `walk(taskDir)` 一个文件都扫不到 —— 于是改源任务的场景，块签名不变、
-   * 整批复用，画面上是**旧版本**（实测：给日文版加高光条，10 块全部「签名一致」跳过）。
-   * 所以把配置里 `../` 开头的 .js import 解析出来，一起进签名。
-   */
-  const shared = [];
-  for (const f of files) {
-    if (!/task\.config\.mjs$/.test(f)) continue;
-    let src = '';
-    try { src = readFileSync(f, 'utf8'); } catch { continue; }
-    for (const m of src.matchAll(/from\s+['"](\.[^'"]*\.js)['"]/g)) {
-      const abs = path.resolve(path.dirname(f), m[1]);
-      if (!existsSync(abs)) continue;
-      const rel = path.relative(root, abs).split(path.sep).join('/');
-      if (!shared.includes(rel)) shared.push(rel);
-    }
-  }
+  // Include every transitive task-local dependency under tasks/ (not only direct
+  // imports written in task.config.mjs), so edits to shared scene modules invalidate blocks.
+  const shared = taskLocalDeps(root, path.basename(taskDir));
   return {
     byId,
     all: files.map((x) => path.relative(root, x).split(path.sep).join('/')),

@@ -4,7 +4,7 @@ import path from "node:path";
 import { flag } from "../lib/cli/args.mjs";
 import { firstLine } from "../lib/cli/gates.mjs";
 import { log } from "../lib/cli/log.mjs";
-import { ROOT, pickTask } from "../lib/cli/paths.mjs";
+import { finalVideo, ROOT, pickTask } from "../lib/cli/paths.mjs";
 /* ------------------------------------------------------------------ 分发 */
 
 
@@ -37,14 +37,16 @@ async function cmdReport() {
   };
 
   // ① 成片
-  // 优先 <task>.mp4（成片本体）；-web / -draft 之类的变体只在没有本体时才用
+  // 先选 legacy/Remotion 的正式成片（两者并存时由 finalVideo 取较新的），再兼容旧变体。
+  const canonicalVideo = finalVideo(task);
   const mp4s = existsSync(outDir)
     ? readdirSync(outDir).filter((f) => f.endsWith('.mp4') && !/^part_|_stitched|^smoke-/.test(f))
     : [];
-  const mp4 = mp4s.includes(task + '.mp4') ? task + '.mp4' : (mp4s[0] ?? null);
-  if (!mp4) skipped.push('成片：out/' + task + '/ 里还没有 mp4（先跑 anim video）');
+  const mp4 = canonicalVideo ? path.basename(canonicalVideo) : (mp4s[0] ?? null);
+  const mp4Path = canonicalVideo ?? (mp4 ? path.join(outDir, mp4) : null);
+  if (!mp4 || !mp4Path) skipped.push('成片：out/' + task + '/ 里还没有 mp4（先跑 anim video）');
   else {
-    const st = statSync(path.join(outDir, mp4));
+    const st = statSync(mp4Path);
     rows.push({ id: '成片', ok: true, summary: mp4 + ' · ' + (st.size / 1048576).toFixed(1) + ' MB' });
   }
 

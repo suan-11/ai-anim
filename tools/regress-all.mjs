@@ -38,7 +38,8 @@ const only = (() => {
 /**
  * @typedef {Object} Item
  * @property {string} name
- * @property {string[]} cmd argv（第一项会被换成本机 node 可执行文件）
+ * @property {string[]} cmd argv（默认由本机 node 执行；设置 bin 时由对应外部程序执行）
+ * @property {string} [bin] 外部可执行文件名（例如 npm）
  * @property {Record<string,string>} [env]
  * @property {string} [note]
  * @property {boolean} [expectFail] 已知会失败（红 ≠ 回归），但仍然要打印
@@ -106,7 +107,8 @@ const ITEMS = [
   { name: 'unit:remotion-timeline', cmd: ['tools/test-remotion-timeline.mjs'], note: 'Remotion 样片帧数与切点、绝对边界取整、未支持排程的报错' },
   { name: 'unit:remotion-task-eval', cmd: ['tools/test-remotion-task-eval.mjs'], note: 'Remotion 阶段 2A 任务解析对照：834 帧 / _info-lab 变体合并 / nekohome-intro-ja 六段切点与音轨字幕' },
   { name: 'unit:remotion-audio-fixture', cmd: ['tools/test-remotion-audio-fixture.mjs'], needs: ['ffmpeg'], note: 'Remotion 阶段 2C CI 夹具：合成短音频 / 段边界 / 缺失素材报告 / 字幕±1帧' },
-  { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、默认自动路由、回退、帧区间、分块边界、产物命名与参数报错' },
+  { name: 'unit:remotion-cli', cmd: ['tools/test-remotion-cli.mjs'], note: 'Remotion CLI 选路、默认自动路由、回退、帧区间、分块目录、成片选择、采样默认、scale 提示与参数报错' },
+  { name: 'unit:remotion-typecheck', bin: 'npm', cmd: ['run', 'typecheck', '-w', '@ai-anim/remotion'], note: 'Remotion TypeScript 严格类型检查' },
   { name: 'unit:remotion-registry', cmd: ['tools/test-remotion-registry.mjs'], note: 'Remotion 登记表校验、ID 清洗与 bridges.generated.tsx 同步检查' },
   { name: 'unit:remotion-transitions', cmd: ['tools/test-remotion-transitions.mjs'], note: 'Remotion 转场排程：补时长后段起点不漂、总时长不变、none 缝与交叠缝' },
   { name: 'unit:easing-warn', cmd: ['tools/test-easing-warn.mjs'], note: 'P2-3 缓动名写错要警告（7 项）' },
@@ -115,6 +117,7 @@ const ITEMS = [
   { name: 'unit:xform-math', cmd: ['tools/test-xform-math.mjs'], note: '场景级变换数学（旧回归）' },
   { name: 'unit:cam-math', cmd: ['tools/test-cam-math.mjs'], note: '3D 相机/投影/透视变换 + **手性**（33 项）' },
   { name: 'unit:segment-cuts', cmd: ['tools/test-segment-cuts.mjs'], note: 'P2-4 分块切点只落在安全处' },
+  { name: 'unit:lens-flight', cmd: ['tools/test-lens-flight.mjs'], note: '镜头飞行路径与透镜运动离线回归' },
   { name: 'unit:shots', cmd: ['tools/test-shots.mjs'], note: 'A 档镜头库：模板登记/参数名/任务段名（写错就响）+ 选型元数据齐全（1-62 §2.6）' },
   { name: 'unit:shot-pick', cmd: ['tools/test-shot-pick.mjs'], note: '选型器（1-62，学 JIZURA 部件表）：筛的语义（energy/tags/角色锁/缺省放行）+ 抽的确定性 + 落空诊断（36 项）' },
   // 要 Chrome：它把页面真的渲一遍再比对像素
@@ -153,7 +156,7 @@ const ITEMS = [
   { name: 'unit:pixel', cmd: ['tools/test-pixel.mjs'], note: '像素精灵 / 调色板量化 / 5x7 像素字（BACKLOG 1-67，素材包缺口表第 9 行）：抖动必须按**块**坐标取（按像素取 = 块被撕成噪点）/ 量化只在最近两色之间（按亮度找色阶会把饱和橙摊成灰）/ 覆盖率随距离单调 / 像素字的胶囊端点内缩半格（不缩每字右边多出半格墨）/ 时间台阶由整片时间算且 snapTime ≡ snapIndex/fps / 字模表每项恰好 7 行 x 5 列 + 覆盖 A-Z 0-9 标点 / 调色板名与精灵名写错必须抛 + kit·回归清单·AGENTS 接线自检' },
   // BACKLOG 1-69：手绘笔迹（中心线 + 压力 -> 轮廓多边形）。钉的是**几何事实**：
   // 窄了一半的坑全在这一层：斜率夹 / minW 下限 / 圆头半径 / 弧长生长 / 曲率 < 半宽时轮廓必然自交
-  { name: 'unit:engine-graph', cmd: ['tools/test-engine-graph.mjs'], note: '引擎改动的爆炸半径（BACKLOG 1-45 细化）：地基（core/style/app/timeline/public）一改就整批；通用件（kit/shots）按**真实 import 图**收窄，只波及用到它的块；barrel 按符号级跟进（import {makeShot} 不会拉进整个 kit）；镜头模板 barrel 按 shot(\'chart\') 的字面量只跟那一个模板；判不出（变量传参 / export * / 动态 import）一律退回整表并记 unresolved —— 漏算会让旧块冒充新画面，比多渲一块贵得多（11 项）' },
+  { name: 'unit:engine-graph', cmd: ['tools/test-engine-graph.mjs'], note: '引擎依赖图与绝对 /src/... 说明符解析' },
   { name: 'unit:dry-run-tiers', cmd: ['tools/test-tier-estimate.mjs'], note: 'dry-run 按档预估（C-1）：草稿档 scale 绝对 0.5 + samples 1、成片档 = 任务 scale + auto，两档都不属于才补「本次参数」；current 永远恰好一个；分钟数含编码（草稿 2ms/帧）；anim.mjs 接线自检（不走 planTiers/estimateTier 就红）' },
   { name: 'unit:stroke', cmd: ['tools/test-stroke.mjs'], note: '手绘笔迹（src/kit/stroke.js，BACKLOG 1-69，缺口表第 6 行）：MAX_WIDTH_SLOPE 0.45（>1 时上下偏移边互相追上 ⇒ 偶奇规则把自交处填成「洞」）/ minW 1.2 物理下限（更细时 fillPoly 的扫描行穿透 ⇒ 出一串虚线点）/ 端点圆头用**这一端自己的半宽**（平均值会在收笔处鼓墨滴）/ 生长按**弧长**截断（按点数截断时密采样段走得慢）/ 曲率半径 < 半宽时**轮廓必然自交**（这是几何事实，不是 bug：圆角 R 偏移 h 后内圈 = R-h，R<h 就翻转）⇒ drawStroke 的 auto 会自动退到胶囊链（端点沿切向外扩半宽补掉内切缝）/ boil 每 2 帧换一次且同组内不动 + kit·regress·文档接线自检' },
   { name: 'unit:views', cmd: ['tools/test-views.mjs'], note: '仪器视图（src/kit/views.js，BACKLOG 1-11）：九种成像的清单与默认格子 / 字模必须按**实际着墨点数**排序（第一版手写顺序不单调，中灰底整片消失）/ 模式名写错必须抛而不是静默回落（27 项）' },
@@ -182,7 +185,7 @@ const ITEMS = [
   { name: 'unit:motion-persona', cmd: ['tools/test-motion-persona.mjs'], note: '运动人格 + 缓动方向两条判据的判据本身（40 项）：声明解析（没写 ⇒ null 不假装通过）/ intensity 区间缩放 / overshoot 单调 / 三个扫描器（四参 spring 取第 3、4 位 / 嵌套括号取得到缓动名 / 参数是表达式 ⇒ 记「判不了」）/ D1-D3 三类方向矛盾 / 两种豁免' },
   { name: 'unit:motion-concurrency', cmd: ['tools/test-concurrency.mjs'], note: '同时运动判据的两个纯函数（14 项）：栅格变化面积 / 4-邻接连通分量 / 阈值与碎块（<2 块不算主体）' },
   // 1-73 成片版本戳：签名按**内容**算（不是 mtime）、戳不进签名、三档语义（engine-drift ≠ 要重渲）
-  { name: 'unit:render-stamp', cmd: ['tools/test-render-stamp.mjs'], note: '成片版本戳（1-73）：内容签名（clone 后 mtime 集体刷新也不误判）/ 戳不自指 / 读不懂返回 null 不猜 / 三档语义（engine-drift 明写「交付物不作废」、scene-drift 才说重渲）' },
+  { name: 'unit:render-stamp', cmd: ['tools/test-render-stamp.mjs'], note: '成片版本戳：内容签名、戳不自指、读不懂返回 null、三档语义与递归共享依赖签名' },
   { name: 'harness:demo', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', 'demo'], note: '离线跑场（假 ctx，不起 Chrome，0.1s）：未定义变量 / 确定性 / 文字出画' },
   { name: 'harness:style-sampler', needs: ['chrome'], cmd: ['tools/scene-harness.mjs', '_style-sampler'], note: '风格采样器：配置档 4 段 + 风格解析走通' },
 
@@ -214,7 +217,7 @@ const ITEMS = [
   },
 
   // ── 逐任务 check（2026-10-06 整份回归 33/33 全绿，含下面每一条）──
-  { name: 'check:beast', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--renderer', 'legacy', '--quick'], note: '12 段 / 127.5s', timeout: 30 * 60e3 },
+  { name: 'check:nekohome-ja', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekohome-intro-ja', '--renderer', 'legacy', '--quick'], note: '6 段日配', timeout: 30 * 60e3 },
   { name: 'check:demo', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '5 段', timeout: 30 * 60e3 },
   { name: 'check:beat', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'beat', '--quick'], note: '3 段', timeout: 30 * 60e3 },
   { name: 'check:_calib', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_calib', '--quick'], note: '标定夹具', timeout: 30 * 60e3 },
@@ -227,7 +230,7 @@ const ITEMS = [
   // 这条是「把行距调小换平滑」能不能成立的前置条件（历史读数 194/200/222/236 = 越细越浓）。
   { name: 'check:_fill-probe', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', '_fill-probe'], note: '填充面 alpha 账夹具：step 2/1/0.5/0.25 四块 alpha 0.5 的圆，四块读数必须都是 188（单子帧与多子帧两条路径都跑）', timeout: 30 * 60e3 },
   { name: 'check:nekohome', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'nekoclicker-intro', '--quick'], note: '8 段', timeout: 30 * 60e3 },
-  { name: 'check:fidus', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'demo', '--quick'], note: '9 段', timeout: 30 * 60e3 },
+  { name: 'smoke:world', needs: ['chrome'], cmd: ['tools/test-world.mjs'], note: '共享背景 world pass 的浏览器渲染冒烟', timeout: 20 * 60e3 },
   { name: 'check:pdoom-lab', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'pdoom-lab'], note: '3D 验证片：raymarch 走廊 + 非有限值扫描', timeout: 30 * 60e3 },
   { name: 'check:example-config-only', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--renderer', 'legacy', '--quick'], note: 'B 档：整个任务只有 task.config.mjs（配置档）', timeout: 30 * 60e3 },
   { name: 'check:remotion-example', needs: ['ffmpeg'], cmd: ['scripts/anim.mjs', 'check', 'example-config-only', '--renderer', 'remotion', '--quick'], note: 'Remotion check 端到端冒烟', timeout: 30 * 60e3 },
@@ -322,15 +325,19 @@ function runItem(it) {
     };
   }
   const t0 = Date.now();
-  const r = spawnSync(node, it.cmd.map((a) => (a === process.execPath ? node : a)), {
+  const executable = it.bin === 'npm' && process.platform === 'win32' ? 'npm.cmd' : (it.bin ?? node);
+  const commandArgs = it.bin ? it.cmd : it.cmd.map((a) => (a === process.execPath ? node : a));
+  const r = spawnSync(executable, commandArgs, {
     cwd: ROOT,
     env: { ...process.env, ...(it.env ?? {}) },
     encoding: 'utf8',
     timeout: it.timeout ?? 15 * 60e3,
     maxBuffer: 64 * 1024 * 1024,
+    shell: !!it.bin && process.platform === 'win32',
+    windowsHide: true,
   });
   const ms = Date.now() - t0;
-  const body = `$ node ${it.cmd.join(' ')}\n\n--- stdout ---\n${r.stdout ?? ''}\n--- stderr ---\n${r.stderr ?? ''}\n`;
+  const body = `$ ${it.bin ?? 'node'} ${it.cmd.join(' ')}\n\n--- stdout ---\n${r.stdout ?? ''}\n--- stderr ---\n${r.stderr ?? ''}\n`;
   writeFileSync(log, body);
   const code = r.status;
   const pass = code === 0;

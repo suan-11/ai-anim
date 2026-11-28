@@ -161,14 +161,17 @@ console.log('\n§7 clean 保护（判据只有一处，且 NOTES.json 不匹配�
   ok('isProtectedOutFile("NOTES.json") 为真', isProtectedOutFile('NOTES.json') === true);
   ok('保护名单就是 NOTES.json 这一个', PROTECTED_OUT_FILES.size === 1 && PROTECTED_OUT_FILES.has('NOTES.json'));
   ok('别的名字不受影响', isProtectedOutFile('demo.parts') === false && isProtectedOutFile('x.nv12') === false);
-  // clean 的四条删除规则（与 cmdClean 里逐字一致）：NOTES.json 一条都不命中
+  // clean 的删除判据（与 cmdClean 同口径）：NOTES.json 一条都不命中
   const name = 'NOTES.json';
   const hits = [
     /\.(yuv|nv12|rgba|raw)$/i.test(name),
     name === '_stitched.mp4' || name === 'concat.txt',
-    /\.parts$/.test(name),
+    name.endsWith('.remotion.parts') || name.endsWith('.parts'),
     /^_(frames|dumpframe|determinism|align|via)/.test(name),
+    /^_staging-remotion-/.test(name),
     name.endsWith('.mp4'),
+    /\.remotion.*\.mp4$/i.test(name),
+    /\.remotion\.png$/i.test(name),
   ];
   ok('NOTES.json 不匹配 clean 的任何一条规则（双保险）', hits.every((x) => x === false), JSON.stringify(hits));
 }

@@ -67,7 +67,7 @@ export default shot('chart', {
 | `scripts/anim.mjs` | 新增 `shots` 命令（读 `listShots()`，纯 Node，不起 Vite）；`--help` 头加一行；`new` 脚手架的场景文件头加两句"想要现成镜头先看 `anim shots`" |
 | `package.json` | 新增 `npm run shots` |
 | `tools/test-shots.mjs` | **新增**：74 项断言（见 §14.4） |
-| `tools/regress-all.mjs` | 新增 `unit:shots`；顺手修掉 `check:fidus` 那条过时的 "⏸ 两轮没验过" |
+| `tools/regress-all.mjs` | 新增 `unit:shots`；顺手清理掉 fidus 检查项里过时的 "⏸ 两轮没验过" |
 | `AGENTS.md` / `README.md` / `docs/ROADMAP.md` / `docs/ENGINE.md` | A 档标为已落地；`ENGINE.md` 新增 §14（API / 模板表 / 与 `makeShot` 的关系 / 纪律） |
 
 ### 14.3 验收（实际输出）

@@ -25,6 +25,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { taskLocalDeps } from './task-deps.mjs';
 
 /** 戳文件在任务目录里的**固定**名字（改它就要同步 `scripts/anim.mjs` 与 `tools/precommit-report.mjs` 的排除表） */
 export const STAMP_FILE = 'render-stamp.json';
@@ -110,15 +111,9 @@ export function engineSig(root) {
  */
 export function taskSig(root, task) {
   const files = walk(path.join(root, 'tasks', task), SOURCE_EXT);
-  const cfg = path.join(root, 'tasks', task, 'task.config.mjs');
-  if (existsSync(cfg)) {
-    try {
-      const src = readFileSync(cfg, 'utf8');
-      for (const m of src.matchAll(/from\s+['"](\.[^'"]*\.js)['"]/g)) {
-        const abs = path.resolve(path.dirname(cfg), m[1]);
-        if (existsSync(abs) && !files.includes(abs)) files.push(abs);
-      }
-    } catch { /* 读不到就当没有跨任务依赖 */ }
+  for (const rel of taskLocalDeps(root, task)) {
+    const abs = path.join(root, ...rel.split('/'));
+    if (!files.includes(abs)) files.push(abs);
   }
   return sigOf(root, files);
 }

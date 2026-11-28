@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import {
-  extractRenderer, nativeChunkRanges, overlapAwareChunkRanges, remotionCommand, remotionVideoName, videoFrameRange,
+  extractRenderer, nativeChunkRanges, overlapAwareChunkRanges, remotionCommand, remotionPartsDirectory,
+  remotionScaleWarning, remotionVideoName, resolveSamples, videoFrameRange,
 } from '../scripts/lib/cli/remotion.mjs';
+import { finalVideo } from '../scripts/lib/cli/paths.mjs';
 import { peekTaskName, resolveRenderer } from '../scripts/lib/cli/renderer.mjs';
 import { readRegistry } from '../scripts/lib/remotion-registry.mjs';
 
@@ -79,6 +84,42 @@ assert.equal(remotionVideoName(task, full), 'example-config-only.remotion.mp4');
 assert.equal(remotionVideoName(task, { ...full, draft: true }), 'example-config-only.remotion.draft.mp4');
 assert.equal(remotionVideoName(task, { ...full, from: 1, to: 2 }), 'example-config-only.remotion.1-2.mp4');
 assert.equal(remotionVideoName(task, { ...full, short: true, to: 4 }), 'shot_0-4.remotion.mp4');
+assert.equal(remotionPartsDirectory(path.join('out', task, 'example-config-only.remotion.mp4')),
+  path.join('out', task, 'example-config-only.remotion.parts'));
+
+assert.equal(resolveSamples({ eval: 'task-eval' }, { draft: true }), 1);
+assert.equal(resolveSamples({ eval: 'task-eval' }, { draft: false }), 'auto');
+assert.equal(resolveSamples({ eval: 'task-eval' }, { draft: true, samplesOpt: 'auto' }), 'auto');
+assert.equal(resolveSamples({ eval: 'config-only' }, { draft: true }), 1);
+assert.equal(remotionScaleWarning({ eval: 'task-eval' }, 2),
+  'Remotion 下 --scale 2 只是放大位图，不是真 4K；要真 4K 用 --renderer legacy --scale 2');
+assert.equal(remotionScaleWarning({ eval: 'config-only' }, 2), null);
+assert.equal(remotionScaleWarning({ eval: 'task-eval' }, 1), null);
+
+// The canonical final render is chosen by mtime when both renderer outputs exist.
+{
+  const root = mkdtempSync(path.join(tmpdir(), 'anim-final-video-'));
+  const dir = path.join(root, 'out', 'fixture');
+  mkdirSync(dir, { recursive: true });
+  const legacy = path.join(dir, 'fixture.mp4');
+  const remotion = path.join(dir, 'fixture.remotion.mp4');
+  const hints = [];
+  try {
+    assert.equal(finalVideo('fixture', { root, onBoth: (message) => hints.push(message) }), null);
+    writeFileSync(legacy, 'legacy');
+    assert.equal(finalVideo('fixture', { root, onBoth: (message) => hints.push(message) }), legacy);
+    writeFileSync(remotion, 'remotion');
+    utimesSync(legacy, 1000, 1000);
+    utimesSync(remotion, 2000, 2000);
+    assert.equal(finalVideo('fixture', { root, onBoth: (message) => hints.push(message) }), remotion);
+    assert.match(hints[0], /取较新的/);
+    utimesSync(legacy, 3000, 3000);
+    assert.equal(finalVideo('fixture', { root, onBoth: (message) => hints.push(message) }), legacy);
+    assert.equal(hints.length, 2);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
 
 function rejects(args, reason) {
   const result = spawnSync(process.execPath, ['scripts/anim.mjs', ...args], { encoding: 'utf8' });
@@ -119,4 +160,4 @@ rejects(['video', task, '--renderer', 'remotion', '--force'], /--force 必须与
   const hard = [{ startFrame: 0 }, { startFrame: 210 }, { startFrame: 474 }, { startFrame: 684 }];
   assert.deepEqual(nativeChunkRanges(207, 212, 20, hard), [[207, 209], [210, 212]]);
 }
-console.log('test-remotion-cli: PASS（渲染器选择、默认选路、自动回退、兼容报错、切片区间、分块、交付命名、交叠避切）');
+console.log('test-remotion-cli: PASS（渲染器选择、默认选路、自动回退、兼容报错、切片区间、分块目录、成片选择、采样默认、scale 提示、交付命名、交叠避切）');

@@ -3,7 +3,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { opt, positional } from "./args.mjs";
-import { die } from "./log.mjs";
+import { die, log } from "./log.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /* ------------------------------------------------------------------ 参数解析 */
@@ -27,6 +27,25 @@ function taskOut(task, ...parts) {
 }
 
 /* ------------------------------------------------------------------ 任务发现 */
+
+/**
+ * Resolve the canonical final render, preferring whichever legacy/Remotion output is newest.
+ * @param {string} task
+ * @param {{ root?: string, onBoth?: (message: string) => void }} [options]
+ * @returns {string|null}
+ */
+function finalVideo(task, { root = ROOT, onBoth = log } = {}) {
+  const dir = path.join(root, 'out', task);
+  const legacy = path.join(dir, task + '.mp4');
+  const remotion = path.join(dir, task + '.remotion.mp4');
+  const hasLegacy = existsSync(legacy);
+  const hasRemotion = existsSync(remotion);
+  if (!hasLegacy) return hasRemotion ? remotion : null;
+  if (!hasRemotion) return legacy;
+  const selected = statSync(remotion).mtimeMs > statSync(legacy).mtimeMs ? remotion : legacy;
+  onBoth(`· 同时发现 ${path.relative(root, legacy)} 与 ${path.relative(root, remotion)}；取较新的 ${path.relative(root, selected)}`);
+  return selected;
+}
 
 function taskNames() {
   const dir = path.join(ROOT, 'tasks');
@@ -72,4 +91,4 @@ function mb(bytes) { return `${(bytes / 1048576).toFixed(1)} MB`; }
 
 const CLI_ENTRY_URL = new URL('../../anim.mjs', import.meta.url).href;
 
-export { CLI_ENTRY_URL, ROOT, dirStats, mb, pickTask, taskNames, taskOut };
+export { CLI_ENTRY_URL, ROOT, dirStats, finalVideo, mb, pickTask, taskNames, taskOut };

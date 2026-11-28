@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
-import { engineSig, sigOf, taskSig } from '../render-stamp.mjs';
+import { engineSig, sigOf, stampPath, taskSig, writeStamp } from '../render-stamp.mjs';
 import { evaluateRegisteredTask, readRegistry } from '../remotion-registry.mjs';
 import { log, warn } from './log.mjs';
 import { checkTimestamps, checkVideoFile, ffmpegCmd, runFfmpeg } from './media.mjs';
@@ -89,6 +89,26 @@ export function remotionVideoName(task, { short, draft, from, to, duration }) {
   const stem = short ? `shot_${from}-${to}` : task;
   const range = !short && (from !== 0 || to !== duration) ? `.${from}-${to}` : '';
   return `${stem}.remotion${draft ? '.draft' : ''}${range}.mp4`;
+}
+
+/** Remotion's resumable chunks live beside the output, without an extra `.remotion` suffix. */
+export function remotionPartsDirectory(output) {
+  const stem = path.basename(output).replace(/\.mp4$/i, '');
+  return path.join(path.dirname(output), `${stem}.parts`);
+}
+
+/** Apply render-mode defaults while preserving an explicit --samples value. */
+export function resolveSamples(meta, { draft = false, samplesOpt } = {}) {
+  const defaultSamples = meta.samples ?? (meta.eval === 'config-only' ? 1 : 'auto');
+  if (samplesOpt === undefined && draft && meta.eval !== 'config-only') return 1;
+  return samplesOpt !== undefined ? (samplesOpt === 'auto' ? 'auto' : Number(samplesOpt)) : defaultSamples;
+}
+
+/** EngineBridge renders logical dimensions then scales the resulting bitmap. */
+export function remotionScaleWarning(meta, scale) {
+  return scale > 1 && meta.eval !== 'config-only'
+    ? `Remotion 下 --scale ${scale} 只是放大位图，不是真 4K；要真 4K 用 --renderer legacy --scale ${scale}`
+    : null;
 }
 
 /** 原生样片是硬切。长镜头也可切，遇到镜头边界则提前结束当前块。 */
@@ -325,7 +345,7 @@ async function renderParts(output, { task, id, ranges, fps, scale, crf, samples,
   const key = createHash('sha256').update(JSON.stringify([
     1, process.platform, process.arch, sources, browserInfo, id, ranges, fps, scale, crf, samples,
   ])).digest('hex').slice(0, 20);
-  const cache = path.join(`${output}.remotion.parts`, key);
+  const cache = path.join(remotionPartsDirectory(output), key);
   const files = [];
   let completed = 0;
   log(`分 ${ranges.length} 块渲染（Remotion，已验证分块可续跑）`);
@@ -375,10 +395,11 @@ export async function runRemotion(command, args) {
   const draft = options.has('draft');
   const scale = Number(options.get('scale') ?? (draft ? 0.5 : 1));
   if (!Number.isFinite(scale) || scale < 0.25 || scale > 4) throw new Error('--scale 只接受 0.25 到 4');
-  // samples：config-only 固定 1；task-eval 任务默认 auto（运动模糊），可显式 --samples 1
-  const defaultSamples = meta.samples ?? (meta.eval === 'config-only' ? 1 : 'auto');
+  const scaleWarning = remotionScaleWarning(meta, scale);
+  if (scaleWarning) warn(scaleWarning);
+  // samples：config-only 固定 1；task-eval 任务默认 auto，草稿未显式指定时降到 1 以便快速预览。
   const samplesOpt = options.get('samples');
-  const samples = samplesOpt !== undefined ? (samplesOpt === 'auto' ? 'auto' : Number(samplesOpt)) : defaultSamples;
+  const samples = resolveSamples(meta, { draft, samplesOpt });
   if (samples !== 'auto' && (!Number.isInteger(samples) || samples < 1)) throw new Error('--samples 要给正整数或 auto');
   if (meta.eval === 'config-only' && samples !== 1) throw new Error('该 Remotion 任务只支持 --samples 1');
   if (options.has('fps') && Number(options.get('fps')) !== fps) throw new Error(`该 Remotion 任务固定为 ${fps} fps`);
@@ -510,4 +531,25 @@ export async function runRemotion(command, args) {
   }
   progress(total);
   log(`成片 → ${path.relative(ROOT, output).split(path.sep).join('/')}`);
+
+  // 版本戳只代表完整正式成片；草稿、shot 与显式 --from/--to 截段不能覆盖交付记录。
+  if (command === 'video' && !draft && !options.has('from') && !options.has('to')) {
+    try {
+      const stamp = writeStamp(ROOT, task, {
+        engine: engineSig(ROOT),
+        scene: taskSig(ROOT, task),
+        video: path.relative(ROOT, output).split(path.sep).join('/'),
+        frames: total,
+        fps: Number(fps),
+        draft: false,
+        scale,
+        samples: String(samples),
+        files: statSync(output).size,
+        renderer: 'remotion',
+      });
+      log(`  版本戳 ${path.relative(ROOT, stampPath(ROOT, task)).split(path.sep).join('/')}（引擎 ${stamp.engine} · 场景 ${stamp.scene}）`);
+    } catch (e) {
+      warn(`  ⚠ 版本戳没写成（${e && e.message ? e.message : e}）—— 不影响出片`);
+    }
+  }
 }

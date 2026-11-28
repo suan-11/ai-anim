@@ -15,7 +15,7 @@ import { ROOT, dirStats, mb, pickTask } from "../lib/cli/paths.mjs";
  * 默认只删"能重新生成、且重新生成很贵但确实只是中间物"的东西：
  *   `*.parts/`（分块，删了要重渲）、`*.yuv`/`*.nv12`、`*.rgba`、`_stitched.mp4`、`concat.txt`。
  * **不删**成片、stills、接触表、hash 基线 —— 那些是产物或验收证据。
- * `--all` 才连成片一起删（那要显式要求）。
+ * `--all` 才连成片与 Remotion `.remotion.png` 单帧一起删（那要显式要求）。
  * `--dry-run` 只列清单不动手。
  *
  * ⚠ **`NOTES.json` 也绝不删**（BACKLOG 1-29 后半）：它是"第 12.5 秒这里字幕太小"这类反馈的
@@ -23,6 +23,20 @@ import { ROOT, dirStats, mb, pickTask } from "../lib/cli/paths.mjs";
  *   ① 结构上：下面每个分支都先过 `isProtectedOutFile()`（判据只有一处，将来加规则也不会漏）；
  *   ② 输出上：只要这个文件在，收尾就**明说"评论保留"**（读的人不必去读代码才知道它被保护了）。
  */
+/** @param {string} dir @param {string[]} [out] */
+function remotionStillFiles(dir, out = []) {
+  let entries = [];
+  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+  for (const entry of entries) {
+    const file = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!/\.parts$/.test(entry.name) && !/^_staging-remotion-/.test(entry.name)) remotionStillFiles(file, out);
+    }
+    else if (entry.isFile() && /\.remotion\.png$/i.test(entry.name)) out.push(file);
+  }
+  return out;
+}
+
 function cmdClean() {
   const task = pickTask();
   const dir = path.join(ROOT, 'out', task);
@@ -51,14 +65,23 @@ function cmdClean() {
     if (isProtectedOutFile(e.name)) continue;   // ← 评论永不删（判据只有一处）
     if (e.isDirectory()) {
       // 分块目录 / 诊断用的裸帧目录
-      if (/\.parts$/.test(e.name) || /^_(frames|dumpframe|determinism|align|via)/.test(e.name)) {
-        targets.push({ p, why: /\.parts$/.test(e.name) ? '分块（断点续渲用，删了要重渲）' : '诊断中间产物' });
+      const partsDir = e.name.endsWith('.remotion.parts') || e.name.endsWith('.parts');
+      if (partsDir || /^_(frames|dumpframe|determinism|align|via)/.test(e.name) || /^_staging-remotion-/.test(e.name)) {
+        targets.push({ p, why: partsDir ? '分块（断点续渲用，删了要重渲）' : /^_staging-remotion-/.test(e.name) ? 'Remotion 原子发布暂存目录' : '诊断中间产物' });
       }
       continue;
     }
     if (/\.(yuv|nv12|rgba|raw)$/i.test(e.name)) targets.push({ p, why: '裸帧中间产物' });
     else if (e.name === '_stitched.mp4' || e.name === 'concat.txt') targets.push({ p, why: '分块拼接的中间文件' });
+    else if (all && /\.remotion.*\.mp4$/i.test(e.name)) targets.push({ p, why: 'Remotion 成片（--all 才会删）' });
     else if (all && e.name.endsWith('.mp4')) targets.push({ p, why: '成片（--all 才会删）' });
+  }
+
+  // Remotion still 带 .remotion.png 后缀，位于 stills/ 等子目录；--all 只删这些标记产物。
+  if (all) {
+    for (const p of remotionStillFiles(dir)) {
+      if (!isProtectedOutFile(path.basename(p))) targets.push({ p, why: 'Remotion 单帧图（--all 才会删）' });
+    }
   }
 
   // parts 目录里的 raw 也算上（上面按目录整体处理了，这里只算体积）
@@ -88,7 +111,7 @@ function cmdClean() {
   const after = dirStats(dir);
   log(`\n✓ 已清理，释放 ${mb(freed)}；out/${task}/ 现在 ${mb(after.bytes)}（${after.files} 个文件）`);
   if (existsSync(notesFile)) log(`  ${path.relative(ROOT, notesFile)} 还在（评论没有被清掉）。`);
-  if (rows.some((r) => /\.parts$/.test(r.p))) {
+  if (rows.some((r) => /(?:\.remotion)?\.parts$/.test(r.p))) {
     log(`  ⚠ 分块已删：下次 \`video --segments\` 会全部重渲。`);
   }
 }

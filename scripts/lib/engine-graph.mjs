@@ -137,14 +137,14 @@ export function parseImports(src) {
   const paths = [];
   let dynamic = false;
   // 动态导入 / 构建期 glob：解析不出来 ⇒ 调用方退回整批
-  if (/\bimport\s*\('/.test(text)) dynamic = true;
+  if (/\bimport\s*\(\s*['\"]/.test(text)) dynamic = true;
   if (/\bimport\.meta\.(glob|globEager|globDeep)/.test(text)) dynamic = true;
-  // 静态形式：import/export ... from '<spec>'
-  for (const m of text.matchAll(/\b(?:import|export)\s*(?:[^'";]*?)\sfrom\s*'([^']+)'/g)) {
-    push(m[1]);
+  // 静态形式：import/export ... from '<spec>' 或 "<spec>"
+  for (const m of text.matchAll(/\b(?:import|export)\s*(?:[^'";]*?)\sfrom\s*(['"])([^'"]+)\1/g)) {
+    push(m[2]);
   }
-  // 副作用导入：import './a.js'
-  for (const m of text.matchAll(/\bimport\s*'([^']+)'/g)) push(m[1]);
+  // 副作用导入：import './a.js' / import "./a.js"
+  for (const m of text.matchAll(/\bimport\s*(['"])([^'"]+)\1/g)) push(m[2]);
   function push(spec) {
     if (/^\s*(js|ts)\b/.test(spec)) return; // 防止把 "import js ..." 这类误抓
     paths.push(spec);
@@ -164,7 +164,7 @@ export function resolveSpecifier(fromFile, spec) {
   // 绝对路径（`/` 开头）在 Vite 里指项目根；这里按 rootDir 解析。
   // ⚠ 本仓当前 214 条 import 全是相对路径，但工具被别的项目 / 未来写法复用时不该静默失效。
   const dir = path.dirname(fromFile);
-  const base = spec.startsWith('/') ? path.resolve(ROOT_HINT(f), spec.slice(1)) : path.resolve(dir, spec);
+  const base = spec.startsWith('/') ? path.resolve(ROOT_HINT(fromFile), spec.slice(1)) : path.resolve(dir, spec);
   if (existsSync(base) && statSync(base).isFile()) return base;
   for (const ext of ['.js', '.mjs', '.json', '.css']) {
     if (existsSync(base + ext)) return base + ext;

@@ -119,8 +119,8 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 >
 > Remotion 用的是它自己的 **Remotion License**：**个人、以及不超过 3 人的公司免费**；
 > 超过这个规模需要向 [remotion.pro](https://www.remotion.pro/license) 购买公司许可。
-> 本仓库只把 Remotion 作为**可选渲染器**（`--renderer remotion`，默认仍是旧引擎），
-> 不随仓库分发 Remotion 的源码副本 —— 它只是 `package.json` 里的一条依赖，`npm install` 时取得。
+> Remotion 是**已登记任务的默认渲染器**；未登记任务和显式 `--renderer legacy` 仍走旧引擎。
+> 本仓库不随仓库分发 Remotion 的源码副本 —— 它只是 `package.json` 里的一条依赖，`npm install` 时取得。
 > **商用前请先自己确认这条许可**：`node_modules/remotion/README.md` 第一段就写着
 > “requires obtaining a company license in some cases”，并以 `LICENSE.md` 为准。
 
@@ -135,10 +135,10 @@ OFL-1.1 允许**商用、嵌入、修改、再分发**，包括随软件一起�
 - 同理，**ffmpeg / ffprobe 也不随仓库分发**，需要用户自行安装并在 `PATH` 里
   （或用 `ANIM_FFMPEG` / `ANIM_FFPROBE` 指定）。
 
-**传递依赖**：`package-lock.json` 共 **61 个**受管条目，全部带有 `license` 字段，
-许可证分布为 **MIT 58 个 · Apache-2.0 1 个 · ISC 1 个 · BSD-3-Clause 1 个**，
-**没有任何** GPL / AGPL / LGPL / SSPL / CC-BY-NC / BUSL 等限制性更强的许可证。
-（条目数、版本与许可证字段均可由 `package-lock.json` 直接复核。）
+**依赖许可证清点**：按 `package-lock.json` 中全部 `node_modules/` 条目统计，共 **277 个**：
+**MIT 216 · Apache-2.0 6 · ISC 14 · BSD-3-Clause 7 · BSD-2-Clause 10 · Unlicense 2 · UNLICENSED 2 · 0BSD 1 · BlueOak-1.0.0 1 · CC-BY-4.0 1 · MPL-2.0 1**；
+另有 **5** 条标为 `SEE LICENSE IN LICENSE.md`、**2** 条标为 Remotion License、**9** 条未提供 `license` 字段，均未强行归类。
+具体包、版本与原始字段以 `package-lock.json` 为准；Remotion 的商业许可提醒见上方，分发前也应核对各依赖随包附带的许可文本。
 
 ---
 
